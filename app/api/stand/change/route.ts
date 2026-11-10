@@ -4,12 +4,31 @@ import { allow, isStandTokenValid } from "@/lib/auth";
 import { getRepo } from "@/lib/repo";
 import { readSample } from "@/lib/samples";
 import { handleShelfChange, type ShelfChangeDeps } from "@/lib/stand";
+import type { Product } from "@/lib/types";
 import { diffShelf } from "@/lib/vision";
 
 const MAX_PHOTO_BYTES = 3_000_000;
 const DemoBody = z.object({ shop: z.literal("demo"), sampleId: z.string().max(64) });
 
-const deps = (): ShelfChangeDeps => ({ repo: getRepo(), diff: diffShelf, newId: () => randomUUID().slice(0, 8) });
+/** Reads each product's stored reference photo, if it has one. */
+async function loadRefs(products: Product[]): Promise<Record<string, Uint8Array>> {
+  const repo = getRepo();
+  const refs: Record<string, Uint8Array> = {};
+  await Promise.all(
+    products.map(async (p) => {
+      if (!p.refImageUrl) return;
+      const bytes = await repo.getPhoto(p.refImageUrl);
+      if (bytes) refs[p.sku] = bytes;
+    }),
+  );
+  return refs;
+}
+
+const deps = (): ShelfChangeDeps => ({
+  repo: getRepo(),
+  diff: async (input) => diffShelf({ ...input, refs: await loadRefs(input.products) }),
+  newId: () => randomUUID().slice(0, 8),
+});
 const bad = (error: string, status = 400) => Response.json({ error }, { status });
 
 export async function POST(req: Request) {
