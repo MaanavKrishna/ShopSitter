@@ -60,8 +60,11 @@ export async function POST(req: Request) {
   }
 
   // Live stand: the camera page uploads the before and after stills.
-  if (!isStandTokenValid(req.headers.get("x-stand-token"))) {
+  const caller = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
+  if (!isStandTokenValid(req.headers.get("x-stand-token")?.trim() ?? null)) {
     console.warn("stand change refused: wrong stand code");
+    // The stand code is short enough to type on a phone, so guessing is slowed right down.
+    if (!allow(`standcode:${caller}`, 5, 10 * 60_000)) return bad("slow_down", 429);
     return bad("unauthorized", 401);
   }
   const form = await req.formData().catch(() => null);
