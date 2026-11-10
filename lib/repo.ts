@@ -1,5 +1,6 @@
 import path from "node:path";
 import { FileRepo } from "./repo-file";
+import { PostgresRepo } from "./repo-postgres";
 import type { Product, Shop } from "./types";
 import type { Visit } from "./visits";
 
@@ -20,14 +21,11 @@ export interface Repo {
 
 let cached: Repo | null = null;
 
-/** Storage chosen by the REPO env var: "file" (default, local .data/ folder) or "supabase". */
+/** Storage chosen by the REPO env var: "file" (default, local .data/ folder) or "postgres". */
 export function getRepo(): Repo {
   if (cached) return cached;
-  if (process.env.REPO === "supabase") {
-    // Loaded lazily so local development needs no Supabase settings.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { SupabaseRepo } = require("./repo-supabase") as typeof import("./repo-supabase");
-    cached = new SupabaseRepo();
+  if (process.env.REPO === "postgres") {
+    cached = new PostgresRepo();
   } else {
     cached = new FileRepo(path.join(process.cwd(), ".data"));
   }
