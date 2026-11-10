@@ -7,6 +7,7 @@ import { formatCents } from "@/lib/money";
 import type { StockRow, Totals, VisitRow } from "@/lib/owner";
 import { statusLabel } from "@/lib/studio-report";
 import type { Product, Shop } from "@/lib/types";
+import { Wordmark } from "../Wordmark";
 
 // AG Studio draws on a canvas and measures the window, so it only runs in the browser.
 const SalesStudio = dynamic(() => import("./SalesStudio"), {
@@ -67,32 +68,34 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
   const low = stock.filter((s) => s.left <= 1);
 
   return (
+    <>
+    <header className="owner-bar grass">
+      <Wordmark />
+      <div className="owner-bar-actions">
+        <button type="button" className="btn btn-quiet" onClick={() => void reload()}>
+          Refresh
+        </button>
+        <button type="button" className="btn btn-quiet" onClick={() => void signOut()}>
+          Sign out
+        </button>
+      </div>
+    </header>
     <main className="owner">
-      <header className="owner-head">
-        <div>
-          <h1>{shop === "demo" ? "Demo stand" : "Your stand"}</h1>
-          <p>The last 7 days.</p>
-        </div>
-        <div className="owner-head-actions">
-          <button type="button" className="btn btn-quiet" onClick={() => void reload()}>
-            Refresh
-          </button>
-          <button type="button" className="btn btn-quiet" onClick={() => void signOut()}>
-            Sign out
-          </button>
-        </div>
-      </header>
+      <div className="owner-head">
+        <h1>{shop === "demo" ? "Demo stand" : "Your stand"}</h1>
+        <p>The last 7 days.</p>
+      </div>
 
       <dl className="owner-tiles">
         <div>
           <dt>Taken from the shelf</dt>
           <dd className="money">${formatCents(totals.soldCents)}</dd>
         </div>
-        <div className="tag">
+        <div data-tone="paid">
           <dt>Paid through PayPal</dt>
           <dd className="money">${formatCents(totals.paidCents - totals.refundedCents)}</dd>
         </div>
-        <div data-tone={totals.unmatchedCents > 0 ? "beet" : undefined}>
+        <div data-tone={totals.unmatchedCents > 0 ? "unmatched" : undefined}>
           <dt>Unmatched</dt>
           <dd className="money">${formatCents(totals.unmatchedCents)}</dd>
         </div>
@@ -215,6 +218,7 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
 
       <SalesStudio visits={visits} stock={stock} />
     </main>
+    </>
   );
 }
 

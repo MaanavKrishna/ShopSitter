@@ -6,6 +6,7 @@ import { formatCents } from "@/lib/money";
 import type { Sample } from "@/lib/samples";
 import type { PricedBill } from "@/lib/types";
 import type { Visit } from "@/lib/visits";
+import { Starburst } from "./Starburst";
 
 type Outcome = { sampleId: string; visit: Visit | null; bill: PricedBill | null };
 
@@ -40,7 +41,18 @@ export function DemoRunner({ samples }: { samples: Sample[] }) {
   }
 
   if (samples.length === 0) {
-    return <p className="demo-empty">Sample photos haven&apos;t been added yet. Check back soon.</p>;
+    return (
+      <div className="demo-empty card card-white">
+        <h2>The sample photos aren&apos;t in yet</h2>
+        <p>
+          They&apos;re being taken on a real shelf. Until then, the toy shelf on the home page shows the idea, and the
+          demo stand&apos;s dashboard shows what the owner sees.
+        </p>
+        <Link className="btn" href="/">
+          Back to the toy shelf
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -84,9 +96,12 @@ export function DemoRunner({ samples }: { samples: Sample[] }) {
                         </li>
                       ))}
                     </ul>
-                    <div className="tag pay-total">
-                      <span>Total</span>
-                      <span className="money">${formatCents(outcome.bill.totalCents)}</span>
+                    <div className="pay-total">
+                      <span>Total to pay</span>
+                      <div className="flash">
+                        <Starburst />
+                        <span className="money">${formatCents(outcome.bill.totalCents)}</span>
+                      </div>
                     </div>
                     <Link className="btn btn-pay" href={`/pay/${outcome.visit.id}`}>
                       Open the customer&apos;s pay page

@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { formatCents } from "@/lib/money";
 import type { Line, PricedBill, Product } from "@/lib/types";
 import type { Visit } from "@/lib/visits";
+import { Starburst } from "./Starburst";
 
 type Props = {
   visitId: string;
@@ -67,9 +68,20 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, paypalC
   if (isPaid(visit)) {
     return (
       <section aria-live="polite">
-        <p className="pay-kicker">Paid, thank you</p>
-        <h1>You paid ${formatCents(visit.paidCents ?? 0)}</h1>
-        <BillList bill={bill} />
+        <div className="pay-paid">
+          <div className="flash">
+            <Starburst />
+            <span>
+              <small>You paid</small>
+              <br />
+              <span className="money">${formatCents(visit.paidCents ?? 0)}</span>
+            </span>
+          </div>
+          <h1>Paid, thank you</h1>
+        </div>
+        <div className="pay-card">
+          <BillList bill={bill} />
+        </div>
         <p className="pay-small">PayPal reference {visit.captureId}. You can close this page.</p>
       </section>
     );
@@ -98,7 +110,7 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, paypalC
       {bill.lines.length === 0 ? (
         <p className="pay-empty">Nothing on the bill yet.</p>
       ) : (
-        <ul className="pay-lines">
+        <ul className="pay-lines pay-card">
           {bill.lines.map((l) => (
             <li key={l.sku}>
               <div>
@@ -137,9 +149,12 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, paypalC
           </button>
         ))}
 
-      <div className="tag pay-total">
-        <span>Total</span>
-        <span className="money">${formatCents(bill.totalCents)}</span>
+      <div className="pay-total">
+        <span>Total to pay</span>
+        <div className="flash">
+          <Starburst />
+          <span className="money">${formatCents(bill.totalCents)}</span>
+        </div>
       </div>
 
       {notice && (

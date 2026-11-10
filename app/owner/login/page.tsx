@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Wordmark } from "@/components/Wordmark";
 
 export default function OwnerLogin() {
   const router = useRouter();
@@ -25,8 +26,12 @@ export default function OwnerLogin() {
   }
 
   return (
-    <main className="owner-login">
-      <h1>Owner sign-in</h1>
+    <div className="owner-login-wrap grass">
+      <header className="topbar">
+        <Wordmark />
+      </header>
+      <main className="owner-login card card-white">
+        <h1>Owner sign-in</h1>
       <p>Enter the stand&apos;s passcode to see what sold. The demo stand&apos;s passcode is <strong>demo</strong>.</p>
       <form onSubmit={signIn}>
         <label htmlFor="passcode">Passcode</label>
@@ -47,6 +52,7 @@ export default function OwnerLogin() {
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
-    </main>
+      </main>
+    </div>
   );
 }

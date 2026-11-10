@@ -3,6 +3,8 @@
 import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StandCamera, type ShelfChange } from "@/components/StandCamera";
+import { Starburst } from "@/components/Starburst";
+import { Wordmark } from "@/components/Wordmark";
 import { formatCents } from "@/lib/money";
 import type { PricedBill } from "@/lib/types";
 import type { Visit } from "@/lib/visits";
@@ -117,80 +119,105 @@ export default function StandPage() {
 
   if (!token) {
     return (
-      <main className="board stand stand-setup">
-        <h1>Set up this stand</h1>
-        <p>Prop this device so its camera sees the whole shelf, then enter the stand code.</p>
-        {problem && <p role="alert">{problem}</p>}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!draft.trim()) return;
-            localStorage.setItem(TOKEN_KEY, draft.trim());
-            setProblem(null);
-            setToken(draft.trim());
-          }}
-        >
-          <label htmlFor="stand-code">Stand code</label>
-          <input id="stand-code" value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="off" />
-          <button className="btn btn-pay" type="submit">
-            Start watching the shelf
-          </button>
-        </form>
+      <main className="grass stand stand-setup">
+        <header className="stand-head">
+          <Wordmark />
+        </header>
+        <div className="stand-setup-card card card-white">
+          <h1>Set up this stand</h1>
+          <p>Prop this device so its camera sees the whole shelf, then enter the stand code.</p>
+          {problem && (
+            <p role="alert" className="notice">
+              {problem}
+            </p>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!draft.trim()) return;
+              localStorage.setItem(TOKEN_KEY, draft.trim());
+              setProblem(null);
+              setToken(draft.trim());
+            }}
+          >
+            <label htmlFor="stand-code">Stand code</label>
+            <input id="stand-code" value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="off" />
+            <button className="btn btn-pay" type="submit">
+              Start watching the shelf
+            </button>
+          </form>
+        </div>
       </main>
     );
   }
 
   const lowConfidence = current?.visit.confidence !== null && (current?.visit.confidence ?? 1) < 0.6;
+  const manualOnly = !!current?.visit.needsManual && current.bill.totalCents === 0;
 
   return (
-    <main className="board stand">
-      <section className="stand-main" aria-live="polite">
+    <main className="grass stand">
+      <header className="stand-head">
+        <Wordmark href="/stand" />
+      </header>
+
+      <div className="stand-body" aria-live="polite">
         {justPaid !== null ? (
           <div className="stand-paid">
+            <div className="flash">
+              <Starburst points={24} />
+              <span className="money">${formatCents(justPaid)}</span>
+            </div>
             <h1>Paid, thank you</h1>
-            <p className="money">${formatCents(justPaid)}</p>
-          </div>
-        ) : current?.visit.needsManual && current.bill.totalCents === 0 ? (
-          <div className="stand-bill">
-            <h1>Couldn&apos;t read the shelf</h1>
-            <p className="stand-hint">Scan to enter what you took.</p>
           </div>
         ) : current ? (
-          <div className="stand-bill">
-            <h1>Your bill</h1>
-            <ul>
-              {current.bill.lines.map((l) => (
-                <li key={l.sku}>
-                  <span className="stand-qty">{l.qty}</span>
-                  <span className="stand-name">{l.name}</span>
-                  <span className="money">${formatCents(l.lineCents)}</span>
-                </li>
-              ))}
-            </ul>
-            {(lowConfidence || current.visit.needsManual) && (
-              <p className="stand-hint">Not sure we got that right. Please check it on your phone.</p>
-            )}
-          </div>
+          <>
+            <section className="stand-bill">
+              <h1>{manualOnly ? "Couldn\u2019t read the shelf" : "Your bill"}</h1>
+              {manualOnly ? (
+                <p className="stand-hint">Scan the code to enter what you took.</p>
+              ) : (
+                <ul>
+                  {current.bill.lines.map((l) => (
+                    <li key={l.sku}>
+                      <span className="stand-qty">{l.qty}</span>
+                      <span className="stand-name">{l.name}</span>
+                      <span className="money">${formatCents(l.lineCents)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!manualOnly && (lowConfidence || current.visit.needsManual) && (
+                <p className="stand-hint">Not sure we got that right. Please check it on your phone.</p>
+              )}
+            </section>
+
+            <aside className="stand-tag">
+              {!manualOnly && (
+                <div className="flash">
+                  <Starburst points={24} />
+                  <p className="stand-total">
+                    <span>Total</span>
+                    <span className="money">${formatCents(current.bill.totalCents)}</span>
+                  </p>
+                </div>
+              )}
+              <div className="stand-qr card card-white">
+                {/* eslint-disable-next-line @next/next/no-img-element -- a generated data URL, nothing to optimise */}
+                {qr && <img src={qr} alt="QR code to pay this bill with PayPal" />}
+                <p className="stand-scan">Scan to pay with PayPal</p>
+                <p className="stand-fix">Wrong? Fix it on your phone.</p>
+              </div>
+            </aside>
+          </>
         ) : (
           <div className="stand-ready">
-            <h1>Take what you like</h1>
+            <div className="card">
+              <h1>Take what you like</h1>
+            </div>
             <p>Your bill appears here.</p>
           </div>
         )}
-      </section>
-
-      {current && justPaid === null && (
-        <aside className="tag stand-tag">
-          <p className="stand-total">
-            <span>Total</span>
-            <span className="money">${formatCents(current.bill.totalCents)}</span>
-          </p>
-          {/* eslint-disable-next-line @next/next/no-img-element -- a generated data URL, nothing to optimise */}
-          {qr && <img src={qr} alt="QR code to pay this bill with PayPal" />}
-          <p className="stand-scan">Scan to pay with PayPal</p>
-          <p className="stand-fix">Wrong? Fix it on your phone.</p>
-        </aside>
-      )}
+      </div>
 
       <footer className="stand-foot">
         <StandCamera onChange={onChange} />
@@ -198,7 +225,11 @@ export default function StandPage() {
           A camera counts items on this shelf. It does not record people.
           {reading && <span className="stand-reading"> Reading the shelf…</span>}
         </p>
-        {problem && <p role="alert">{problem}</p>}
+        {problem && (
+          <p role="alert" className="stand-problem">
+            {problem}
+          </p>
+        )}
       </footer>
     </main>
   );

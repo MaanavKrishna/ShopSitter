@@ -1,6 +1,7 @@
 import { CheckoutError, getBill } from "@/lib/checkout";
 import { getRepo } from "@/lib/repo";
 import { PayPanel } from "@/components/PayPanel";
+import { Wordmark } from "@/components/Wordmark";
 
 export const dynamic = "force-dynamic";
 
@@ -18,21 +19,31 @@ export default async function PayPage({ params }: PageProps<"/pay/[visitId]">) {
   const data = await loadBill(visitId);
   if (!data) {
     return (
-      <main className="pay-shell">
-        <h1>We can&apos;t find this bill</h1>
-        <p>Scan the code on the stand again to get a fresh link.</p>
-      </main>
+      <>
+        <header className="pay-top grass">
+          <Wordmark />
+        </header>
+        <main className="pay-shell">
+          <h1>We can&apos;t find this bill</h1>
+          <p>Scan the code on the stand again to get a fresh link.</p>
+        </main>
+      </>
     );
   }
   return (
-    <main className="pay-shell">
-      <PayPanel
+    <>
+      <header className="pay-top grass">
+        <Wordmark />
+      </header>
+      <main className="pay-shell">
+        <PayPanel
         visitId={visitId}
         initialVisit={data.visit}
         initialBill={data.bill}
         products={data.products}
-        paypalClientId={process.env.PAYPAL_CLIENT_ID ?? null}
-      />
-    </main>
+          paypalClientId={process.env.PAYPAL_CLIENT_ID ?? null}
+        />
+      </main>
+    </>
   );
 }
