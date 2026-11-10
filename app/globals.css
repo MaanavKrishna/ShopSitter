@@ -300,3 +300,270 @@ button:disabled {
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--line);
 }
+
+/* Stand screen: a chalkboard read from two metres away */
+.stand {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto auto;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+.stand h1 {
+  font-size: clamp(2.6rem, 8vw, 6rem);
+  margin: 0 0 0.3em;
+}
+
+.stand-ready p,
+.stand-hint {
+  font-size: clamp(1.3rem, 3.2vw, 2.2rem);
+  color: var(--chalk-dim);
+  margin: 0;
+}
+
+.stand-bill ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: clamp(1.6rem, 4.4vw, 3.2rem);
+}
+
+.stand-bill li {
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto;
+  gap: 0.4em;
+  align-items: baseline;
+  padding: 0.25em 0;
+  border-bottom: 2px dashed rgb(244 242 230 / 0.25);
+}
+
+.stand-qty {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  color: var(--tag);
+}
+
+.stand-hint {
+  margin-top: 0.8em;
+}
+
+.stand-tag {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1.4rem 1.4rem 1.2rem;
+  transform: rotate(-1.5deg);
+  align-self: center;
+  justify-self: center;
+  width: min(100%, 24rem);
+}
+
+.stand-tag::before {
+  left: 50%;
+  top: 0.9rem;
+  margin-left: -0.5rem;
+  margin-top: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.stand-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin: 1.4rem 0 0;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.stand-total .money {
+  font-size: clamp(3rem, 9vw, 5rem);
+  line-height: 1;
+}
+
+.stand-tag img {
+  width: min(100%, 15rem);
+  height: auto;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.stand-scan {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.stand-fix {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.stand-paid h1 {
+  color: var(--tag);
+}
+
+.stand-paid .money {
+  font-size: clamp(3rem, 10vw, 7rem);
+  margin: 0;
+}
+
+.stand-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 1.5rem;
+  color: var(--chalk-dim);
+  font-size: 0.95rem;
+}
+
+.stand-foot p {
+  margin: 0;
+}
+
+.stand-reading {
+  color: var(--tag);
+}
+
+.stand-preview {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.stand-preview video {
+  width: 9rem;
+  border-radius: 8px;
+  background: var(--board-deep);
+}
+
+.stand-preview[data-hidden="true"] video {
+  /* Kept in the layout at 1px so the camera keeps delivering frames. */
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.stand-preview button {
+  border: 0;
+  background: none;
+  color: var(--chalk-dim);
+  text-decoration: underline;
+  padding: 0.3rem 0;
+  text-align: left;
+}
+
+.stand-problem {
+  max-width: 28rem;
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-left: 4px solid var(--tag);
+  background: var(--board-deep);
+  color: var(--chalk);
+}
+
+.stand-setup {
+  align-content: center;
+  grid-template-rows: none;
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.stand-setup h1 {
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+}
+
+.stand-setup form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.stand-setup input {
+  min-height: 52px;
+  padding: 0 1rem;
+  border: 2px solid var(--chalk-dim);
+  border-radius: 10px;
+  background: var(--board-deep);
+  color: var(--chalk);
+  font: inherit;
+}
+
+@media (min-width: 900px) {
+  .stand {
+    grid-template-columns: 1.5fr 1fr;
+    grid-template-rows: 1fr auto;
+    column-gap: 3rem;
+  }
+
+  .stand-foot {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Demo page */
+.demo {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.1rem 4rem;
+}
+
+.demo h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  margin: 0 0 0.6rem;
+}
+
+.demo-lede {
+  max-width: 40rem;
+  margin: 0 0 2rem;
+  color: var(--ink-soft);
+}
+
+.demo-empty {
+  padding: 1.5rem;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+}
+
+.demo-samples {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 2rem 1.5rem;
+}
+
+.demo-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.demo-pair figure {
+  margin: 0;
+}
+
+.demo-pair img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--line);
+}
+
+.demo-pair figcaption {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  padding-top: 0.2rem;
+}
+
+.demo-caption {
+  margin: 0.6rem 0 0.8rem;
+  font-weight: 700;
+}
+
+.demo-result {
+  margin-top: 1rem;
+}
