@@ -43,7 +43,8 @@ export type OrderBody = ReturnType<typeof buildOrderBody>;
 export interface PayPalGateway {
   createOrder(body: OrderBody): Promise<{ orderId: string }>;
   captureOrder(orderId: string): Promise<{ captureId: string; amountCents: number; status: string }>;
-  refundCapture(captureId: string, cents: number): Promise<{ refundId: string }>;
+  /** `key` identifies this refund: the same key retried returns the same refund instead of a second one. */
+  refundCapture(captureId: string, cents: number, key: string): Promise<{ refundId: string }>;
 }
 
 class SandboxGateway implements PayPalGateway {
@@ -85,10 +86,10 @@ class SandboxGateway implements PayPalGateway {
     };
   }
 
-  async refundCapture(captureId: string, cents: number) {
+  async refundCapture(captureId: string, cents: number, key: string) {
     const { result } = await this.payments.refundCapturedPayment({
       captureId,
-      paypalRequestId: `refund-${captureId}-${cents}`,
+      paypalRequestId: key,
       body: { amount: money(cents) },
     });
     if (!result.id) throw new Error("PayPal returned no refund id");
