@@ -95,4 +95,17 @@ describe("handleShelfChange", () => {
     expect(b.closed).toBeUndefined();
     expect((await repo.getVisit(a.visit!.id))!.status).toBe("open");
   });
+
+  it("hands the close-ups of the changed area to the shelf reader", async () => {
+    const zoom = { before: new Uint8Array([7]), after: new Uint8Array([8]) };
+    let seen: unknown;
+    const d = deps([{ sku: "honey", qty: 1 }]);
+    const diff = d.diff;
+    d.diff = async (input) => {
+      seen = input.zoom;
+      return diff(input);
+    };
+    await handleShelfChange(d, change(1_000, 3_000, { zoom }));
+    expect(seen).toBe(zoom);
+  });
 });

@@ -73,6 +73,11 @@ export async function POST(req: Request) {
   const changeStartedAt = Number(form?.get("changeStartedAt"));
   const settledAt = Number(form?.get("settledAt"));
   if (!(before instanceof File) || !(after instanceof File)) return bad("bad_request");
+  const zoomBefore = form?.get("beforeZoom");
+  const zoomAfter = form?.get("afterZoom");
+  const hasZoom =
+    zoomBefore instanceof File && zoomAfter instanceof File &&
+    zoomBefore.size <= MAX_PHOTO_BYTES && zoomAfter.size <= MAX_PHOTO_BYTES;
   if (before.size > MAX_PHOTO_BYTES || after.size > MAX_PHOTO_BYTES) return bad("photo_too_large", 413);
   if (!Number.isFinite(changeStartedAt) || !Number.isFinite(settledAt) || settledAt < changeStartedAt) {
     return bad("bad_request");
@@ -85,10 +90,13 @@ export async function POST(req: Request) {
     after: new Uint8Array(await after.arrayBuffer()),
     changeStartedAt,
     settledAt,
+    zoom: hasZoom
+      ? { before: new Uint8Array(await zoomBefore.arrayBuffer()), after: new Uint8Array(await zoomAfter.arrayBuffer()) }
+      : undefined,
   });
   // One line per read, so a stand that seems stuck can be diagnosed from the logs.
   console.log(
-    `stand change: ${Date.now() - started}ms, photos ${before.size}+${after.size} bytes, ` +
+    `stand change: ${Date.now() - started}ms, photos ${before.size}+${after.size} bytes, close-ups ${hasZoom}, ` +
       `visit ${result.visit?.id ?? "none"} ${result.visit?.status ?? ""} ` +
       `detected ${JSON.stringify(result.visit?.detected ?? [])} confidence ${result.visit?.confidence ?? "n/a"} ` +
       `manual ${result.visit?.needsManual ?? false}`,

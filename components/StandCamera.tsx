@@ -2,26 +2,42 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  DIFFERS_BLOCKS,
+  MOVING_BLOCKS,
   SAMPLE_HEIGHT,
   SAMPLE_WIDTH,
-  frameDistance,
+  compareGrids,
+  cropBox,
   initialDetector,
   stepDetector,
   toGray,
+  toGrid,
 } from "@/lib/frame-diff";
 
-export type ShelfChange = { before: Blob; after: Blob; changeStartedAt: number; settledAt: number };
+export type ShelfChange = {
+  before: Blob;
+  after: Blob;
+  /** Close-ups of the area that changed, cut from the sharpest frames the camera gives. */
+  zoom?: { before: Blob; after: Blob };
+  changeStartedAt: number;
+  settledAt: number;
+};
 
-const STILL_WIDTH = 1280;
-const SAMPLE_EVERY_MS = 250;
+const SHARP_WIDTH = 1920; // frames are kept at up to this width, for close-ups
+const STILL_WIDTH = 1024; // the whole-shelf photos that are sent
+const ZOOM_WIDTH = 1024; // close-ups are sent no wider than this
+const SAMPLE_EVERY_MS = 200;
+const REFRESH_IDLE_MS = 8000; // a still, unchanged shelf is re-photographed this often, so slow light changes never add up
+
+export type CameraPhase = "starting" | "watching" | "moving";
+
+type Rect = { x: number; y: number; w: number; h: number };
 
 /**
  * Watches the shelf through the camera. When something changes and the shelf goes still,
- * calls onChange with a photo from before and after. Frames are compared on this device;
- * only the two stills for a change ever leave it.
+ * calls onChange with a photo from before and after, plus close-ups of the changed area.
+ * Frames are compared on this device; only the photos for a change ever leave it.
  */
-export type CameraPhase = "starting" | "watching" | "moving";
-
 export function StandCamera({
   onChange,
   onPhase,
@@ -31,7 +47,7 @@ export function StandCamera({
   onChange: (change: ShelfChange) => void;
   /** Tells the page whether the shelf is still or something is moving, so it can say so. */
   onPhase?: (phase: CameraPhase) => void;
-  /** About once a second: how much of the picture is moving, and how much differs from the last read (0..1). */
+  /** About once a second: how many small areas of the picture are moving, and how many differ from the last read. */
   onStats?: (stats: { moving: number; differs: number }) => void;
   /** Increase this number to read the shelf right now, whatever the detector thinks. */
   readNow?: number;
@@ -61,26 +77,37 @@ export function StandCamera({
   useEffect(() => {
     let stopped = false;
     let stream: MediaStream | null = null;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     const small = document.createElement("canvas");
     small.width = SAMPLE_WIDTH;
     small.height = SAMPLE_HEIGHT;
     const smallCtx = small.getContext("2d", { willReadFrequently: true })!;
-    const full = document.createElement("canvas");
+    // The shelf as it was last read, and as it is now, at full sharpness.
+    let baseline = document.createElement("canvas");
+    let latest = document.createElement("canvas");
+    const out = document.createElement("canvas");
 
-    const grab = () => {
+    const grabGrid = () => {
       smallCtx.drawImage(videoRef.current!, 0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT);
-      return toGray(smallCtx.getImageData(0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT).data);
+      return toGrid(toGray(smallCtx.getImageData(0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT).data));
     };
-    const still = () =>
+    const snapshot = (into: HTMLCanvasElement) => {
+      const video = videoRef.current!;
+      const scale = Math.min(1, SHARP_WIDTH / video.videoWidth);
+      into.width = Math.round(video.videoWidth * scale);
+      into.height = Math.round(video.videoHeight * scale);
+      into.getContext("2d")!.drawImage(video, 0, 0, into.width, into.height);
+    };
+    /** A JPEG of all or part of a snapshot, no wider than maxWidth. */
+    const jpeg = (from: HTMLCanvasElement, rect: Rect | null, maxWidth: number, quality: number) =>
       new Promise<Blob>((resolve, reject) => {
-        const video = videoRef.current!;
-        const scale = Math.min(1, STILL_WIDTH / video.videoWidth);
-        full.width = Math.round(video.videoWidth * scale);
-        full.height = Math.round(video.videoHeight * scale);
-        full.getContext("2d")!.drawImage(video, 0, 0, full.width, full.height);
-        full.toBlob((b) => (b ? resolve(b) : reject(new Error("no still"))), "image/jpeg", 0.82);
+        const r = rect ?? { x: 0, y: 0, w: from.width, h: from.height };
+        const scale = Math.min(1, maxWidth / r.w);
+        out.width = Math.round(r.w * scale);
+        out.height = Math.round(r.h * scale);
+        out.getContext("2d")!.drawImage(from, r.x, r.y, r.w, r.h, 0, 0, out.width, out.height);
+        out.toBlob((b) => (b ? resolve(b) : reject(new Error("no photo"))), "image/jpeg", quality);
       });
 
     async function start() {
@@ -90,7 +117,7 @@ export function StandCamera({
       }
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false,
         });
       } catch {
@@ -102,51 +129,86 @@ export function StandCamera({
       video.srcObject = stream;
       await video.play();
       // Let exposure settle before taking the first baseline.
-      await new Promise((r) => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, 1200));
       if (stopped) return;
 
-      let baselineGray = grab();
-      let baselineStill = await still();
-      let prev = baselineGray;
+      let baselineGrid = grabGrid();
+      snapshot(baseline);
+      let prev = baselineGrid;
       let detector = initialDetector();
       let phase: CameraPhase = "watching";
       let ticks = 0;
+      let idleSince = Date.now();
       onPhaseRef.current?.(phase);
 
-      timer = setInterval(async () => {
-        if (stopped || video.readyState < 2) return;
-        const gray = grab();
-        const now = Date.now();
-        const vsPrev = frameDistance(gray, prev);
-        const vsBaseline = frameDistance(gray, baselineGray);
-        if (++ticks % 4 === 0) onStatsRef.current?.({ moving: vsPrev, differs: vsBaseline });
-        const result = stepDetector(detector, { vsPrev, vsBaseline, t: now });
-        if (forceRef.current) {
-          forceRef.current = false;
-          result.state = initialDetector();
-          result.fire = { changeStartedAt: now, settledAt: now };
-        }
-        prev = gray;
-        detector = result.state;
-        const next: CameraPhase = detector.changeStartedAt === null ? "watching" : "moving";
-        if (next !== phase) {
-          phase = next;
-          onPhaseRef.current?.(phase);
-        }
-        if (!result.fire) return;
+      const tick = async () => {
+        if (stopped) return;
+        try {
+          if (video.readyState < 2) return;
+          const grid = grabGrid();
+          const now = Date.now();
+          const vsPrev = compareGrids(prev, grid);
+          const vsBaseline = compareGrids(baselineGrid, grid);
+          prev = grid;
+          if (++ticks % 5 === 0) onStatsRef.current?.({ moving: vsPrev.changed, differs: vsBaseline.changed });
 
-        const before = baselineStill;
-        const after = await still();
-        baselineGray = gray;
-        baselineStill = after;
-        onChangeRef.current({ before, after, ...result.fire });
-      }, SAMPLE_EVERY_MS);
+          const moving = vsPrev.changed >= MOVING_BLOCKS;
+          const differs = vsBaseline.changed >= DIFFERS_BLOCKS;
+          const result = stepDetector(detector, { moving, differs, t: now });
+          detector = result.state;
+          let fire = result.fire;
+          if (forceRef.current) {
+            forceRef.current = false;
+            detector = initialDetector();
+            fire = { changeStartedAt: now, settledAt: now };
+          }
+
+          const next: CameraPhase = detector.changeStartedAt === null ? "watching" : "moving";
+          if (next !== phase) {
+            phase = next;
+            onPhaseRef.current?.(phase);
+          }
+
+          if (!fire) {
+            // Keep the baseline fresh while nothing is happening.
+            if (moving || differs || detector.changeStartedAt !== null) idleSince = now;
+            else if (now - idleSince >= REFRESH_IDLE_MS) {
+              idleSince = now;
+              baselineGrid = grid;
+              snapshot(baseline);
+            }
+            return;
+          }
+
+          snapshot(latest);
+          const rect = vsBaseline.box ? cropBox(vsBaseline.box, latest.width, latest.height) : null;
+          // A close-up only helps when it is a real enlargement of part of the picture.
+          const useful = rect !== null && rect.w < latest.width * 0.8 && baseline.width === latest.width;
+          const before = await jpeg(baseline, null, STILL_WIDTH, 0.8);
+          const after = await jpeg(latest, null, STILL_WIDTH, 0.8);
+          const zoom = useful
+            ? { before: await jpeg(baseline, rect, ZOOM_WIDTH, 0.85), after: await jpeg(latest, rect, ZOOM_WIDTH, 0.85) }
+            : undefined;
+
+          // What was just read becomes the new "before".
+          [baseline, latest] = [latest, baseline];
+          baselineGrid = grid;
+          detector = initialDetector();
+          idleSince = now;
+          onChangeRef.current({ before, after, zoom, ...fire });
+        } catch (e) {
+          console.error("stand camera", e);
+        } finally {
+          if (!stopped) timer = setTimeout(tick, SAMPLE_EVERY_MS);
+        }
+      };
+      timer = setTimeout(tick, SAMPLE_EVERY_MS);
     }
 
     void start();
     return () => {
       stopped = true;
-      if (timer) clearInterval(timer);
+      if (timer) clearTimeout(timer);
       stream?.getTracks().forEach((t) => t.stop());
     };
   }, []);

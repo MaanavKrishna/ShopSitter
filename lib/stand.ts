@@ -7,7 +7,12 @@ import { JOIN_WINDOW_MS, applyShelfChange, expireIfStale, newVisit, type Visit }
 export type ShelfChangeDeps = {
   repo: Repo;
   newId: () => string;
-  diff: (input: { before: Uint8Array; after: Uint8Array; products: Product[] }) => Promise<ShelfDiff>;
+  diff: (input: {
+    before: Uint8Array;
+    after: Uint8Array;
+    products: Product[];
+    zoom?: { before: Uint8Array; after: Uint8Array };
+  }) => Promise<ShelfDiff>;
 };
 
 export type ShelfChangeInput = {
@@ -16,6 +21,8 @@ export type ShelfChangeInput = {
   after: Uint8Array;
   changeStartedAt: number;
   settledAt: number;
+  /** Close-ups of the part of the shelf that changed, cut from sharper frames. */
+  zoom?: { before: Uint8Array; after: Uint8Array };
   /** Demo runs: always a fresh visit, never joined to or closing anyone else's. */
   standalone?: boolean;
   /** Already-hosted photo locations (demo samples). When absent the photos are stored. */
@@ -47,7 +54,7 @@ export async function handleShelfChange(deps: ShelfChangeDeps, input: ShelfChang
 
   let diff: ShelfDiff | null = null;
   try {
-    diff = await deps.diff({ before: input.before, after: input.after, products });
+    diff = await deps.diff({ before: input.before, after: input.after, products, zoom: input.zoom });
   } catch (e) {
     console.error("shelf read failed", e);
   }

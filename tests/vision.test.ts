@@ -58,4 +58,17 @@ describe("buildShelfMessage", () => {
     expect(text).toContain(`Reference photo of "${products[1].sku}"`);
     expect(text).not.toContain(`Reference photo of "${products[0].sku}"`);
   });
+
+  it("adds close-ups of the changed area after the full photos, so small items can be told apart", () => {
+    const zoomBefore = new Uint8Array([7]);
+    const zoomAfter = new Uint8Array([8]);
+    const parts = buildShelfMessage({ before: img, after: img, products, zoom: { before: zoomBefore, after: zoomAfter } });
+    const files = parts.filter((p) => p.type === "file");
+    expect(files).toHaveLength(4);
+    expect(files[2].data).toBe(zoomBefore);
+    expect(files[3].data).toBe(zoomAfter);
+    const text = parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
+    expect(text).toContain("Close-up");
+    expect(text.indexOf("AFTER (")).toBeLessThan(text.indexOf("Close-up"));
+  });
 });

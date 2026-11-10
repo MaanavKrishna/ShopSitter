@@ -90,6 +90,10 @@ export default function StandPage() {
           const form = new FormData();
           form.set("before", change.before, "before.jpg");
           form.set("after", change.after, "after.jpg");
+          if (change.zoom) {
+            form.set("beforeZoom", change.zoom.before, "before-zoom.jpg");
+            form.set("afterZoom", change.zoom.after, "after-zoom.jpg");
+          }
           form.set("changeStartedAt", String(change.changeStartedAt));
           form.set("settledAt", String(change.settledAt));
           const res = await fetch("/api/stand/change", {
@@ -239,7 +243,7 @@ export default function StandPage() {
         </p>
         {stats && (
           <p className="stand-stats">
-            Movement {(stats.moving * 100).toFixed(1)}%. Changed since last read {(stats.differs * 100).toFixed(1)}%.
+            Moving areas {stats.moving}. Areas changed since last read {stats.differs}.
           </p>
         )}
         {problem && (
