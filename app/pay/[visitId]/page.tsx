@@ -4,13 +4,19 @@ import { PayPanel } from "@/components/PayPanel";
 
 export const dynamic = "force-dynamic";
 
+async function loadBill(visitId: string) {
+  try {
+    return await getBill(getRepo(), visitId, Date.now());
+  } catch (e) {
+    if (e instanceof CheckoutError) return null;
+    throw e;
+  }
+}
+
 export default async function PayPage({ params }: PageProps<"/pay/[visitId]">) {
   const { visitId } = await params;
-  let data;
-  try {
-    data = await getBill(getRepo(), visitId, Date.now());
-  } catch (e) {
-    if (!(e instanceof CheckoutError)) throw e;
+  const data = await loadBill(visitId);
+  if (!data) {
     return (
       <main className="pay-shell">
         <h1>We can&apos;t find this bill</h1>
