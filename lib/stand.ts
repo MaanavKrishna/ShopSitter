@@ -1,3 +1,4 @@
+import type { AnglePair } from "./angles";
 import { priceLines } from "./money";
 import type { Repo } from "./repo";
 import type { PricedBill, Product, Shop } from "./types";
@@ -12,6 +13,7 @@ export type ShelfChangeDeps = {
     after: Uint8Array;
     products: Product[];
     zoom?: { before: Uint8Array; after: Uint8Array };
+    angles?: AnglePair[];
   }) => Promise<ShelfDiff>;
 };
 
@@ -23,6 +25,8 @@ export type ShelfChangeInput = {
   settledAt: number;
   /** Close-ups of the part of the shelf that changed, cut from sharper frames. */
   zoom?: { before: Uint8Array; after: Uint8Array };
+  /** The same change seen by extra cameras. */
+  angles?: AnglePair[];
   /** Demo runs: always a fresh visit, never joined to or closing anyone else's. */
   standalone?: boolean;
   /** Already-hosted photo locations (demo samples). When absent the photos are stored. */
@@ -54,7 +58,7 @@ export async function handleShelfChange(deps: ShelfChangeDeps, input: ShelfChang
 
   let diff: ShelfDiff | null = null;
   try {
-    diff = await deps.diff({ before: input.before, after: input.after, products, zoom: input.zoom });
+    diff = await deps.diff({ before: input.before, after: input.after, products, zoom: input.zoom, angles: input.angles });
   } catch (e) {
     console.error("shelf read failed", e);
   }

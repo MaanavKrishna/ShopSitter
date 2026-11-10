@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { readAngles } from "@/lib/angles";
 import { allow, isStandTokenValid } from "@/lib/auth";
 import { getRepo } from "@/lib/repo";
 import { readSample } from "@/lib/samples";
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
   }
 
   const started = Date.now();
+  const angles = await readAngles(getRepo(), "live", changeStartedAt).catch(() => []);
   const result = await handleShelfChange(deps(), {
     shop: "live",
     before: new Uint8Array(await before.arrayBuffer()),
@@ -93,13 +95,14 @@ export async function POST(req: Request) {
     zoom: hasZoom
       ? { before: new Uint8Array(await zoomBefore.arrayBuffer()), after: new Uint8Array(await zoomAfter.arrayBuffer()) }
       : undefined,
+    angles,
   });
   // One line per read, so a stand that seems stuck can be diagnosed from the logs.
   console.log(
-    `stand change: ${Date.now() - started}ms, photos ${before.size}+${after.size} bytes, close-ups ${hasZoom}, ` +
+    `stand change: ${Date.now() - started}ms, photos ${before.size}+${after.size} bytes, close-ups ${hasZoom}, extra cameras ${angles.length}, ` +
       `visit ${result.visit?.id ?? "none"} ${result.visit?.status ?? ""} ` +
       `detected ${JSON.stringify(result.visit?.detected ?? [])} confidence ${result.visit?.confidence ?? "n/a"} ` +
       `manual ${result.visit?.needsManual ?? false}`,
   );
-  return Response.json(result);
+  return Response.json({ ...result, cameras: 1 + angles.length });
 }

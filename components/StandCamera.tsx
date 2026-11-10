@@ -13,6 +13,8 @@ import {
   toGray,
   toGrid,
 } from "@/lib/frame-diff";
+import { initialPresence, stepPresence } from "@/lib/presence";
+import { loadPeopleDetector, type PeopleDetector, type Sighting } from "./people-detector";
 
 export type ShelfChange = {
   before: Blob;
@@ -27,6 +29,7 @@ const SHARP_WIDTH = 1920; // frames are kept at up to this width, for close-ups
 const STILL_WIDTH = 1024; // the whole-shelf photos that are sent
 const ZOOM_WIDTH = 1024; // close-ups are sent no wider than this
 const SAMPLE_EVERY_MS = 200;
+const LOOK_EVERY_TICKS = 2; // hands and people are looked for on every second sample
 const REFRESH_IDLE_MS = 8000; // a still, unchanged shelf is re-photographed this often, so slow light changes never add up
 
 export type CameraPhase = "starting" | "watching" | "moving";
@@ -43,6 +46,9 @@ export function StandCamera({
   onPhase,
   onStats,
   readNow = 0,
+  onShot,
+  onSighting,
+  onVisitorLeft,
 }: {
   onChange: (change: ShelfChange) => void;
   /** Tells the page whether the shelf is still or something is moving, so it can say so. */
@@ -51,11 +57,20 @@ export function StandCamera({
   onStats?: (stats: { moving: number; differs: number }) => void;
   /** Increase this number to read the shelf right now, whatever the detector thinks. */
   readNow?: number;
+  /** Extra cameras: called with a still of the shelf whenever it has settled, and every few seconds while idle. */
+  onShot?: (photo: Blob, takenAt: number) => void;
+  /** Whether a hand or a person is in view, worked out on this device. Null while the detector is unavailable. */
+  onSighting?: (sighting: (Sighting & { present: boolean }) | null) => void;
+  /** Called once each time someone who was at the stand has gone. */
+  onVisitorLeft?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onChangeRef = useRef(onChange);
   const onPhaseRef = useRef(onPhase);
   const onStatsRef = useRef(onStats);
+  const onShotRef = useRef(onShot);
+  const onSightingRef = useRef(onSighting);
+  const onVisitorLeftRef = useRef(onVisitorLeft);
   const forceRef = useRef(false);
   const lastReadNow = useRef(readNow);
   const [problem, setProblem] = useState<string | null>(null);
@@ -65,7 +80,10 @@ export function StandCamera({
     onChangeRef.current = onChange;
     onPhaseRef.current = onPhase;
     onStatsRef.current = onStats;
-  }, [onChange, onPhase, onStats]);
+    onShotRef.current = onShot;
+    onSightingRef.current = onSighting;
+    onVisitorLeftRef.current = onVisitorLeft;
+  }, [onChange, onPhase, onStats, onShot, onSighting, onVisitorLeft]);
 
   useEffect(() => {
     if (readNow !== lastReadNow.current) {
@@ -78,6 +96,7 @@ export function StandCamera({
     let stopped = false;
     let stream: MediaStream | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let people: PeopleDetector | null = null;
 
     const small = document.createElement("canvas");
     small.width = SAMPLE_WIDTH;
@@ -139,6 +158,19 @@ export function StandCamera({
       let phase: CameraPhase = "watching";
       let ticks = 0;
       let idleSince = Date.now();
+      let presence = initialPresence();
+      let sighting: Sighting = { hand: false, person: false };
+      let lastPresent: string | null = null;
+      // Loads in the background; the stand watches the shelf meanwhile.
+      void loadPeopleDetector().then((d) => {
+        if (stopped) d?.close();
+        else people = d;
+        if (!d) onSightingRef.current?.(null);
+      });
+      const sendShot = async (from: HTMLCanvasElement, at: number) => {
+        if (onShotRef.current) onShotRef.current(await jpeg(from, null, STILL_WIDTH, 0.8), at);
+      };
+      await sendShot(baseline, Date.now());
       onPhaseRef.current?.(phase);
 
       const tick = async () => {
@@ -152,7 +184,24 @@ export function StandCamera({
           prev = grid;
           if (++ticks % 5 === 0) onStatsRef.current?.({ moving: vsPrev.changed, differs: vsBaseline.changed });
 
-          const moving = vsPrev.changed >= MOVING_BLOCKS;
+          if (people && ticks % LOOK_EVERY_TICKS === 0) {
+            try {
+              sighting = people.look(video, performance.now());
+            } catch {
+              sighting = { hand: false, person: false };
+            }
+            const stepped = stepPresence(presence, { seen: sighting.hand || sighting.person, t: now });
+            presence = stepped.state;
+            if (stepped.left) onVisitorLeftRef.current?.();
+            const summary = `${sighting.hand}${sighting.person}${presence.present}`;
+            if (summary !== lastPresent) {
+              lastPresent = summary;
+              onSightingRef.current?.({ ...sighting, present: presence.present });
+            }
+          }
+
+          // A hand in the picture means someone is still choosing, however still it is.
+          const moving = vsPrev.changed >= MOVING_BLOCKS || sighting.hand;
           const differs = vsBaseline.changed >= DIFFERS_BLOCKS;
           const result = stepDetector(detector, { moving, differs, t: now });
           detector = result.state;
@@ -176,6 +225,7 @@ export function StandCamera({
               idleSince = now;
               baselineGrid = grid;
               snapshot(baseline);
+              await sendShot(baseline, now);
             }
             return;
           }
@@ -184,6 +234,7 @@ export function StandCamera({
           const rect = vsBaseline.box ? cropBox(vsBaseline.box, latest.width, latest.height) : null;
           // A close-up only helps when it is a real enlargement of part of the picture.
           const useful = rect !== null && rect.w < latest.width * 0.8 && baseline.width === latest.width;
+          await sendShot(latest, now);
           const before = await jpeg(baseline, null, STILL_WIDTH, 0.8);
           const after = await jpeg(latest, null, STILL_WIDTH, 0.8);
           const zoom = useful
@@ -209,6 +260,7 @@ export function StandCamera({
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
+      people?.close();
       stream?.getTracks().forEach((t) => t.stop());
     };
   }, []);

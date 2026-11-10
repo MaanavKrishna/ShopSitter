@@ -24,6 +24,11 @@ export default function StandPage() {
   const [note, setNote] = useState<string | null>(null);
   const [stats, setStats] = useState<{ moving: number; differs: number } | null>(null);
   const [readNow, setReadNow] = useState(0);
+  // 1 is the main camera, which shows the bill. 2 to 4 are extra cameras on other sides of the shelf.
+  const [angle, setAngle] = useState(1);
+  const [cameras, setCameras] = useState(1);
+  const [sighting, setSighting] = useState<{ hand: boolean; person: boolean; present: boolean } | null>(null);
+  const [sentAt, setSentAt] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -32,6 +37,8 @@ export default function StandPage() {
     // Saved on this device after the first visit; read after mount so the server render matches.
     const saved = localStorage.getItem(TOKEN_KEY);
     if (saved) queueMicrotask(() => setToken(saved));
+    const asked = Number(new URLSearchParams(window.location.search).get("angle"));
+    if ([2, 3, 4].includes(asked)) queueMicrotask(() => setAngle(asked));
   }, []);
 
   // Keep the screen awake while the stand is running.
@@ -112,7 +119,8 @@ export default function StandPage() {
             return;
           }
           setProblem(null);
-          const data = (await res.json()) as { visit: Visit | null; bill: PricedBill | null };
+          const data = (await res.json()) as { visit: Visit | null; bill: PricedBill | null; cameras?: number };
+          setCameras(data.cameras ?? 1);
           const open = data.visit && data.bill && data.visit.status === "open";
           setCurrent(open ? { visit: data.visit!, bill: data.bill! } : null);
           // Say so when a change was seen but nothing is owed, so the stand never looks stuck.
@@ -127,6 +135,67 @@ export default function StandPage() {
     },
     [token],
   );
+
+  // Extra cameras: send each new still of the shelf. The main camera decides when to read.
+  const onShot = useCallback(
+    (photo: Blob, takenAt: number) => {
+      const form = new FormData();
+      form.set("photo", photo, "angle.jpg");
+      form.set("angle", String(angle));
+      form.set("takenAt", String(takenAt));
+      fetch("/api/stand/angle", { method: "POST", headers: { "x-stand-token": token ?? "" }, body: form }).then(
+        (res) => {
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            setToken(null);
+            setProblem("That stand code isn't right. Enter it again.");
+          } else if (res.ok) {
+            setProblem(null);
+            setSentAt(takenAt);
+          } else setProblem("This camera couldn't reach the server. It will keep trying.");
+        },
+        () => setProblem("This camera couldn't reach the server. It will keep trying."),
+      );
+    },
+    [angle, token],
+  );
+
+  // Someone stopped by and has gone: only the count is reported.
+  const onVisitorLeft = useCallback(() => {
+    void fetch("/api/stand/presence", { method: "POST", headers: { "x-stand-token": token ?? "" } }).catch(() => {});
+  }, [token]);
+
+  if (token && angle > 1) {
+    return (
+      <main className="void stand stand-angle">
+        <header className="stand-head">
+          <Wordmark href="/stand" />
+        </header>
+        <div className="stand-body">
+          <div className="stand-ready">
+            <h1>Camera {angle}</h1>
+            <p>Point this at the shelf from another side. The bill shows on the main stand screen.</p>
+          </div>
+        </div>
+        <footer className="stand-foot">
+          <StandCamera onChange={() => {}} onPhase={setPhase} onShot={onShot} onSighting={setSighting} />
+          <p>A camera counts items on this shelf. It does not record people.</p>
+          <p className="stand-status" role="status">
+            {phase === "starting"
+              ? "Starting the camera…"
+              : sentAt
+                ? `Sending this view to the stand. Last sent ${new Date(sentAt).toLocaleTimeString()}.`
+                : "Connecting to the stand…"}
+          </p>
+          {problem && (
+            <p role="alert" className="stand-problem">
+              {problem}
+            </p>
+          )}
+        </footer>
+      </main>
+    );
+  }
 
   if (!token) {
     return (
@@ -225,25 +294,33 @@ export default function StandPage() {
       </div>
 
       <footer className="stand-foot">
-        <StandCamera onChange={onChange} onPhase={setPhase} onStats={setStats} readNow={readNow} />
+        <StandCamera
+          onChange={onChange}
+          onPhase={setPhase}
+          onStats={setStats}
+          readNow={readNow}
+          onSighting={setSighting}
+          onVisitorLeft={onVisitorLeft}
+        />
         <button type="button" className="btn btn-ghost stand-readnow" disabled={reading} onClick={() => setReadNow((n) => n + 1)}>
           Read the shelf now
         </button>
-        <p>
-          A camera counts items on this shelf. It does not record people.
-        </p>
+        <p>A camera counts items on this shelf. It notices when someone is here, on this device only, and does not record people.</p>
         <p className="stand-status" role="status">
           {reading
             ? "Reading the shelf…"
-            : phase === "moving"
-              ? "Something moved. Waiting for the shelf to go still…"
+            : sighting?.hand
+              ? "A hand is at the shelf. Waiting until it is clear…"
+              : phase === "moving"
+                ? "Something moved. Waiting for the shelf to go still…"
               : phase === "starting"
                 ? "Starting the camera…"
                 : (note ?? "Watching the shelf. Keep this device still.")}
         </p>
         {stats && (
           <p className="stand-stats">
-            Moving areas {stats.moving}. Areas changed since last read {stats.differs}.
+            Moving areas {stats.moving}. Areas changed since last read {stats.differs}. Cameras {cameras}.{" "}
+            {sighting === null ? "People check starting or unavailable." : sighting.present ? "Someone is here." : "Nobody here."}
           </p>
         )}
         {problem && (

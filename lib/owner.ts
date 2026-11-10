@@ -1,3 +1,4 @@
+import { visitorsSince } from "./footfall";
 import { priceLines } from "./money";
 import type { PayPalGateway } from "./paypal";
 import type { Repo } from "./repo";
@@ -63,7 +64,9 @@ export async function ownerOverview(repo: Repo, shop: Shop, days: number, now: n
     if (r.status === "paid_adjusted") totals.adjustedCents += Math.max(0, r.detectedCents - (r.paidCents ?? 0));
   }
 
-  return { visits: rows, totals, stock: stockLeft(products, all), products };
+  // People the stand's own detector saw stop by. Zero when it is not in use.
+  const visitors = await visitorsSince(repo, shop, days, now);
+  return { visits: rows, totals, stock: stockLeft(products, all), products, visitors };
 }
 
 function stockLeft(products: Product[], visits: Visit[]): StockRow[] {

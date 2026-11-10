@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.99",
+    "@mediapipe/tasks-vision": "^1.2.2",
     "@neondatabase/serverless": "^1.2.0",
     "@paypal/paypal-server-sdk": "^2.5.0",
     "@paypal/react-paypal-js": "^10.6.1",

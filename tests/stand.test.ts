@@ -108,4 +108,17 @@ describe("handleShelfChange", () => {
     await handleShelfChange(d, change(1_000, 3_000, { zoom }));
     expect(seen).toBe(zoom);
   });
+
+  it("hands extra camera angles to the shelf reader", async () => {
+    const angles = [{ angle: 2, before: new Uint8Array([5]), after: new Uint8Array([6]) }];
+    let seen: unknown;
+    const d = deps([{ sku: "honey", qty: 1 }]);
+    const diff = d.diff;
+    d.diff = async (input) => {
+      seen = input.angles;
+      return diff(input);
+    };
+    await handleShelfChange(d, change(1_000, 3_000, { angles }));
+    expect(seen).toBe(angles);
+  });
 });

@@ -71,4 +71,16 @@ describe("buildShelfMessage", () => {
     expect(text).toContain("Close-up");
     expect(text.indexOf("AFTER (")).toBeLessThan(text.indexOf("Close-up"));
   });
+
+  it("adds each extra camera angle as a labelled before and after pair", () => {
+    const a = new Uint8Array([5]);
+    const b = new Uint8Array([6]);
+    const parts = buildShelfMessage({ before: img, after: img, products, angles: [{ angle: 2, before: a, after: b }] });
+    const files = parts.filter((p) => p.type === "file");
+    expect(files).toHaveLength(4);
+    expect(files[2].data).toBe(a);
+    expect(files[3].data).toBe(b);
+    const text = parts.filter((p) => p.type === "text").map((p) => p.text).join("\n");
+    expect(text).toContain("Camera 2");
+  });
 });

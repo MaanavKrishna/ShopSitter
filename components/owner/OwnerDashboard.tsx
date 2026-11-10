@@ -15,7 +15,7 @@ const SalesStudio = dynamic(() => import("./SalesStudio"), {
   loading: () => <p className="owner-loading">Loading charts…</p>,
 });
 
-type Overview = { visits: VisitRow[]; totals: Totals; stock: StockRow[]; products: Product[] };
+type Overview = { visits: VisitRow[]; totals: Totals; stock: StockRow[]; products: Product[]; visitors?: number };
 
 const PROBLEMS: Record<string, string> = {
   bad_amount: "That refund is more than what's left of the payment.",
@@ -64,6 +64,8 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
   }
 
   const { totals, visits, stock } = data;
+  const visitors = data.visitors ?? 0;
+  const bought = visits.filter((v) => v.status.startsWith("paid")).length;
   const shown = visits.filter((v) => v.status !== "empty");
   const low = stock.filter((s) => s.left <= 1);
 
@@ -104,6 +106,13 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
           <dt>Adjusted by customers</dt>
           <dd className="num">${formatCents(totals.adjustedCents)}</dd>
         </div>
+        {visitors > 0 && (
+          <div>
+            <dt>Stopped by</dt>
+            <dd className="num">{visitors}</dd>
+            <dd className="owner-tile-note">{bought} paid</dd>
+          </div>
+        )}
       </dl>
 
       {low.length > 0 && (
