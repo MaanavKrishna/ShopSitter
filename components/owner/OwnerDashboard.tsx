@@ -69,13 +69,14 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
 
   return (
     <>
-    <header className="owner-bar grass">
+    <div className="owner-page">
+    <header className="owner-bar void">
       <Wordmark />
       <div className="owner-bar-actions">
-        <button type="button" className="btn btn-quiet" onClick={() => void reload()}>
+        <button type="button" className="btn btn-ghost" onClick={() => void reload()}>
           Refresh
         </button>
-        <button type="button" className="btn btn-quiet" onClick={() => void signOut()}>
+        <button type="button" className="btn btn-ghost" onClick={() => void signOut()}>
           Sign out
         </button>
       </div>
@@ -87,21 +88,21 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
       </div>
 
       <dl className="owner-tiles">
-        <div>
-          <dt>Taken from the shelf</dt>
-          <dd className="money">${formatCents(totals.soldCents)}</dd>
-        </div>
         <div data-tone="paid">
           <dt>Paid through PayPal</dt>
-          <dd className="money">${formatCents(totals.paidCents - totals.refundedCents)}</dd>
+          <dd className="num">${formatCents(totals.paidCents - totals.refundedCents)}</dd>
+        </div>
+        <div>
+          <dt>Taken from the shelf</dt>
+          <dd className="num">${formatCents(totals.soldCents)}</dd>
         </div>
         <div data-tone={totals.unmatchedCents > 0 ? "unmatched" : undefined}>
           <dt>Unmatched</dt>
-          <dd className="money">${formatCents(totals.unmatchedCents)}</dd>
+          <dd className="num">${formatCents(totals.unmatchedCents)}</dd>
         </div>
         <div>
           <dt>Adjusted by customers</dt>
-          <dd className="money">${formatCents(totals.adjustedCents)}</dd>
+          <dd className="num">${formatCents(totals.adjustedCents)}</dd>
         </div>
       </dl>
 
@@ -157,8 +158,8 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
                           </>
                         )}
                       </td>
-                      <td className="money">${formatCents(v.detectedCents)}</td>
-                      <td className="money">
+                      <td className="num">${formatCents(v.detectedCents)}</td>
+                      <td className="num">
                         {v.paidCents === null ? "—" : `$${formatCents(v.paidCents)}`}
                         {v.refundedCents > 0 && <small> (−${formatCents(v.refundedCents)} refunded)</small>}
                       </td>
@@ -218,6 +219,7 @@ export function OwnerDashboard({ shop, initial }: { shop: Shop; initial: Overvie
 
       <SalesStudio visits={visits} stock={stock} />
     </main>
+    </div>
     </>
   );
 }

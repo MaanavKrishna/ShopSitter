@@ -5,7 +5,6 @@ import { useCallback, useState } from "react";
 import { formatCents } from "@/lib/money";
 import type { Line, PricedBill, Product } from "@/lib/types";
 import type { Visit } from "@/lib/visits";
-import { Starburst } from "./Starburst";
 
 type Props = {
   visitId: string;
@@ -68,15 +67,9 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, paypalC
   if (isPaid(visit)) {
     return (
       <section aria-live="polite">
-        <div className="pay-paid">
-          <div className="flash">
-            <Starburst />
-            <span>
-              <small>You paid</small>
-              <br />
-              <span className="money">${formatCents(visit.paidCents ?? 0)}</span>
-            </span>
-          </div>
+        <div className="pay-paid void">
+          <p>You paid</p>
+          <span className="num">${formatCents(visit.paidCents ?? 0)}</span>
           <h1>Paid, thank you</h1>
         </div>
         <div className="pay-card">
@@ -126,7 +119,7 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, paypalC
                   +
                 </button>
               </div>
-              <span className="money pay-line-total">${formatCents(l.lineCents)}</span>
+              <span className="num pay-line-total">${formatCents(l.lineCents)}</span>
             </li>
           ))}
         </ul>
@@ -137,7 +130,7 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, paypalC
           <ul className="pay-add">
             {notOnBill.map((p) => (
               <li key={p.sku}>
-                <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => setQty(p.sku, 1)}>
+                <button type="button" className="btn" disabled={busy} onClick={() => setQty(p.sku, 1)}>
                   Add {p.name} (${formatCents(p.priceCents)})
                 </button>
               </li>
@@ -151,10 +144,7 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, paypalC
 
       <div className="pay-total">
         <span>Total to pay</span>
-        <div className="flash">
-          <Starburst />
-          <span className="money">${formatCents(bill.totalCents)}</span>
-        </div>
+        <span className="num">${formatCents(bill.totalCents)}</span>
       </div>
 
       {notice && (
@@ -199,7 +189,7 @@ function BillList({ bill }: { bill: PricedBill }) {
           <span>
             {l.qty} × {l.name}
           </span>
-          <span className="money">${formatCents(l.lineCents)}</span>
+          <span className="num">${formatCents(l.lineCents)}</span>
         </li>
       ))}
     </ul>
@@ -262,7 +252,7 @@ function PayButton({
   return (
     <button
       type="button"
-      className="btn btn-pay"
+      className="btn btn-paypal btn-pay"
       disabled={disabled || isPending || working}
       onClick={() => {
         setWorking(true);

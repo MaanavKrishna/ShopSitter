@@ -8,7 +8,7 @@ export const metadata = { title: "Try Shopsitter without a camera" };
 export default function DemoPage() {
   return (
     <>
-      <section className="grass demo-head">
+      <section className="void demo-head">
         <header className="topbar">
           <Wordmark />
           <nav aria-label="Main">

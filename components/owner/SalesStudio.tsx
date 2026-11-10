@@ -14,7 +14,7 @@ export default function SalesStudio({ visits, stock }: { visits: VisitRow[]; sto
     <section className="owner-studio" aria-labelledby="studio-h">
       <div className="owner-studio-head">
         <h2 id="studio-h">Sales</h2>
-        <button type="button" className="btn btn-quiet" onClick={() => setMode(mode === "view" ? "edit" : "view")}>
+        <button type="button" className="btn" onClick={() => setMode(mode === "view" ? "edit" : "view")}>
           {mode === "view" ? "Rearrange or add charts" : "Done rearranging"}
         </button>
       </div>

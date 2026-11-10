@@ -20,7 +20,7 @@ export default async function PayPage({ params }: PageProps<"/pay/[visitId]">) {
   if (!data) {
     return (
       <>
-        <header className="pay-top grass">
+        <header className="pay-top void">
           <Wordmark />
         </header>
         <main className="pay-shell">
@@ -32,7 +32,7 @@ export default async function PayPage({ params }: PageProps<"/pay/[visitId]">) {
   }
   return (
     <>
-      <header className="pay-top grass">
+      <header className="pay-top void">
         <Wordmark />
       </header>
       <main className="pay-shell">

@@ -26,11 +26,11 @@ export default function OwnerLogin() {
   }
 
   return (
-    <div className="owner-login-wrap grass">
+    <div className="owner-login-wrap void">
       <header className="topbar">
         <Wordmark />
       </header>
-      <main className="owner-login card card-white">
+      <main className="owner-login panel">
         <h1>Owner sign-in</h1>
       <p>Enter the stand&apos;s passcode to see what sold. The demo stand&apos;s passcode is <strong>demo</strong>.</p>
       <form onSubmit={signIn}>

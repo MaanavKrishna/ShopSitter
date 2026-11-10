@@ -3,7 +3,6 @@
 import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StandCamera, type ShelfChange } from "@/components/StandCamera";
-import { Starburst } from "@/components/Starburst";
 import { Wordmark } from "@/components/Wordmark";
 import { formatCents } from "@/lib/money";
 import type { PricedBill } from "@/lib/types";
@@ -119,11 +118,11 @@ export default function StandPage() {
 
   if (!token) {
     return (
-      <main className="grass stand stand-setup">
+      <main className="void stand stand-setup">
         <header className="stand-head">
           <Wordmark />
         </header>
-        <div className="stand-setup-card card card-white">
+        <div className="stand-setup-card panel">
           <h1>Set up this stand</h1>
           <p>Prop this device so its camera sees the whole shelf, then enter the stand code.</p>
           {problem && (
@@ -142,7 +141,7 @@ export default function StandPage() {
           >
             <label htmlFor="stand-code">Stand code</label>
             <input id="stand-code" value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="off" />
-            <button className="btn btn-pay" type="submit">
+            <button className="btn btn-coral btn-pay" type="submit">
               Start watching the shelf
             </button>
           </form>
@@ -155,7 +154,7 @@ export default function StandPage() {
   const manualOnly = !!current?.visit.needsManual && current.bill.totalCents === 0;
 
   return (
-    <main className="grass stand">
+    <main className="void stand">
       <header className="stand-head">
         <Wordmark href="/stand" />
       </header>
@@ -163,10 +162,7 @@ export default function StandPage() {
       <div className="stand-body" aria-live="polite">
         {justPaid !== null ? (
           <div className="stand-paid">
-            <div className="flash">
-              <Starburst points={24} />
-              <span className="money">${formatCents(justPaid)}</span>
-            </div>
+            <span className="num">${formatCents(justPaid)}</span>
             <h1>Paid, thank you</h1>
           </div>
         ) : current ? (
@@ -176,12 +172,12 @@ export default function StandPage() {
               {manualOnly ? (
                 <p className="stand-hint">Scan the code to enter what you took.</p>
               ) : (
-                <ul>
+                <ul className="glass">
                   {current.bill.lines.map((l) => (
                     <li key={l.sku}>
                       <span className="stand-qty">{l.qty}</span>
                       <span className="stand-name">{l.name}</span>
-                      <span className="money">${formatCents(l.lineCents)}</span>
+                      <span className="num">${formatCents(l.lineCents)}</span>
                     </li>
                   ))}
                 </ul>
@@ -193,27 +189,24 @@ export default function StandPage() {
 
             <aside className="stand-tag">
               {!manualOnly && (
-                <div className="flash">
-                  <Starburst points={24} />
-                  <p className="stand-total">
-                    <span>Total</span>
-                    <span className="money">${formatCents(current.bill.totalCents)}</span>
-                  </p>
-                </div>
+                <p className="stand-total">
+                  <span>Total</span>
+                  <span className="num">${formatCents(current.bill.totalCents)}</span>
+                </p>
               )}
-              <div className="stand-qr card card-white">
+              <div className="stand-qr">
                 {/* eslint-disable-next-line @next/next/no-img-element -- a generated data URL, nothing to optimise */}
                 {qr && <img src={qr} alt="QR code to pay this bill with PayPal" />}
-                <p className="stand-scan">Scan to pay with PayPal</p>
-                <p className="stand-fix">Wrong? Fix it on your phone.</p>
+                <div>
+                  <p className="stand-scan">Scan to pay with PayPal</p>
+                  <p className="stand-fix">Wrong? Fix it on your phone.</p>
+                </div>
               </div>
             </aside>
           </>
         ) : (
           <div className="stand-ready">
-            <div className="card">
-              <h1>Take what you like</h1>
-            </div>
+            <h1>Take what you like</h1>
             <p>Your bill appears here.</p>
           </div>
         )}

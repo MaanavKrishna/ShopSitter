@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { ShelfDemo } from "@/components/ShelfDemo";
-import { Starburst } from "@/components/Starburst";
+import { VoidHero } from "@/components/VoidHero";
 import { Wordmark } from "@/components/Wordmark";
 import { DEMO_PRODUCTS } from "@/lib/seed";
 
 export default function Home() {
   return (
     <>
-      <section className="hero grass">
+      <section className="void hero">
         <header className="topbar">
           <Wordmark />
           <nav aria-label="Main">
@@ -15,69 +14,63 @@ export default function Home() {
             <Link href="/owner">Owner&apos;s view</Link>
           </nav>
         </header>
-        <ShelfDemo products={DEMO_PRODUCTS} />
+        <VoidHero products={DEMO_PRODUCTS} />
       </section>
 
       <main>
-        <section className="band band-paper" aria-labelledby="how-h">
+        <section className="band" aria-labelledby="how-h">
           <h2 id="how-h">How a visit goes</h2>
           <p className="band-lede">The customer never opens an app, scans a barcode or types a thing.</p>
           <ol className="steps">
             <li>
-              <div>
-                <h3>They take what they want</h3>
-                <p>A spare phone propped by the shelf notices the shelf change and waits for it to go still.</p>
-              </div>
+              <h3>They take what they want</h3>
+              <p>A spare phone propped by the shelf notices the shelf change and waits for it to go still.</p>
             </li>
             <li>
-              <div>
-                <h3>The bill writes itself</h3>
-                <p>
-                  An AI model compares the shelf before and after and names what left. The stand shows the bill and
-                  a QR code. If it got something wrong, they fix it on their own phone.
-                </p>
-              </div>
+              <h3>The bill writes itself</h3>
+              <p>
+                An AI model compares the shelf before and after and names what left. The stand shows the bill and a QR
+                code. If it got something wrong, they fix it on their own phone.
+              </p>
             </li>
             <li>
-              <div>
-                <h3>They pay with PayPal</h3>
-                <p>The stand says &ldquo;Paid, thank you&rdquo; and the owner&apos;s dashboard updates.</p>
-              </div>
+              <h3>They pay with PayPal</h3>
+              <p>The stand says &ldquo;Paid, thank you&rdquo; and the owner&apos;s dashboard updates.</p>
             </li>
           </ol>
         </section>
 
-        <section className="band grass band-grass" aria-labelledby="owner-h">
+        <section className="band void band-void" aria-labelledby="owner-h">
           <div className="owner-peek">
             <div>
               <h2 id="owner-h">You weren&apos;t there, and you still know</h2>
               <p className="band-lede">
                 What sold, what was paid through PayPal, and which visits ended with nothing paid. Those are called
-                unmatched, never theft: Shopsitter doesn&apos;t accuse anyone, and you can mark them settled if
-                someone left cash.
+                unmatched, never theft: Shopsitter doesn&apos;t accuse anyone, and you can mark them settled if someone
+                left cash.
               </p>
-              <Link className="btn btn-yellow" href="/owner">
+              <Link className="btn btn-coral" href="/owner">
                 Open the demo stand&apos;s dashboard
               </Link>
               <p className="peek-caption">The passcode is &ldquo;demo&rdquo;.</p>
             </div>
             <div>
-              <dl className="peek-cards">
-                <div className="card card-white">
+              <dl className="glass peek">
+                <div>
                   <dt>Taken from the shelf</dt>
-                  <dd className="money">$116.00</dd>
+                  <dd className="num">$116.00</dd>
                 </div>
-                <div className="card">
+                <div>
                   <dt>Paid through PayPal</dt>
-                  <dd className="money">$96.50</dd>
+                  <dd className="num">$96.50</dd>
                 </div>
-                <div className="card card-pink">
+                <div>
                   <dt>Unmatched</dt>
-                  <dd className="money">$8.00</dd>
+                  <dd className="num">$8.00</dd>
                 </div>
-                <div className="card card-lime">
+                <div>
                   <dt>Adjusted by customers</dt>
-                  <dd className="money">$7.00</dd>
+                  <dd className="num">$7.00</dd>
                 </div>
               </dl>
               <p className="peek-caption">An example week from the demo stand, not real sales.</p>
@@ -85,7 +78,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="band band-paper" aria-labelledby="promise-h">
+        <section className="band" aria-labelledby="promise-h">
           <h2 id="promise-h">It counts jars, not people</h2>
           <ul className="promises">
             <li>
@@ -103,7 +96,7 @@ export default function Home() {
           </ul>
         </section>
 
-        <section className="band" aria-labelledby="built-h">
+        <section className="band band-tint" aria-labelledby="built-h">
           <h2 id="built-h">What does the work</h2>
           <table className="built">
             <tbody>
@@ -130,17 +123,14 @@ export default function Home() {
           </p>
         </section>
 
-        <section className="band grass band-grass" aria-labelledby="close-h">
+        <section className="band void band-void" aria-labelledby="close-h">
           <div className="close">
-            <div className="flash" style={{ ["--card" as string]: "var(--yellow)" }}>
-              <Starburst points={24} depth={0.88} />
-              <h2 id="close-h">Sell without being there</h2>
-            </div>
+            <h2 id="close-h">Sell without being there</h2>
             <div className="close-actions">
-              <Link className="btn btn-yellow" href="/demo">
+              <Link className="btn btn-coral" href="/demo">
                 Try it with real shelf photos
               </Link>
-              <Link className="btn btn-quiet" href="/owner">
+              <Link className="btn btn-ghost" href="/owner">
                 See the owner&apos;s view
               </Link>
             </div>
@@ -148,7 +138,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="foot grass">
+      <footer className="foot void">
         <span>Shopsitter, built for the PayPal AI Hackathon 2026.</span>
         <span>Payments run in the PayPal sandbox.</span>
       </footer>
