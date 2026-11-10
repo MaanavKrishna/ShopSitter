@@ -13,6 +13,9 @@ export interface Repo {
   listVisits(shop: Shop, sinceMs?: number): Promise<Visit[]>;
   /** Deletes the shop's visits and replaces its products. */
   resetShop(shop: Shop, products: Product[]): Promise<void>;
+  /** Stores a shelf photo privately and returns the key to read it back with. */
+  savePhoto(name: string, bytes: Uint8Array): Promise<string>;
+  getPhoto(key: string): Promise<Uint8Array | null>;
 }
 
 let cached: Repo | null = null;

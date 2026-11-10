@@ -11,9 +11,11 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.99",
     "@paypal/paypal-server-sdk": "^2.5.0",
     "@paypal/react-paypal-js": "^10.6.1",
     "@supabase/supabase-js": "^2.119.0",
+    "ai": "^7.0.166",
     "next": "16.4.6",
     "qrcode": "^1.5.4",
     "react": "19.3.0",

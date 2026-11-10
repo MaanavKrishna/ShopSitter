@@ -52,4 +52,17 @@ export class FileRepo implements Repo {
     this.write("visits.json", this.read<Visit>("visits.json").filter((v) => v.shop !== shop));
     this.write("products.json", [...this.read<Product>("products.json").filter((p) => p.shop !== shop), ...products]);
   }
+
+  async savePhoto(name: string, bytes: Uint8Array): Promise<string> {
+    const dir = path.join(this.dir, "shots");
+    mkdirSync(dir, { recursive: true });
+    const key = path.basename(name);
+    writeFileSync(path.join(dir, key), bytes);
+    return key;
+  }
+
+  async getPhoto(key: string): Promise<Uint8Array | null> {
+    const file = path.join(this.dir, "shots", path.basename(key));
+    return existsSync(file) ? new Uint8Array(readFileSync(file)) : null;
+  }
 }

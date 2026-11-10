@@ -106,4 +106,16 @@ export class SupabaseRepo implements Repo {
     check(await this.db.from("products").delete().eq("shop", shop));
     if (products.length) check(await this.db.from("products").insert(products.map(toRow)));
   }
+
+  async savePhoto(name: string, bytes: Uint8Array): Promise<string> {
+    const { error } = await this.db.storage.from("shelf").upload(name, bytes, { contentType: "image/jpeg", upsert: true });
+    if (error) throw new Error(`storage: ${error.message}`);
+    return name;
+  }
+
+  async getPhoto(key: string): Promise<Uint8Array | null> {
+    const { data, error } = await this.db.storage.from("shelf").download(key);
+    if (error || !data) return null;
+    return new Uint8Array(await data.arrayBuffer());
+  }
 }
