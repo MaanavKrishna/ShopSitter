@@ -1011,6 +1011,7 @@ button:disabled {
 .stand {
   min-height: 100dvh;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   gap: 1rem;
   padding: clamp(1rem, 3vw, 2.2rem) clamp(1.1rem, 4.8vw, 4.4rem);
@@ -1162,9 +1163,12 @@ button:disabled {
   font-size: 0.95rem;
 }
 
-.stand-reading {
+.stand-status {
+  flex-basis: 100%;
+  order: -1;
   color: var(--paypal);
   font-weight: 700;
+  font-size: 1.1rem;
 }
 
 .stand-preview {
@@ -1174,6 +1178,8 @@ button:disabled {
 
 .stand-preview video {
   width: 9rem;
+  max-height: 9rem;
+  object-fit: cover;
   border-radius: 10px;
   background: var(--blue-deep);
 }

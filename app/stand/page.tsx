@@ -2,7 +2,7 @@
 
 import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { StandCamera, type ShelfChange } from "@/components/StandCamera";
+import { StandCamera, type CameraPhase, type ShelfChange } from "@/components/StandCamera";
 import { Wordmark } from "@/components/Wordmark";
 import { formatCents } from "@/lib/money";
 import type { PricedBill } from "@/lib/types";
@@ -20,6 +20,8 @@ export default function StandPage() {
   const [current, setCurrent] = useState<Current | null>(null);
   const [justPaid, setJustPaid] = useState<number | null>(null);
   const [reading, setReading] = useState(false);
+  const [phase, setPhase] = useState<CameraPhase>("starting");
+  const [note, setNote] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -105,7 +107,11 @@ export default function StandPage() {
           }
           setProblem(null);
           const data = (await res.json()) as { visit: Visit | null; bill: PricedBill | null };
-          setCurrent(data.visit && data.bill && data.visit.status === "open" ? { visit: data.visit, bill: data.bill } : null);
+          const open = data.visit && data.bill && data.visit.status === "open";
+          setCurrent(open ? { visit: data.visit!, bill: data.bill! } : null);
+          // Say so when a change was seen but nothing is owed, so the stand never looks stuck.
+          setNote(open ? null : "Nothing was taken.");
+          if (!open) setTimeout(() => setNote(null), 6000);
         } catch {
           setProblem("The stand couldn't reach the server. It will keep trying.");
         } finally {
@@ -213,10 +219,18 @@ export default function StandPage() {
       </div>
 
       <footer className="stand-foot">
-        <StandCamera onChange={onChange} />
+        <StandCamera onChange={onChange} onPhase={setPhase} />
         <p>
           A camera counts items on this shelf. It does not record people.
-          {reading && <span className="stand-reading"> Reading the shelf…</span>}
+        </p>
+        <p className="stand-status" role="status">
+          {reading
+            ? "Reading the shelf…"
+            : phase === "moving"
+              ? "Something moved. Waiting for the shelf to go still…"
+              : phase === "starting"
+                ? "Starting the camera…"
+                : (note ?? "Watching the shelf. Keep this device still.")}
         </p>
         {problem && (
           <p role="alert" className="stand-problem">

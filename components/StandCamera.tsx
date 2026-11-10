@@ -20,15 +20,26 @@ const SAMPLE_EVERY_MS = 250;
  * calls onChange with a photo from before and after. Frames are compared on this device;
  * only the two stills for a change ever leave it.
  */
-export function StandCamera({ onChange }: { onChange: (change: ShelfChange) => void }) {
+export type CameraPhase = "starting" | "watching" | "moving";
+
+export function StandCamera({
+  onChange,
+  onPhase,
+}: {
+  onChange: (change: ShelfChange) => void;
+  /** Tells the page whether the shelf is still or something is moving, so it can say so. */
+  onPhase?: (phase: CameraPhase) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onChangeRef = useRef(onChange);
+  const onPhaseRef = useRef(onPhase);
   const [problem, setProblem] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
 
   useEffect(() => {
     onChangeRef.current = onChange;
-  }, [onChange]);
+    onPhaseRef.current = onPhase;
+  }, [onChange, onPhase]);
 
   useEffect(() => {
     let stopped = false;
@@ -81,6 +92,8 @@ export function StandCamera({ onChange }: { onChange: (change: ShelfChange) => v
       let baselineStill = await still();
       let prev = baselineGray;
       let detector = initialDetector();
+      let phase: CameraPhase = "watching";
+      onPhaseRef.current?.(phase);
 
       timer = setInterval(async () => {
         if (stopped || video.readyState < 2) return;
@@ -92,6 +105,11 @@ export function StandCamera({ onChange }: { onChange: (change: ShelfChange) => v
         });
         prev = gray;
         detector = result.state;
+        const next: CameraPhase = detector.changeStartedAt === null ? "watching" : "moving";
+        if (next !== phase) {
+          phase = next;
+          onPhaseRef.current?.(phase);
+        }
         if (!result.fire) return;
 
         const before = baselineStill;

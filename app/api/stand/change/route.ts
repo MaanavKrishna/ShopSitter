@@ -26,7 +26,11 @@ async function loadRefs(products: Product[]): Promise<Record<string, Uint8Array>
 
 const deps = (): ShelfChangeDeps => ({
   repo: getRepo(),
-  diff: async (input) => diffShelf({ ...input, refs: await loadRefs(input.products) }),
+  diff: async (input) => {
+    const result = await diffShelf({ ...input, refs: await loadRefs(input.products) });
+    console.log(`shelf read: ${JSON.stringify(result.delta)} confidence ${result.confidence}`);
+    return result;
+  },
   newId: () => randomUUID().slice(0, 8),
 });
 const bad = (error: string, status = 400) => Response.json({ error }, { status });
@@ -56,7 +60,10 @@ export async function POST(req: Request) {
   }
 
   // Live stand: the camera page uploads the before and after stills.
-  if (!isStandTokenValid(req.headers.get("x-stand-token"))) return bad("unauthorized", 401);
+  if (!isStandTokenValid(req.headers.get("x-stand-token"))) {
+    console.warn("stand change refused: wrong stand code");
+    return bad("unauthorized", 401);
+  }
   const form = await req.formData().catch(() => null);
   const before = form?.get("before");
   const after = form?.get("after");
@@ -68,6 +75,7 @@ export async function POST(req: Request) {
     return bad("bad_request");
   }
 
+  const started = Date.now();
   const result = await handleShelfChange(deps(), {
     shop: "live",
     before: new Uint8Array(await before.arrayBuffer()),
@@ -75,5 +83,12 @@ export async function POST(req: Request) {
     changeStartedAt,
     settledAt,
   });
+  // One line per read, so a stand that seems stuck can be diagnosed from the logs.
+  console.log(
+    `stand change: ${Date.now() - started}ms, photos ${before.size}+${after.size} bytes, ` +
+      `visit ${result.visit?.id ?? "none"} ${result.visit?.status ?? ""} ` +
+      `detected ${JSON.stringify(result.visit?.detected ?? [])} confidence ${result.visit?.confidence ?? "n/a"} ` +
+      `manual ${result.visit?.needsManual ?? false}`,
+  );
   return Response.json(result);
 }
