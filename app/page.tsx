@@ -1,66 +1,140 @@
-import Link from "next/link";
+import NextLink from "next/link";
+import { Badge } from "@astryxdesign/core/Badge";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
 import { VoidHero } from "@/components/VoidHero";
 import { Wordmark } from "@/components/Wordmark";
+import { listSamples } from "@/lib/samples";
 import { DEMO_PRODUCTS } from "@/lib/seed";
+import "./landing.css";
+
+const STEPS = [
+  {
+    title: "They take what they want",
+    body: "A phone propped by the shelf notices the shelf change and waits for it to go still.",
+  },
+  {
+    title: "The camera reads the shelf",
+    body: "A vision model compares a photo from before with one from after, and names what left and how many.",
+  },
+  {
+    title: "A bill and a PayPal QR appear",
+    body: "They scan the code, fix anything the bill got wrong on their own phone, and pay with PayPal.",
+  },
+  {
+    title: "The owner sees it",
+    body: "The stand says “Paid, thank you” and the dashboard shows what sold, what was paid and what is unmatched.",
+  },
+];
+
+const PROMISES = [
+  {
+    title: "It never accuses anyone",
+    body: "A visit with nothing paid after ten minutes is called unmatched, and nothing more. It can still be paid for a day, and the owner can mark it settled if someone left cash.",
+    tag: "Unmatched",
+  },
+  {
+    title: "It counts items, not people",
+    body: "The vision model is told to ignore hands and people and report only products and counts. The stand keeps one shelf photo from before a visit and one from after. Nobody is identified.",
+  },
+  {
+    title: "The server sets every price",
+    body: "The vision model returns product names and counts, and is never asked for a price. Prices come from the owner’s catalogue, and every total is worked out in code, to the cent.",
+  },
+  {
+    title: "PayPal handles the money",
+    body: "Each bill becomes an itemised PayPal order. Payment and refunds go through PayPal, and the paid figure the owner sees is the amount PayPal captured.",
+  },
+];
+
+const PARTS = [
+  {
+    name: "PayPal",
+    does: "Creates an itemised order for each bill, takes the payment, and sends refunds. Sandbox only: no real money moves.",
+  },
+  {
+    name: "A vision model",
+    does: "Compares the before and after photos and returns product names and counts, nothing else.",
+  },
+  {
+    name: "AG Studio",
+    does: "Draws the owner’s sales charts, which they can rearrange or add to.",
+  },
+];
 
 export default function Home() {
+  const hasSamples = listSamples().length > 0;
+
   return (
     <>
       <section className="void hero">
         <header className="topbar">
           <Wordmark />
           <nav aria-label="Main">
-            <Link href="/demo">Try the demo</Link>
-            <Link href="/owner">Owner&apos;s view</Link>
+            <NextLink href="/demo">Try the demo</NextLink>
+            <NextLink href="/owner">Owner&apos;s view</NextLink>
           </nav>
         </header>
         <VoidHero products={DEMO_PRODUCTS} />
       </section>
 
-      <main>
-        <section className="band" aria-labelledby="how-h">
-          <h2 id="how-h">How a visit goes</h2>
-          <p className="band-lede">The customer never opens an app, scans a barcode or types a thing.</p>
-          <ol className="steps">
-            <li>
-              <h3>They take what they want</h3>
-              <p>A spare phone propped by the shelf notices the shelf change and waits for it to go still.</p>
-            </li>
-            <li>
-              <h3>The bill writes itself</h3>
-              <p>
-                An AI model compares the shelf before and after and names what left. The stand shows the bill and a QR
-                code. If it got something wrong, they fix it on their own phone.
-              </p>
-            </li>
-            <li>
-              <h3>They pay with PayPal</h3>
-              <p>The stand says &ldquo;Paid, thank you&rdquo; and the owner&apos;s dashboard updates.</p>
-            </li>
-          </ol>
+      <main className="lp">
+        <section className="lp-band" aria-labelledby="how-h">
+          <div className="lp-wrap">
+            <h2 id="how-h" className="lp-title">
+              How a visit goes
+            </h2>
+            <p className="lp-lede">
+              Shopsitter minds a stand nobody is standing at. The customer never opens an app, scans a barcode or types
+              a thing.
+            </p>
+            <ol className="lp-steps">
+              {STEPS.map((s, i) => (
+                <li key={s.title}>
+                  <span className="lp-step-n" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <div className="lp-step-text">
+                    <Heading level={3} className="lp-h3">{s.title}</Heading>
+                    <Text as="p" size="base" color="secondary">
+                      {s.body}
+                    </Text>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
         </section>
 
-        <section className="band void band-void" aria-labelledby="owner-h">
-          <div className="owner-peek">
+        <section className="void lp-band lp-band-void" aria-labelledby="owner-h">
+          <div className="lp-wrap lp-owner">
             <div>
-              <h2 id="owner-h">You weren&apos;t there, and you still know</h2>
-              <p className="band-lede">
+              <h2 id="owner-h" className="lp-title">
+                You weren&apos;t there, and you still know
+              </h2>
+              <p className="lp-lede">
                 What sold, what was paid through PayPal, and which visits ended with nothing paid. Those are called
-                unmatched, never theft: Shopsitter doesn&apos;t accuse anyone, and you can mark them settled if someone
-                left cash.
+                unmatched: Shopsitter doesn&apos;t accuse anyone, and you can mark them settled if someone left cash.
               </p>
-              <Link className="btn btn-coral" href="/owner">
-                Open the demo stand&apos;s dashboard
-              </Link>
-              <p className="peek-caption">The passcode is &ldquo;demo&rdquo;.</p>
+              <div className="lp-owner-cta">
+                <NextLink className="btn btn-coral" href="/owner">
+                  Open the demo stand&apos;s dashboard
+                </NextLink>
+                <p className="lp-note">
+                  The passcode is <strong>demo</strong>.
+                </p>
+              </div>
             </div>
-            <div>
-              <dl className="glass peek">
+            <figure className="lp-peek-wrap">
+              <dl className="glass lp-peek">
                 <div>
                   <dt>Taken from the shelf</dt>
                   <dd className="num">$116.00</dd>
                 </div>
-                <div>
+                <div className="lp-peek-main">
                   <dt>Paid through PayPal</dt>
                   <dd className="num">$96.50</dd>
                 </div>
@@ -73,74 +147,130 @@ export default function Home() {
                   <dd className="num">$7.00</dd>
                 </div>
               </dl>
-              <p className="peek-caption">An example week from the demo stand, not real sales.</p>
+              <figcaption className="lp-note">An example week from the demo stand, not real sales.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section className="lp-band" aria-labelledby="promise-h">
+          <div className="lp-wrap">
+            <h2 id="promise-h" className="lp-title">
+              It counts jars, not people
+            </h2>
+            <p className="lp-lede">Four rules the stand keeps, so an owner and a customer can both trust the bill.</p>
+            <ul className="lp-promises">
+              {PROMISES.map((p) => (
+                <li key={p.title}>
+                  <Card padding={6} height="100%">
+                    <div className="lp-promise">
+                      <div className="lp-promise-head">
+                        <Heading level={3} className="lp-h3">{p.title}</Heading>
+                        {p.tag && <Badge variant="neutral" label={p.tag} />}
+                      </div>
+                      <Text as="p" size="base" color="secondary">
+                        {p.body}
+                      </Text>
+                    </div>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="lp-band lp-band-tint" aria-labelledby="built-h">
+          <div className="lp-wrap">
+            <h2 id="built-h" className="lp-title">
+              What does the work
+            </h2>
+            <dl className="lp-parts">
+              {PARTS.map((p) => (
+                <div key={p.name}>
+                  <dt>{p.name}</dt>
+                  <dd>{p.does}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="lp-limits">
+              <Banner
+                status="info"
+                title="It's a prototype, with limits"
+                description="One shelf, about six products that look different from each other, and good light. It can miscount, which is why the customer can always fix the bill before paying. A corrected bill is shown to the owner as adjusted."
+              />
             </div>
           </div>
         </section>
 
-        <section className="band" aria-labelledby="promise-h">
-          <h2 id="promise-h">It counts jars, not people</h2>
-          <ul className="promises">
-            <li>
-              <h3>The camera sees the shelf only</h3>
-              <p>No faces, no video. It keeps one photo from before a visit and one from after.</p>
-            </li>
-            <li>
-              <h3>The AI never sets a price</h3>
-              <p>It only names products and counts. Every total is worked out in code, to the cent.</p>
-            </li>
-            <li>
-              <h3>The customer has the last word</h3>
-              <p>They can correct the bill before paying. A corrected bill is shown to the owner as adjusted.</p>
-            </li>
-          </ul>
-        </section>
-
-        <section className="band band-tint" aria-labelledby="built-h">
-          <h2 id="built-h">What does the work</h2>
-          <table className="built">
-            <tbody>
-              <tr>
-                <th scope="row">PayPal</th>
-                <td>
-                  Creates an itemised order for each bill, takes the payment, and sends refunds. The owner&apos;s
-                  numbers are matched against PayPal&apos;s own records. Sandbox only: no real money moves.
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">An AI vision model</th>
-                <td>Compares the before and after photos and returns product names and counts, nothing else.</td>
-              </tr>
-              <tr>
-                <th scope="row">AG Studio</th>
-                <td>Draws the owner&apos;s sales charts, which they can rearrange or add to.</td>
-              </tr>
-            </tbody>
-          </table>
-          <p className="limits">
-            It&apos;s a prototype, with limits: one shelf, about six products that look different from each other, and
-            good light. It can miscount, which is why the customer can always fix the bill.
-          </p>
-        </section>
-
-        <section className="band void band-void" aria-labelledby="close-h">
-          <div className="close">
-            <h2 id="close-h">Sell without being there</h2>
-            <div className="close-actions">
-              <Link className="btn btn-coral" href="/demo">
-                Try it with real shelf photos
-              </Link>
-              <Link className="btn btn-ghost" href="/owner">
-                See the owner&apos;s view
-              </Link>
-            </div>
+        <section className="lp-band" aria-labelledby="go-h">
+          <div className="lp-wrap">
+            <h2 id="go-h" className="lp-title">
+              Sell without being there
+            </h2>
+            <p className="lp-lede">Three places to see it for yourself.</p>
+            <ul className="lp-doors">
+              <li>
+                <Card padding={6} height="100%">
+                  <div className="lp-door">
+                    <Heading level={3} className="lp-h3">Try the demo</Heading>
+                    <Text as="p" size="base" color="secondary">
+                      {hasSamples
+                        ? "Pick a before and after photo of the shelf. Shopsitter reads what was taken, writes the bill, and lets you pay it in the PayPal sandbox."
+                        : "Shopsitter without a camera. The sample shelf photos aren’t in yet, so for now the page explains the run and points to what works today."}
+                    </Text>
+                    <div className="lp-door-action">
+                      <Button label="Try the demo" variant="primary" size="lg" href="/demo" />
+                    </div>
+                  </div>
+                </Card>
+              </li>
+              <li>
+                <Card padding={6} height="100%">
+                  <div className="lp-door">
+                    <Heading level={3} className="lp-h3">Owner&apos;s dashboard</Heading>
+                    <Text as="p" size="base" color="secondary">
+                      What sold, what was paid and what is unmatched at the demo stand. Sign in with the passcode{" "}
+                      <Text type="code">demo</Text>.
+                    </Text>
+                    <div className="lp-door-action">
+                      <Button label="Owner sign-in" variant="secondary" size="lg" href="/owner" />
+                    </div>
+                  </div>
+                </Card>
+              </li>
+              <li>
+                <Card padding={6} height="100%">
+                  <div className="lp-door">
+                    <Heading level={3} className="lp-h3">The stand screen</Heading>
+                    <Text as="p" size="base" color="secondary">
+                      The screen that sits by the shelf and shows the bill and the QR code. It asks for the stand code
+                      and uses this device&apos;s camera.
+                    </Text>
+                    <div className="lp-door-action">
+                      <Button label="Open the stand screen" variant="secondary" size="lg" href="/stand" />
+                    </div>
+                  </div>
+                </Card>
+              </li>
+            </ul>
           </div>
         </section>
       </main>
 
-      <footer className="foot void">
-        <span>Shopsitter, built for the PayPal AI Hackathon 2026.</span>
-        <span>Payments run in the PayPal sandbox.</span>
+      <footer className="void lp-foot">
+        <div className="lp-wrap lp-foot-in">
+          <div className="lp-foot-top">
+            <Wordmark />
+            <nav aria-label="Footer">
+              <NextLink href="/demo">Demo</NextLink>
+              <NextLink href="/owner">Owner&apos;s view</NextLink>
+              <NextLink href="/stand">Stand screen</NextLink>
+            </nav>
+          </div>
+          <div className="lp-foot-base">
+            <span>Shopsitter, built for the PayPal AI Hackathon 2026.</span>
+            <span>Payments run in the PayPal sandbox. No real money moves.</span>
+          </div>
+        </div>
       </footer>
     </>
   );

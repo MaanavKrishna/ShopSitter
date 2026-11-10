@@ -1,49 +1,55 @@
+import { Suspense } from "react";
 import { CheckoutError, getBill } from "@/lib/checkout";
 import { getRepo } from "@/lib/repo";
-import { PayPanel } from "@/components/PayPanel";
+import { LATE_PAY_MS } from "@/lib/visits";
+import { PayNotFound, PayPanel, PaySkeleton } from "@/components/PayPanel";
 import { Wordmark } from "@/components/Wordmark";
+import "../pay.css";
 
 export const dynamic = "force-dynamic";
 
 async function loadBill(visitId: string) {
+  const now = Date.now();
   try {
-    return await getBill(getRepo(), visitId, Date.now());
+    const data = await getBill(getRepo(), visitId, now);
+    const { visit } = data;
+    // Same cut-off the order route applies, so the page can say so before PayPal is opened.
+    const expired = visit.status === "unmatched" && now - (visit.closedAt ?? visit.lastSettledAt) > LATE_PAY_MS;
+    return { ...data, expired };
   } catch (e) {
     if (e instanceof CheckoutError) return null;
     throw e;
   }
 }
 
-export default async function PayPage({ params }: PageProps<"/pay/[visitId]">) {
-  const { visitId } = await params;
-  const data = await loadBill(visitId);
-  if (!data) {
-    return (
-      <>
-        <header className="pay-top void">
-          <Wordmark />
-        </header>
-        <main className="pay-shell">
-          <h1>We can&apos;t find this bill</h1>
-          <p>Scan the code on the stand again to get a fresh link.</p>
-        </main>
-      </>
-    );
-  }
+async function Bill({ visitId }: { visitId: Promise<string> }) {
+  const id = await visitId;
+  const data = await loadBill(id);
+  if (!data) return <PayNotFound />;
   return (
-    <>
-      <header className="pay-top void">
+    <PayPanel
+      visitId={id}
+      initialVisit={data.visit}
+      initialBill={data.bill}
+      products={data.products}
+      expired={data.expired}
+      paypalClientId={process.env.PAYPAL_CLIENT_ID ?? null}
+    />
+  );
+}
+
+export default function PayPage({ params }: PageProps<"/pay/[visitId]">) {
+  return (
+    <div className="payx">
+      <header className="payx-top void">
         <Wordmark />
+        <span className="payx-top-note">Pay at the stand</span>
       </header>
-      <main className="pay-shell">
-        <PayPanel
-        visitId={visitId}
-        initialVisit={data.visit}
-        initialBill={data.bill}
-        products={data.products}
-          paypalClientId={process.env.PAYPAL_CLIENT_ID ?? null}
-        />
+      <main className="payx-main">
+        <Suspense fallback={<PaySkeleton />}>
+          <Bill visitId={params.then((p) => p.visitId)} />
+        </Suspense>
       </main>
-    </>
+    </div>
   );
 }

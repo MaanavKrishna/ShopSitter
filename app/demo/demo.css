@@ -1,0 +1,193 @@
+/* Demo page: a cobalt head, then white working cards. */
+
+.dm-head {
+  padding-bottom: clamp(2.5rem, 6vw, 4rem);
+}
+
+.dm-head-text {
+  padding: 1.5rem clamp(1.1rem, 4.8vw, 4.4rem) 0;
+  max-width: 56rem;
+}
+
+.dm-head h1 {
+  font-size: clamp(2.6rem, 6.4vw, 4.8rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--on-blue);
+}
+
+.dm-head-text p {
+  margin-top: 1.1rem;
+  max-width: 40rem;
+  font-size: 1.15rem;
+  color: var(--on-blue-soft);
+}
+
+.dm {
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1.1rem, 4.8vw, 4.4rem) 4.5rem;
+}
+
+.dm-empty {
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.dm-empty-main {
+  padding: 1.2rem 1.2rem 1.8rem;
+}
+
+.dm-empty-note {
+  margin-top: 0.4rem;
+  text-align: center;
+}
+
+.dm-empty-next {
+  display: grid;
+  gap: 1rem;
+  padding: 1.6rem clamp(1.2rem, 4vw, 2rem) 1.8rem;
+}
+
+.dm-run-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.dm-run-steps li {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.dm-run-steps li > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--blue);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.dm-back {
+  justify-self: start;
+  font-weight: 600;
+  color: var(--blue);
+  padding: 0.4rem 0;
+}
+
+.dm-intro {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1.6rem;
+}
+
+.dm-problem {
+  margin-bottom: 1.4rem;
+  max-width: 44rem;
+}
+
+.dm-samples {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.dm-sample {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.dm-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.dm-pair figure {
+  margin: 0;
+}
+
+.dm-pair img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--tint);
+}
+
+.dm-pair figcaption {
+  padding-top: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.dm-result {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.dm-receipt {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dm-receipt li,
+.dm-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.dm-receipt li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dm-total {
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.dm-total .num {
+  font-size: 1.7rem;
+}
+
+/* Side by side when there is room, stacked full width on a phone. */
+.dm-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .dm-empty-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dm-empty-actions > * {
+    width: 100%;
+  }
+}

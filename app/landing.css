@@ -1,0 +1,326 @@
+/* Landing page, everything below the hero. White working bands alternate with the cobalt studio. */
+
+.lp-band {
+  padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1.1rem, 4.8vw, 4.4rem);
+}
+
+.lp-band-tint {
+  background: var(--tint);
+}
+
+.lp-wrap {
+  max-width: 70rem;
+  margin: 0 auto;
+}
+
+.lp-title {
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  max-width: 18ch;
+}
+
+.lp-lede {
+  margin-top: 1.1rem;
+  max-width: 38rem;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.lp-band-void .lp-title {
+  color: var(--on-blue);
+}
+
+.lp-band-void .lp-lede {
+  color: var(--on-blue-soft);
+}
+
+.lp-note {
+  font-size: 0.9rem;
+  color: var(--on-blue-soft);
+}
+
+.lp-note strong {
+  color: var(--on-blue);
+  font-weight: 700;
+}
+
+/* The visit is a real sequence: numbered markers joined by one rail. */
+.lp-steps {
+  list-style: none;
+  padding: 0;
+  margin: clamp(2.2rem, 5vw, 3.6rem) 0 0;
+  display: grid;
+  gap: 0;
+}
+
+.lp-steps li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: 1.1rem;
+  padding-bottom: 1.9rem;
+}
+
+.lp-steps li:last-child {
+  padding-bottom: 0;
+}
+
+.lp-steps li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(1.3rem - 1px);
+  top: 2.6rem;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+
+.lp-step-n {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--on-blue);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-step-text {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+  padding-top: 0.45rem;
+}
+
+.lp-owner {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.lp-owner-cta {
+  margin-top: 1.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem 1.2rem;
+}
+
+.lp-peek-wrap {
+  margin: 0;
+}
+
+.lp-peek-wrap .lp-note {
+  margin-top: 0.9rem;
+}
+
+.lp-peek {
+  margin: 0;
+  padding: 0.4rem 1.5rem;
+  color: var(--on-blue);
+}
+
+.lp-peek > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.lp-peek > div + div {
+  border-top: 1px solid rgb(255 255 255 / 0.24);
+}
+
+.lp-peek dt {
+  font-weight: 500;
+  color: var(--on-blue-soft);
+}
+
+.lp-peek dd {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+}
+
+.lp-peek .lp-peek-main dt {
+  color: var(--on-blue);
+}
+
+.lp-peek .lp-peek-main dd {
+  font-size: clamp(2.3rem, 4.6vw, 3.4rem);
+}
+
+.lp-promises,
+.lp-doors {
+  list-style: none;
+  padding: 0;
+  margin: clamp(2rem, 4.5vw, 3.2rem) 0 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.lp-promise {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.lp-promise-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.lp-parts {
+  margin: clamp(1.8rem, 4vw, 3rem) 0 0;
+}
+
+.lp-parts > div {
+  display: grid;
+  gap: 0.3rem 2rem;
+  padding: 1.15rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.lp-parts > div:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.lp-parts dt {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.lp-parts dd {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 46rem;
+}
+
+.lp-limits {
+  margin-top: 1.8rem;
+  max-width: 50rem;
+}
+
+.lp-door {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
+}
+
+.lp-door-action {
+  margin-top: auto;
+  padding-top: 0.9rem;
+}
+
+.lp-foot {
+  background: var(--blue-deep);
+  color: var(--on-blue-soft);
+  padding: 2.4rem clamp(1.1rem, 4.8vw, 4.4rem) 2.2rem;
+  font-size: 0.92rem;
+}
+
+.lp-foot-top,
+.lp-foot-base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem 2rem;
+}
+
+.lp-foot-top {
+  color: var(--on-blue);
+}
+
+.lp-foot nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.6rem;
+  font-weight: 500;
+}
+
+.lp-foot nav a {
+  text-decoration: none;
+  padding: 0.5rem 0;
+}
+
+.lp-foot nav a:hover {
+  text-decoration: underline;
+}
+
+.lp-foot-base {
+  margin-top: 1.4rem;
+  padding-top: 1.3rem;
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+}
+
+@media (min-width: 640px) {
+  .lp-promises {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lp-parts > div {
+    grid-template-columns: 13rem minmax(0, 1fr);
+    align-items: baseline;
+  }
+}
+
+@media (min-width: 900px) {
+  /* Four steps across, the rail running through the markers. */
+  .lp-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  .lp-steps li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.2rem;
+    padding-bottom: 0;
+  }
+
+  .lp-steps li:not(:last-child)::before {
+    left: 2.6rem;
+    right: -2rem;
+    top: calc(1.3rem - 1px);
+    bottom: auto;
+    width: auto;
+    height: 2px;
+  }
+
+  .lp-step-text {
+    padding-top: 0;
+    padding-right: 0.5rem;
+  }
+
+  .lp-owner {
+    grid-template-columns: 1.1fr 1fr;
+    gap: 4rem;
+  }
+
+  .lp-doors {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Card and step titles sit between the band title and the body copy. */
+.lp-h3 {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}

@@ -1,0 +1,552 @@
+/* Stand screen: propped at the shelf and read from two metres away. Sits on the cobalt studio (.void). */
+
+.sd {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  gap: clamp(1rem, 2.4vw, 1.6rem);
+  padding: clamp(1rem, 3vw, 2rem) clamp(1.1rem, 4.8vw, 4.4rem) clamp(1rem, 2.4vw, 1.6rem);
+}
+
+.sd-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 2rem;
+}
+
+.sd-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.4rem, 3vw, 2rem);
+  align-content: center;
+}
+
+.sd-body > * {
+  min-width: 0;
+  animation: sd-arrive 0.5s var(--ease-out) both;
+}
+
+@keyframes sd-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.sd-body h1 {
+  color: var(--on-blue);
+}
+
+/* ---------- Ready ---------- */
+
+.sd-ready h1 {
+  font-size: clamp(3.4rem, 12.5vw, 9rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.sd-ready p,
+.sd-hint {
+  margin-top: 1.2rem;
+  max-width: 34ch;
+  font-size: clamp(1.3rem, 3vw, 2.1rem);
+  line-height: 1.25;
+  color: var(--on-blue-soft);
+}
+
+/* ---------- Bill ---------- */
+
+.sd-bill h1 {
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin-bottom: 0.45em;
+}
+
+.sd-bill ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.3rem clamp(1rem, 2.4vw, 1.8rem);
+}
+
+.sd-bill li {
+  display: grid;
+  grid-template-columns: 2.1ch minmax(0, 1fr) auto;
+  gap: 0.55em;
+  align-items: baseline;
+  padding: 0.5em 0;
+  font-size: clamp(1.45rem, 3.1vw, 2.3rem);
+  line-height: 1.12;
+}
+
+.sd-bill li + li {
+  border-top: 1px solid rgb(255 255 255 / 0.24);
+}
+
+.sd-qty {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--paypal);
+  white-space: nowrap;
+}
+
+.sd-qty::after {
+  content: "\00d7";
+  margin-left: 0.08em;
+  font-weight: 500;
+  color: var(--on-blue-soft);
+}
+
+.sd-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sd-bill .sd-hint {
+  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+  margin-top: 1rem;
+}
+
+.sd-pay {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-content: center;
+  justify-items: start;
+}
+
+.sd-total {
+  display: grid;
+  gap: 0.35rem;
+  line-height: 1;
+  font-weight: 600;
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  color: var(--on-blue-soft);
+}
+
+.sd-total .num {
+  font-size: clamp(4.6rem, 12vw, 9.5rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  color: var(--on-blue);
+}
+
+.sd-qr {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  width: 100%;
+  max-width: 34rem;
+  padding: clamp(0.7rem, 1.4vw, 1rem);
+  padding-right: clamp(1rem, 2vw, 1.6rem);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: calc(var(--radius) + 4px);
+  box-shadow:
+    0 30px 50px -24px rgb(0 10 60 / 0.75),
+    0 0 0 1px rgb(255 255 255 / 0.5);
+}
+
+.sd-qr-code {
+  width: clamp(8.5rem, 20vw, 14rem);
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--tint);
+  overflow: hidden;
+}
+
+.sd-qr-code img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sd-scan {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.35rem, 2.7vw, 2.1rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+/* A short PayPal-yellow rule ties the instruction to the PayPal button on the phone. */
+.sd-scan::before {
+  content: "";
+  display: block;
+  width: 2.2rem;
+  height: 0.38rem;
+  margin-bottom: 0.7rem;
+  border-radius: 999px;
+  background: var(--paypal);
+}
+
+.sd-fix {
+  margin-top: 0.55rem;
+  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+/* ---------- Paid ---------- */
+
+.sd-paid {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+}
+
+.sd-paid-mark {
+  width: clamp(3rem, 6vw, 4.5rem);
+  height: auto;
+  margin-bottom: clamp(0.8rem, 2vw, 1.4rem);
+}
+
+.sd-paid-mark circle {
+  fill: var(--paypal);
+}
+
+.sd-paid-mark path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sd-paid .num {
+  font-size: clamp(5rem, 18vw, 13rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+}
+
+.sd-paid h1 {
+  font-size: clamp(2.2rem, 6vw, 4.4rem);
+  letter-spacing: -0.035em;
+  color: var(--paypal);
+}
+
+/* ---------- Status bar ---------- */
+
+.sd-foot {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.sd-problem {
+  max-width: 40rem;
+}
+
+.sd-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.9rem 1rem;
+  padding: 0.8rem;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: var(--radius);
+  background: rgb(0 20 120 / 0.34);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.sd-live {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.sd-status {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sd-status p {
+  font-weight: 650;
+  font-size: 1.08rem;
+  line-height: 1.25;
+  color: var(--on-blue);
+}
+
+.sd-indicator {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* The dot is tinted for the cobalt ground: white while calm, PayPal yellow while waiting. */
+.sd-indicator .astryx-status-dot {
+  --sd-dot: var(--on-blue);
+  background: var(--sd-dot);
+  color: var(--sd-dot);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.16);
+}
+
+.sd-status[data-tone="alert"] .astryx-status-dot {
+  --sd-dot: var(--paypal);
+  box-shadow: 0 0 0 4px rgb(255 196 57 / 0.22);
+}
+
+.sd-privacy,
+.sd-stats {
+  padding-left: 1.85rem;
+  line-height: 1.35;
+  color: var(--on-blue-soft);
+}
+
+.sd-privacy {
+  font-size: 0.86rem;
+  max-width: 62ch;
+}
+
+.sd-stats {
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
+
+.sd-side {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 0.8rem;
+  min-width: 0;
+}
+
+.sd-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.sd-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.9rem;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--on-blue);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-chip[data-on="true"] {
+  background: var(--on-blue);
+  border-color: var(--on-blue);
+  color: var(--blue-deep);
+}
+
+.sd-readnow.btn {
+  min-height: 44px;
+  padding: 0 1.15rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.7);
+}
+
+.sd-readnow.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Camera preview with its show and hide control. */
+.sd-cam {
+  display: grid;
+  justify-items: start;
+  align-self: start;
+  width: 6.4rem;
+}
+
+.sd-cam video {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 9px;
+  background: var(--blue-deep);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.3);
+}
+
+.sd-cam[data-hidden="true"] {
+  width: auto;
+}
+
+.sd-cam[data-hidden="true"] video {
+  /* Kept in the layout at 1px so the camera keeps delivering frames. */
+  width: 1px;
+  height: 1px;
+  aspect-ratio: auto;
+  opacity: 0;
+  box-shadow: none;
+}
+
+.sd-cam button {
+  min-height: 44px;
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  color: var(--on-blue-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.sd-cam button:hover {
+  color: var(--on-blue);
+}
+
+.sd-cam-problem {
+  grid-column: 1 / -1;
+  max-width: 40rem;
+}
+
+/* ---------- Extra camera ---------- */
+
+.sd-angle .sd-ready h1 {
+  font-size: clamp(3rem, 10vw, 7rem);
+}
+
+.sd-angle .sd-ready p {
+  font-size: clamp(1.15rem, 2.4vw, 1.7rem);
+}
+
+.sd-angle .sd-cam:not([data-hidden="true"]) {
+  width: clamp(7.5rem, 30vw, 13rem);
+}
+
+/* ---------- Setup ---------- */
+
+.sd-setup {
+  grid-template-rows: auto 1fr;
+}
+
+.sd-setup-wrap {
+  align-self: center;
+  justify-self: center;
+  width: min(100%, 29rem);
+  padding-bottom: clamp(1rem, 6vh, 4rem);
+  color: var(--ink);
+}
+
+.sd-setup-form {
+  display: grid;
+  gap: var(--spacing-5, 1.25rem);
+}
+
+.sd-setup-copy {
+  display: grid;
+  gap: var(--spacing-2, 0.5rem);
+}
+
+.sd-code input {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.32em;
+}
+
+.sd-code input::placeholder {
+  font-weight: 500;
+  opacity: 0.45;
+}
+
+/* ---------- Phones: the live message sits beside the preview, the small print runs full width ---------- */
+
+@media (max-width: 699.98px) {
+  .sd-live {
+    display: contents;
+  }
+
+  .sd-cam:not([data-hidden="true"]) {
+    grid-row: 1;
+    width: 5.2rem;
+  }
+
+  /* An extra camera is set up by its picture, so the preview leads and the message follows. */
+  .sd-angle .sd-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sd-angle .sd-cam:not([data-hidden="true"]) {
+    width: min(100%, 13rem);
+  }
+
+  .sd-privacy,
+  .sd-stats {
+    grid-column: 1 / -1;
+    padding-left: 0;
+  }
+
+  .sd-stats {
+    margin-top: -0.5rem;
+  }
+
+  .sd-readnow.btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* ---------- Wider screens ---------- */
+
+@media (min-width: 700px) {
+  .sd-bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1.2rem;
+    padding: 0.8rem 1.1rem 0.8rem 0.8rem;
+  }
+
+  .sd-side {
+    grid-column: auto;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .sd-chips {
+    justify-content: flex-end;
+  }
+
+  .sd-cam {
+    width: 7.6rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .sd[data-view="bill"] .sd-body {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    column-gap: clamp(1.8rem, 3.6vw, 4rem);
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-body > * {
+    animation: none;
+  }
+}

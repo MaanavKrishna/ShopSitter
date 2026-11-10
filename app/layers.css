@@ -1,0 +1,3 @@
+/* Cascade order, declared before anything else loads. Later layers win; the app's own
+   class rules stay outside every layer, so they win over all of them. */
+@layer reset, theme, base, app-base, astryx-base, astryx-theme, components, utilities;

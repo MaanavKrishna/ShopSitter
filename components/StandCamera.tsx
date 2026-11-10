@@ -1,5 +1,6 @@
 "use client";
 
+import { Banner } from "@astryxdesign/core/Banner";
 import { useEffect, useRef, useState } from "react";
 import {
   DIFFERS_BLOCKS,
@@ -267,14 +268,14 @@ export function StandCamera({
 
   if (problem) {
     return (
-      <p role="alert" className="stand-problem">
-        {problem}
-      </p>
+      <div role="alert" className="sd-cam-problem">
+        <Banner status="error" title={problem} />
+      </div>
     );
   }
 
   return (
-    <div className="stand-preview" data-hidden={!showPreview}>
+    <div className="sd-cam" data-hidden={!showPreview}>
       <video ref={videoRef} playsInline muted aria-label="Camera view of the shelf" />
       <button type="button" onClick={() => setShowPreview((v) => !v)}>
         {showPreview ? "Hide camera view" : "Show camera view"}

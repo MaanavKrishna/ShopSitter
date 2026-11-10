@@ -1,4 +1,9 @@
-@import "tailwindcss";
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "../themes/void/void.css";
+@import "tailwindcss/utilities.css" layer(utilities);
 
 /*
   Studio Void: the stand's products float in one saturated cobalt studio, lit like a product
@@ -30,6 +35,8 @@
   --font-sans: var(--font-body);
 }
 
+/* Element defaults sit below the design system, so its components keep their own type and spacing. */
+@layer app-base {
 html {
   background: var(--paper);
   color: var(--ink);
@@ -68,6 +75,14 @@ p {
   margin: 0;
 }
 
+/* Headings take the colour of the surface they sit on (white on cobalt), not the theme's default ink. */
+h1,
+h2,
+h3,
+h4 {
+  color: inherit;
+}
+
 h1,
 h2 {
   font-family: var(--font-display), var(--font-body), sans-serif;
@@ -82,6 +97,8 @@ h3 {
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
+}
+
 }
 
 /* Every figure of money: tight, tabular, heavy. */
@@ -174,6 +191,7 @@ h3 {
   color: var(--blue);
 }
 
+@layer app-base {
 button {
   font: inherit;
   cursor: pointer;
@@ -182,6 +200,7 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
 }
 
 .btn {
