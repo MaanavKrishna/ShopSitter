@@ -1171,6 +1171,18 @@ button:disabled {
   font-size: 1.1rem;
 }
 
+.stand-readnow {
+  min-height: 44px;
+  padding: 0 1.1rem;
+  font-weight: 600;
+}
+
+.stand-stats {
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .stand-preview {
   display: grid;
   gap: 0.3rem;

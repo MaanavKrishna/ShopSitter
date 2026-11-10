@@ -25,21 +25,38 @@ export type CameraPhase = "starting" | "watching" | "moving";
 export function StandCamera({
   onChange,
   onPhase,
+  onStats,
+  readNow = 0,
 }: {
   onChange: (change: ShelfChange) => void;
   /** Tells the page whether the shelf is still or something is moving, so it can say so. */
   onPhase?: (phase: CameraPhase) => void;
+  /** About once a second: how much of the picture is moving, and how much differs from the last read (0..1). */
+  onStats?: (stats: { moving: number; differs: number }) => void;
+  /** Increase this number to read the shelf right now, whatever the detector thinks. */
+  readNow?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onChangeRef = useRef(onChange);
   const onPhaseRef = useRef(onPhase);
+  const onStatsRef = useRef(onStats);
+  const forceRef = useRef(false);
+  const lastReadNow = useRef(readNow);
   const [problem, setProblem] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
 
   useEffect(() => {
     onChangeRef.current = onChange;
     onPhaseRef.current = onPhase;
-  }, [onChange, onPhase]);
+    onStatsRef.current = onStats;
+  }, [onChange, onPhase, onStats]);
+
+  useEffect(() => {
+    if (readNow !== lastReadNow.current) {
+      lastReadNow.current = readNow;
+      forceRef.current = true;
+    }
+  }, [readNow]);
 
   useEffect(() => {
     let stopped = false;
@@ -93,16 +110,22 @@ export function StandCamera({
       let prev = baselineGray;
       let detector = initialDetector();
       let phase: CameraPhase = "watching";
+      let ticks = 0;
       onPhaseRef.current?.(phase);
 
       timer = setInterval(async () => {
         if (stopped || video.readyState < 2) return;
         const gray = grab();
-        const result = stepDetector(detector, {
-          vsPrev: frameDistance(gray, prev),
-          vsBaseline: frameDistance(gray, baselineGray),
-          t: Date.now(),
-        });
+        const now = Date.now();
+        const vsPrev = frameDistance(gray, prev);
+        const vsBaseline = frameDistance(gray, baselineGray);
+        if (++ticks % 4 === 0) onStatsRef.current?.({ moving: vsPrev, differs: vsBaseline });
+        const result = stepDetector(detector, { vsPrev, vsBaseline, t: now });
+        if (forceRef.current) {
+          forceRef.current = false;
+          result.state = initialDetector();
+          result.fire = { changeStartedAt: now, settledAt: now };
+        }
         prev = gray;
         detector = result.state;
         const next: CameraPhase = detector.changeStartedAt === null ? "watching" : "moving";

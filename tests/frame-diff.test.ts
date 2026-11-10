@@ -76,3 +76,23 @@ describe("stepDetector", () => {
     expect(fires[1].changeStartedAt).toBe(5000);
   });
 });
+
+describe("stepDetector without visible movement", () => {
+  it("still fires when the shelf has looked different from the baseline for three seconds", () => {
+    // A quick grab between two samples: no frame-to-frame movement is ever seen.
+    const fires = run([{ until: 500, ...QUIET }, { until: 4000, ...CHANGED }]);
+    expect(fires.length).toBeGreaterThanOrEqual(1);
+    expect(fires[0].changeStartedAt).toBe(750);
+    expect(fires[0].settledAt).toBe(3750);
+  });
+
+  it("does not fire for a difference that goes away within three seconds", () => {
+    expect(run([{ until: 500, ...QUIET }, { until: 2500, ...CHANGED }, { until: 8000, ...QUIET }])).toEqual([]);
+  });
+
+  it("notices a small item leaving a wide view", () => {
+    const small = { vsPrev: 0.012, vsBaseline: 0.008 };
+    const fires = run([{ until: 500, ...QUIET }, { until: 1500, ...small }, { until: 6000, vsPrev: 0, vsBaseline: 0.008 }]);
+    expect(fires).toHaveLength(1);
+  });
+});

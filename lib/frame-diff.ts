@@ -5,10 +5,11 @@
 export const SAMPLE_WIDTH = 64;
 export const SAMPLE_HEIGHT = 48;
 
-const PIXEL_THRESHOLD = 24; // brightness change (0..255) that counts as "this pixel changed"
-const MOVING_FRACTION = 0.02; // share of changed pixels between consecutive frames that means movement
-const CHANGED_FRACTION = 0.015; // share of changed pixels versus the baseline that means the shelf differs
-const SETTLE_MS = 2000; // how long the shelf must be still before it is read
+const PIXEL_THRESHOLD = 18; // brightness change (0..255) that counts as "this pixel changed"
+const MOVING_FRACTION = 0.01; // share of changed pixels between consecutive frames that means movement
+const CHANGED_FRACTION = 0.005; // share of changed pixels versus the baseline that means the shelf differs
+const SETTLE_MS = 2000; // how long the shelf must be still after movement before it is read
+const UNSEEN_MS = 3000; // how long a difference with no visible movement must last before it is read
 
 /** Fraction of pixels whose brightness differs noticeably between two equal-sized grayscale frames. */
 export function frameDistance(a: Uint8ClampedArray, b: Uint8ClampedArray): number {
@@ -19,9 +20,16 @@ export function frameDistance(a: Uint8ClampedArray, b: Uint8ClampedArray): numbe
   return changed / n;
 }
 
-export type DetectorState = { changeStartedAt: number | null; quietSince: number | null };
+export type DetectorState = {
+  /** When movement began, or null while the shelf is still. */
+  changeStartedAt: number | null;
+  /** When the shelf went quiet after movement. */
+  quietSince: number | null;
+  /** When the shelf first looked different from the baseline without any movement being seen. */
+  differsSince: number | null;
+};
 
-export const initialDetector = (): DetectorState => ({ changeStartedAt: null, quietSince: null });
+export const initialDetector = (): DetectorState => ({ changeStartedAt: null, quietSince: null, differsSince: null });
 
 export type DetectorSample = {
   /** frameDistance to the previous frame */
@@ -31,27 +39,36 @@ export type DetectorSample = {
   t: number;
 };
 
+type Step = { state: DetectorState; fire: null | { changeStartedAt: number; settledAt: number } };
+
 /**
- * Advances the detector by one frame. `fire` is set once when movement has stopped for
- * SETTLE_MS and the shelf no longer matches the baseline. A hand that comes and goes
- * without changing anything fires nothing.
+ * Advances the detector by one frame. `fire` is set once when the shelf should be read:
+ * either movement has stopped for SETTLE_MS and the shelf no longer matches the baseline,
+ * or the shelf has differed from the baseline for UNSEEN_MS with no movement seen (a grab
+ * too quick for the camera). A hand that comes and goes without changing anything fires nothing.
  */
-export function stepDetector(
-  state: DetectorState,
-  sample: DetectorSample,
-): { state: DetectorState; fire: null | { changeStartedAt: number; settledAt: number } } {
+export function stepDetector(state: DetectorState, sample: DetectorSample): Step {
   const moving = sample.vsPrev > MOVING_FRACTION;
+  const differs = sample.vsBaseline > CHANGED_FRACTION;
 
   if (moving) {
-    return { state: { changeStartedAt: state.changeStartedAt ?? sample.t, quietSince: null }, fire: null };
+    return {
+      state: { changeStartedAt: state.changeStartedAt ?? sample.t, quietSince: null, differsSince: null },
+      fire: null,
+    };
   }
-  if (state.changeStartedAt === null) return { state, fire: null };
+
+  if (state.changeStartedAt === null) {
+    if (!differs) return { state: initialDetector(), fire: null };
+    const differsSince = state.differsSince ?? sample.t;
+    if (sample.t - differsSince < UNSEEN_MS) return { state: { ...state, differsSince }, fire: null };
+    return { state: initialDetector(), fire: { changeStartedAt: differsSince, settledAt: sample.t } };
+  }
 
   const quietSince = state.quietSince ?? sample.t;
   if (sample.t - quietSince < SETTLE_MS) return { state: { ...state, quietSince }, fire: null };
 
-  const fire =
-    sample.vsBaseline > CHANGED_FRACTION ? { changeStartedAt: state.changeStartedAt, settledAt: sample.t } : null;
+  const fire = differs ? { changeStartedAt: state.changeStartedAt, settledAt: sample.t } : null;
   return { state: initialDetector(), fire };
 }
 

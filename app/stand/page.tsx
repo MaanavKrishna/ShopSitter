@@ -22,6 +22,8 @@ export default function StandPage() {
   const [reading, setReading] = useState(false);
   const [phase, setPhase] = useState<CameraPhase>("starting");
   const [note, setNote] = useState<string | null>(null);
+  const [stats, setStats] = useState<{ moving: number; differs: number } | null>(null);
+  const [readNow, setReadNow] = useState(0);
   const [problem, setProblem] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -219,7 +221,10 @@ export default function StandPage() {
       </div>
 
       <footer className="stand-foot">
-        <StandCamera onChange={onChange} onPhase={setPhase} />
+        <StandCamera onChange={onChange} onPhase={setPhase} onStats={setStats} readNow={readNow} />
+        <button type="button" className="btn btn-ghost stand-readnow" disabled={reading} onClick={() => setReadNow((n) => n + 1)}>
+          Read the shelf now
+        </button>
         <p>
           A camera counts items on this shelf. It does not record people.
         </p>
@@ -232,6 +237,11 @@ export default function StandPage() {
                 ? "Starting the camera…"
                 : (note ?? "Watching the shelf. Keep this device still.")}
         </p>
+        {stats && (
+          <p className="stand-stats">
+            Movement {(stats.moving * 100).toFixed(1)}%. Changed since last read {(stats.differs * 100).toFixed(1)}%.
+          </p>
+        )}
         {problem && (
           <p role="alert" className="stand-problem">
             {problem}
