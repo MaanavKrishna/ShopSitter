@@ -20,6 +20,8 @@ export type Visit = {
   paidCents: number | null;
   refundedCents: number;
   paypalOrderId: string | null;
+  /** Total of the PayPal order above, so a changed bill can be detected before capture. */
+  orderCents: number | null;
   captureId: string | null;
   beforeUrl: string | null;
   afterUrl: string | null;
@@ -55,6 +57,7 @@ export function newVisit(id: string, shop: Shop, detected: Line[], at: number): 
     paidCents: null,
     refundedCents: 0,
     paypalOrderId: null,
+    orderCents: null,
     captureId: null,
     beforeUrl: null,
     afterUrl: null,
