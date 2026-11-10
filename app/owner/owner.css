@@ -319,3 +319,30 @@
 .ow-login .ow-login-main :focus-visible {
   outline-color: var(--blue);
 }
+
+/* Summary tiles: label at the top, figure on the baseline of the hero figure, no dead space under it. */
+@media (min-width: 900px) {
+  .ow-tiles > .astryx-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .ow-tiles .ow-tile-value {
+    margin-top: auto;
+    padding-top: var(--spacing-6);
+  }
+
+  .ow-tiles .ow-tile-note {
+    margin-top: var(--spacing-2);
+  }
+}
+
+/* The chart board sits on the page tint and is only as tall as its charts. */
+.ow-studio-frame {
+  background: var(--color-background-body);
+}
+
+.ow-studio-canvas {
+  height: 42rem;
+}
