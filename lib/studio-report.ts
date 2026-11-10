@@ -116,22 +116,14 @@ const at = (xTrack: number, yTrack: number, xSpan: number, ySpan: number): AgWid
 });
 const title = (text: string) => ({ title: { enabled: true, text } });
 const sum = (id: string) => ({ id, aggregation: "sum" as const });
-const kpi = (text: string, field: string) => ({
-  type: "value" as const,
-  dataMapping: { value: [sum(field)] },
-  format: title(text),
-});
 
+// The headline figures live in the band at the top of the dashboard, so the board holds charts only.
 export const salesReport: AgReportState = {
   selectedPageId: "sales",
   pages: [
     {
       id: "sales",
       widgets: {
-        "kpi-taken": kpi("Taken from the shelf", "visits.taken"),
-        "kpi-paid": kpi("Paid through PayPal", "visits.paid"),
-        "kpi-unmatched": kpi("Unmatched", "visits.unmatched"),
-        "kpi-adjusted": kpi("Adjusted by customers", "visits.adjusted"),
         "by-day": {
           type: "column-chart-stacked",
           dataMapping: {
@@ -150,21 +142,11 @@ export const salesReport: AgReportState = {
           dataMapping: { categoryKey: [{ id: "items.product" }], valueKey: [sum("items.value")] },
           format: title("What sells"),
         },
-        "stock-left": {
-          type: "grid",
-          dataMapping: { cols: [{ id: "stock.product" }, sum("stock.left")] },
-          format: title("Left on the shelf"),
-        },
       },
       widgetLayout: {
-        "kpi-taken": at(0, 0, 6, 7),
-        "kpi-paid": at(6, 0, 6, 7),
-        "kpi-unmatched": at(12, 0, 6, 7),
-        "kpi-adjusted": at(18, 0, 6, 7),
-        "by-day": at(0, 7, 15, 18),
-        "by-status": at(15, 7, 9, 18),
-        "by-product": at(0, 25, 15, 18),
-        "stock-left": at(15, 25, 9, 18),
+        "by-day": at(0, 0, 14, 22),
+        "by-status": at(14, 0, 10, 22),
+        "by-product": at(0, 22, 24, 21),
       },
     },
   ],

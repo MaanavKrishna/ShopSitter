@@ -14,12 +14,37 @@
   padding: var(--spacing-4) var(--spacing-4) 18vh;
 }
 
+/* Text fields draw their own focus ring on the control box, so the page-wide outline is not repeated inside. */
+.ow-dialog-body input:focus-visible,
+.ow-login-main input:focus-visible {
+  outline: none;
+}
+
+/* The sign-in card is white, so focus inside it uses the blue ring, not the yellow one for cobalt surfaces. */
+.ow-login .ow-login-main :focus-visible {
+  outline-color: var(--blue);
+}
+
 /* ---------- Dashboard frame ---------- */
 
 .ow-page {
+  --ow-gutter: clamp(1rem, 4.8vw, 4.4rem);
+  --ow-wide: 80rem;
+  --ow-coral-text: #b02f17;
+  --ow-coral-tint: #ffe2da;
+  --ow-shadow: 0 1px 0 rgb(10 30 120 / 0.04), 0 16px 30px -24px rgb(10 30 120 / 0.45);
   min-height: 100dvh;
   background: var(--tint);
   overflow-x: clip;
+}
+
+.ow-bar,
+.ow-band-in,
+.ow-main {
+  width: 100%;
+  max-width: calc(var(--ow-wide) + 2 * var(--ow-gutter));
+  margin-inline: auto;
+  padding-inline: var(--ow-gutter);
 }
 
 .ow-bar {
@@ -27,7 +52,7 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-4);
-  padding: var(--spacing-3) clamp(1rem, 4.8vw, 4.4rem);
+  padding-block: var(--spacing-3);
 }
 
 .ow-bar-actions {
@@ -49,26 +74,7 @@
   box-shadow: inset 0 0 0 1.5px var(--on-blue);
 }
 
-.ow-main {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: clamp(1.6rem, 4vw, 2.6rem) clamp(1rem, 4.8vw, 4.4rem) 4rem;
-}
-
-.ow-section {
-  margin-top: clamp(2.2rem, 5vw, 3.2rem);
-  min-width: 0;
-}
-
-.ow-section-head {
-  margin-bottom: var(--spacing-4);
-}
-
-.ow-notices {
-  margin-top: var(--spacing-4);
-}
-
-/* Visually hidden text. It carries its own containing block so it can never widen the page. */
+/* Visually hidden text. It stays in the flow at 1px so it can never widen a scrolling container. */
 .ow-hidden {
   display: block;
   width: 1px;
@@ -78,149 +84,676 @@
   white-space: nowrap;
 }
 
-/* ---------- Summary tiles ---------- */
+/* ---------- The band: how much did I get ---------- */
 
-/* Paid is the number that matters, so it gets the studio and the most room. */
-.ow-tiles {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-3);
-  margin: var(--spacing-6) 0 0;
+.ow-band-in {
+  padding-top: clamp(1.2rem, 3vw, 2.2rem);
+  padding-bottom: clamp(2rem, 4.4vw, 3.2rem);
 }
 
-.ow-tiles dt,
-.ow-tiles dd {
-  margin: 0;
+.ow-band-head {
+  display: grid;
+  gap: var(--spacing-4);
 }
 
-.ow-hero {
-  grid-column: 1 / -1;
-  display: grid;
-  align-content: space-between;
-  gap: var(--spacing-6);
-  padding: var(--spacing-5);
-  border-radius: var(--radius-container);
+.ow-band-head h1 {
+  font-size: clamp(2rem, 6vw, 2.9rem);
+  letter-spacing: -0.03em;
+}
+
+.ow-band-sub {
+  margin-top: 0.45rem;
+  color: var(--on-blue-soft);
+}
+
+/* The period switch, redrawn for cobalt: a quiet glass track with a white thumb. */
+.ow-period .astryx-segmented-control {
+  background: rgb(255 255 255 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.26);
+}
+
+.ow-period .astryx-segmented-control-item {
+  min-height: 40px;
   color: var(--on-blue);
-  background:
-    radial-gradient(70% 90% at 100% 100%, rgb(62 108 255 / 0.5), transparent 70%),
-    radial-gradient(120% 140% at 20% 0%, var(--blue-lit), var(--blue) 50%, var(--blue-deep));
-  box-shadow: 0 18px 32px -22px rgb(0 20 120 / 0.75);
+  font-weight: 600;
 }
 
-.ow-hero dt {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
+.ow-period .astryx-segmented-control-item[data-selected],
+.ow-period .astryx-segmented-control-item[aria-checked="true"] {
+  color: var(--blue-deep);
+}
+
+.ow-band-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.8rem, 4vw, 2.4rem);
+  margin-top: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.ow-band-body[aria-busy="true"] {
+  transition: opacity 0.2s;
+}
+
+.ow-band .astryx-skeleton {
+  background: rgb(255 255 255 / 0.16);
+}
+
+.ow-paid {
+  display: grid;
+  gap: 0.5rem;
+  align-content: end;
+  min-width: 0;
+}
+
+.ow-paid-label {
   font-weight: 600;
   color: var(--on-blue-soft);
 }
 
-.ow-paypal-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
+.ow-paid-figure {
+  color: var(--on-blue);
+  font-size: clamp(3.9rem, 19vw, 7rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+}
+
+.ow-paid-note {
+  margin-top: 0.3rem;
+  font-size: 0.92rem;
+  color: var(--on-blue-soft);
+}
+
+/* ---------- Shelf ledger: one bar for where the value went ---------- */
+
+.ow-ledger {
+  display: grid;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.ow-ledger-track {
+  height: 1.6rem;
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 0.13);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  overflow: hidden;
+}
+
+.ow-ledger-fill {
+  display: flex;
+  gap: 3px;
+  height: 100%;
+  animation: ow-ledger-in 0.9s var(--ease-out) both;
+}
+
+/* Reveals the bar from the left, which reads as the bar growing from nothing. */
+@keyframes ow-ledger-in {
+  from {
+    clip-path: inset(0 100% 0 0 round 0.8rem);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round 0.8rem);
+  }
+}
+
+.ow-ledger-seg {
+  flex: 1 1 0;
+  min-width: 0.5rem;
+  border-radius: 3px;
+  transition: flex-grow 0.5s var(--ease-out);
+}
+
+.ow-ledger-seg[data-part="paid"],
+.ow-ledger-swatch[data-part="paid"] {
+  background: var(--on-blue);
+}
+
+.ow-ledger-seg[data-part="unmatched"],
+.ow-ledger-swatch[data-part="unmatched"] {
+  background: var(--coral);
+}
+
+.ow-ledger-seg[data-part="adjusted"],
+.ow-ledger-swatch[data-part="adjusted"] {
   background: var(--paypal);
 }
 
-.ow-hero dd {
-  font-size: clamp(3rem, 13vw, 5.2rem);
-  font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 0.95;
+.ow-ledger-seg[data-part="open"],
+.ow-ledger-swatch[data-part="open"] {
+  background: rgb(201 213 255 / 0.62);
 }
 
-.ow-tile-label {
-  font-size: 0.92rem;
+/* Not money in or out of the till: drawn hollow so they sit behind the three that matter. */
+.ow-ledger-seg[data-part="settled"],
+.ow-ledger-swatch[data-part="settled"] {
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1.5px var(--on-blue-soft);
+}
+
+.ow-ledger-seg[data-part="refunded"],
+.ow-ledger-swatch[data-part="refunded"] {
+  background: repeating-linear-gradient(135deg, rgb(201 213 255 / 0.75) 0 2px, transparent 2px 5px);
+  box-shadow: inset 0 0 0 1.5px var(--on-blue-soft);
+}
+
+/* On a phone the legend reads like a receipt: a line per part, amounts in one column, total last. */
+.ow-ledger-legend {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.ow-ledger-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-3);
+}
+
+.ow-ledger-item dt {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: var(--on-blue-soft);
+}
+
+.ow-ledger-swatch {
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+}
+
+.ow-ledger-item dd {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.1;
+}
+
+.ow-ledger-total {
+  margin-top: 0.3rem;
+  padding-top: var(--spacing-3);
+  border-top: 1px solid rgb(255 255 255 / 0.24);
+}
+
+.ow-ledger-item dd {
+  color: var(--on-blue);
+}
+
+.ow-ledger-total dt {
+  font-size: 1rem;
+  color: var(--on-blue);
   font-weight: 600;
-  line-height: 1.3;
-  color: var(--color-text-secondary);
-  min-height: 2.6em;
 }
 
-.ow-tiles .ow-tile-value {
-  margin-top: var(--spacing-3);
-  font-size: clamp(1.7rem, 6.4vw, 2.4rem);
-  font-weight: 800;
-  letter-spacing: -0.035em;
+/* ---------- Paid by day ---------- */
+
+.ow-chart-slot {
+  min-width: 0;
+  min-height: 11.2rem;
+}
+
+.ow-chart {
+  margin: 0;
+}
+
+.ow-chart figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-3);
+  font-size: 0.9rem;
+  color: var(--on-blue-soft);
+}
+
+.ow-chart h2 {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.ow-chart-plot {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 8.2rem;
+  padding-top: 1.7rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.3);
+}
+
+.ow-chart[data-dense] .ow-chart-plot,
+.ow-chart[data-dense] .ow-chart-axis {
+  gap: 3px;
+}
+
+.ow-chart-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.ow-chart-col[data-lean="start"] {
+  align-items: flex-start;
+}
+
+.ow-chart-col[data-lean="end"] {
+  align-items: flex-end;
+}
+
+.ow-chart-value {
+  margin-bottom: 0.3rem;
+  font-size: 0.92rem;
   line-height: 1;
-  color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
-/* An amount still unmatched is marked in coral, quietly: a dot and a warmer figure. */
-.ow-tile-label[data-flagged]::before {
-  content: "";
-  display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-right: 0.45rem;
-  border-radius: 50%;
-  background: var(--coral);
-  vertical-align: 0.08em;
+.ow-chart-bar {
+  align-self: stretch;
+  flex: none;
+  max-width: 2.6rem;
+  width: 100%;
+  margin-inline: auto;
+  border-radius: 4px 4px 0 0;
+  background: var(--on-blue);
+  transform-origin: bottom;
+  animation: ow-bar-in 0.6s var(--ease-out) both;
 }
 
-.ow-tiles .ow-tile-value[data-flagged] {
-  color: #b5351a;
+.ow-chart[data-dense] .ow-chart-bar {
+  border-radius: 2px 2px 0 0;
 }
 
-/* On a phone an odd tile out takes the full row instead of leaving a hole. */
-@media (max-width: 899px) {
-  .ow-tiles > :last-child:nth-child(even) {
+.ow-chart-bar[data-zero] {
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: rgb(255 255 255 / 0.3);
+  animation: none;
+}
+
+@keyframes ow-bar-in {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.ow-chart-axis {
+  display: flex;
+  gap: 6px;
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  color: var(--on-blue-soft);
+}
+
+.ow-chart-axis span {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  min-height: 1em;
+}
+
+.ow-chart-axis span[data-lean="end"] {
+  justify-content: flex-end;
+}
+
+.ow-chart-axis i {
+  font-style: normal;
+  white-space: nowrap;
+}
+
+@media (min-width: 720px) {
+  .ow-band-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .ow-period {
+    min-width: 19rem;
+  }
+
+  .ow-ledger-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-4) clamp(1.4rem, 3vw, 2.6rem);
+  }
+
+  .ow-ledger-item {
+    display: block;
+  }
+
+  .ow-ledger-item dt {
+    font-size: 0.9rem;
+  }
+
+  .ow-ledger-item dd {
+    margin-top: 0.2rem;
+    font-size: 1.3rem;
+  }
+
+  /* The total closes the row at the far end, set apart by a rule instead of a line above. */
+  .ow-ledger-total {
+    display: block;
+    margin: 0 0 0 auto;
+    padding: 0 0 0 clamp(1.4rem, 3vw, 2.6rem);
+    border-top: 0;
+    border-left: 1px solid rgb(255 255 255 / 0.24);
+    text-align: right;
+  }
+
+  .ow-ledger-total dt {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--on-blue-soft);
+  }
+
+  .ow-ledger-track {
+    height: 1.9rem;
+  }
+}
+
+@media (min-width: 1000px) {
+  .ow-band-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 25rem);
+    column-gap: clamp(2rem, 6vw, 5rem);
+    align-items: end;
+  }
+
+  .ow-ledger {
     grid-column: 1 / -1;
   }
+}
 
-  .ow-tiles > :last-child:nth-child(even) .ow-tile-label {
-    min-height: 0;
+/* ---------- The page under the band ---------- */
+
+.ow-main {
+  padding-top: clamp(1.4rem, 3.4vw, 2.4rem);
+  padding-bottom: 4rem;
+}
+
+.ow-notice {
+  margin-bottom: var(--spacing-5);
+}
+
+.ow-cols,
+.ow-col,
+.ow-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: clamp(1.2rem, 2.6vw, 1.6rem);
+  min-width: 0;
+}
+
+@media (min-width: 720px) and (max-width: 1179px) {
+  .ow-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ow-rail > :only-child {
+    grid-column: 1 / -1;
   }
 }
 
-.ow-tiles .ow-tile-note {
-  margin-top: var(--spacing-1-5);
-  font-size: 0.88rem;
-  color: var(--color-text-secondary);
+@media (min-width: 1180px) {
+  .ow-cols {
+    grid-template-columns: minmax(0, 1fr) 20.5rem;
+    align-items: start;
+  }
 }
 
-@media (min-width: 900px) {
-  .ow-tiles {
-    grid-template-columns: minmax(0, 1.7fr);
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: var(--spacing-4);
+.ow-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--ow-shadow);
+}
+
+.ow-pad {
+  padding: clamp(1.1rem, 2.6vw, 1.5rem);
+}
+
+.ow-panel h2 {
+  font-size: 1.4rem;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.ow-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3) var(--spacing-4);
+  padding: clamp(1.1rem, 2.6vw, 1.5rem) clamp(1.1rem, 2.6vw, 1.5rem) var(--spacing-3);
+}
+
+.ow-calm {
+  padding: 0 clamp(1.1rem, 2.6vw, 1.5rem) clamp(1.1rem, 2.6vw, 1.5rem);
+  color: var(--ink-soft);
+}
+
+.ow-calm-flush {
+  padding: var(--spacing-3) 0 0;
+}
+
+/* Nothing to act on: one quiet line, no box. */
+.ow-all-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-inline: 0.2rem;
+  color: var(--ink-soft);
+}
+
+.ow-all-clear::before {
+  content: "";
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--blue);
+}
+
+/* ---------- Needs a look ---------- */
+
+.ow-look-total {
+  color: var(--ow-coral-text);
+  font-weight: 600;
+}
+
+.ow-look-total .num {
+  font-size: 1.3rem;
+}
+
+.ow-look-hint {
+  padding: 0 clamp(1.1rem, 2.6vw, 1.5rem);
+  max-width: 38rem;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.ow-look {
+  list-style: none;
+  margin: var(--spacing-3) 0 0;
+  padding: 0;
+}
+
+.ow-look li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "taken value"
+    "when when"
+    "action action";
+  align-items: baseline;
+  gap: 0.2rem var(--spacing-4);
+  padding: var(--spacing-4) clamp(1.1rem, 2.6vw, 1.5rem);
+  border-top: 1px solid var(--line);
+  /* Coral edge: the mark for "unmatched" everywhere on the page. */
+}
+
+.ow-look li:last-child {
+  border-radius: 0 0 15px 15px;
+}
+
+.ow-look-when {
+  grid-area: when;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.ow-look-taken {
+  grid-area: taken;
+  display: grid;
+  gap: 0.2rem;
+  font-weight: 600;
+}
+
+.ow-look-value {
+  grid-area: value;
+  font-size: 1.25rem;
+  color: var(--ow-coral-text);
+}
+
+.ow-look-action {
+  grid-area: action;
+  margin-top: var(--spacing-3);
+}
+
+@media (min-width: 720px) {
+  .ow-look li {
+    grid-template-columns: 7.6rem minmax(0, 1fr) auto auto;
+    grid-template-areas: "when taken value action";
+    align-items: center;
+    column-gap: var(--spacing-5);
   }
 
-  .ow-hero {
-    grid-column: auto;
-    min-height: 12rem;
-  }
-
-  .ow-tile-label {
-    min-height: 0;
-  }
-
-  .ow-tiles .ow-tile-value {
-    margin-top: var(--spacing-8);
+  .ow-look-action {
+    margin-top: 0;
   }
 }
 
 /* ---------- Visits ---------- */
 
-/* A six-column table cannot fit a phone, so phones get one card per visit instead. */
-.ow-visits-table {
-  display: none;
-  position: relative;
-  min-width: 0;
+.ow-filter {
+  width: 100%;
 }
 
-.ow-visits-cards {
-  display: grid;
-  gap: var(--spacing-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* The four choices share the row by the length of their labels, so the longest is never cut short. */
+.ow-filter .astryx-segmented-control-item {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 719px) {
+  .ow-filter .astryx-segmented-control-item {
+    padding-inline: 0.45rem;
+    font-size: 0.86rem;
+  }
 }
 
 @media (min-width: 720px) {
+  .ow-filter {
+    width: auto;
+    min-width: 30rem;
+  }
+}
+
+/* A six-column table cannot fit a phone, so narrow screens get one block per visit instead. */
+.ow-visits-table {
+  display: none;
+  min-width: 0;
+}
+
+.ow-visits-table :is(th, td):first-child {
+  padding-inline-start: clamp(1.1rem, 2.6vw, 1.5rem);
+}
+
+.ow-visits-table :is(th, td):last-child {
+  padding-inline-end: clamp(1.1rem, 2.6vw, 1.5rem);
+}
+
+/* When, value and paid never break across lines. */
+.ow-visits-table td:is(:nth-child(1), :nth-child(3), :nth-child(4)) {
+  white-space: nowrap;
+}
+
+.ow-visits-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ow-visits-cards > li {
+  display: grid;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4) clamp(1.1rem, 2.6vw, 1.5rem);
+  border-top: 1px solid var(--line);
+}
+
+.ow-visit-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.ow-visit-taken {
+  display: grid;
+  gap: 0.2rem;
+  font-weight: 600;
+}
+
+.ow-visit-money {
+  display: flex;
+  gap: var(--spacing-8);
+  margin: 0;
+}
+
+.ow-visit-money dt {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.ow-visit-money dd {
+  margin: 0;
+}
+
+.ow-visit-money dd.num {
+  font-size: 1.2rem;
+}
+
+.ow-visit-money dd[data-none] {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.ow-visit-money .ow-visit-note {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+@media (min-width: 720px) and (max-width: 1179px) {
   .ow-visits-cards {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ow-visits-cards > li:nth-child(odd) {
+    border-right: 1px solid var(--line);
   }
 }
 
@@ -234,43 +767,100 @@
   }
 }
 
-.ow-visit-money {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-3);
-  margin: 0;
-  padding-top: var(--spacing-3);
-  border-top: 1px solid var(--color-border);
-}
-
-.ow-visit-money dt {
-  font-size: 0.82rem;
-  color: var(--color-text-secondary);
-}
-
-.ow-visit-money dd {
-  margin: 0;
-}
-
-.ow-visit-money dd.num {
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.ow-visit-money dd[data-none] {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.ow-visit-money .ow-visit-note {
-  font-size: 0.82rem;
-  color: var(--color-text-secondary);
-}
-
-.ow-visit-action {
+.ow-more {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  padding: var(--spacing-3);
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- On the shelf ---------- */
+
+.ow-shelf {
+  list-style: none;
+  margin: var(--spacing-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.ow-shelf li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.4rem var(--spacing-3);
+}
+
+.ow-shelf-name {
+  font-weight: 600;
+}
+
+.ow-shelf-left {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.ow-shelf-left .num {
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.ow-shelf-left b {
+  margin-right: 0.6rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--ow-coral-tint);
+  color: var(--ow-coral-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ow-shelf-level {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--chip);
+  overflow: hidden;
+}
+
+.ow-shelf-level > span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: 3px;
+  background: var(--blue);
+  transition: width 0.5s var(--ease-out);
+}
+
+.ow-shelf li[data-low] .ow-shelf-level {
+  background: var(--ow-coral-tint);
+}
+
+.ow-shelf li[data-low] .ow-shelf-level > span {
+  background: var(--coral);
+}
+
+.ow-shelf li[data-low] .ow-shelf-left .num {
+  color: var(--ow-coral-text);
+}
+
+/* ---------- Stopped by ---------- */
+
+.ow-stopped {
+  margin-top: var(--spacing-3);
+  font-size: 1.15rem;
+}
+
+.ow-stopped .num {
+  font-size: 1.7rem;
+  letter-spacing: -0.03em;
+}
+
+.ow-stopped-note {
+  margin-top: 0.3rem;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
 }
 
 /* ---------- Refund dialog ---------- */
@@ -279,70 +869,44 @@
   padding: var(--spacing-4);
 }
 
-/* ---------- Sales charts ---------- */
+/* ---------- Explore sales ---------- */
+
+.ow-explore {
+  margin-top: clamp(2.6rem, 6vw, 4rem);
+  min-width: 0;
+}
+
+.ow-explore-head {
+  margin-bottom: var(--spacing-4);
+}
 
 .ow-studio-frame {
-  position: relative;
   max-width: 100%;
   overflow-x: auto;
-  border-radius: var(--radius-container);
-  border: 1px solid var(--color-border);
-  background: var(--color-background-card);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--tint);
 }
 
 .ow-studio-frame:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
 }
 
+/* AG Studio keeps a minimum canvas width, so on a phone the board scrolls inside its frame. */
 .ow-studio-canvas {
   min-width: 46rem;
-  height: 48rem;
+  height: 44rem;
 }
 
-/* The table sits flush in its card, so the outer cells take the card inset. */
-.ow-visits-table :is(th, td):first-child {
-  padding-inline-start: var(--spacing-5);
-}
-
-.ow-visits-table :is(th, td):last-child {
-  padding-inline-end: var(--spacing-5);
-}
-
-/* Text fields draw their own focus ring on the control box, so the page-wide outline is not repeated inside. */
-.ow-dialog-body input:focus-visible,
-.ow-login-main input:focus-visible {
-  outline: none;
-}
-
-/* The sign-in card is white, so focus inside it uses the blue ring, not the yellow one for cobalt surfaces. */
-.ow-login .ow-login-main :focus-visible {
-  outline-color: var(--blue);
-}
-
-/* Summary tiles: label at the top, figure on the baseline of the hero figure, no dead space under it. */
-@media (min-width: 900px) {
-  .ow-tiles > .astryx-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+@media (prefers-reduced-motion: reduce) {
+  .ow-ledger-fill,
+  .ow-chart-bar {
+    animation: none;
   }
 
-  .ow-tiles .ow-tile-value {
-    margin-top: auto;
-    padding-top: var(--spacing-6);
+  .ow-ledger-seg,
+  .ow-shelf-level > span {
+    transition: none;
   }
-
-  .ow-tiles .ow-tile-note {
-    margin-top: var(--spacing-2);
-  }
-}
-
-/* The chart board sits on the page tint and is only as tall as its charts. */
-.ow-studio-frame {
-  background: var(--color-background-body);
-}
-
-.ow-studio-canvas {
-  height: 42rem;
 }

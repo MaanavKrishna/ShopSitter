@@ -3,7 +3,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { studioTheme } from "ag-studio";
+import { type AgPanelConfig, studioTheme } from "ag-studio";
 import { AgStudio, AgStudioProvider } from "ag-studio-react";
 import { useMemo, useState } from "react";
 import type { StockRow, VisitRow } from "@/lib/owner";
@@ -22,6 +22,10 @@ const chartTheme = studioTheme.withParams({
   borderColor: LINE,
   studioCanvasFontFamily: FONT,
   studioCanvasBackgroundColor: "#f1f4ff",
+  // The frame around the board is drawn by the page, so Studio's own wrapper stays invisible.
+  studioWrapperBackgroundColor: "#f1f4ff",
+  studioWrapperBorder: false,
+  studioCanvasBorder: false,
   studioWidgetBorder: { width: 1, color: LINE },
   studioWidgetBorderRadius: 12,
   studioWidgetPadding: 12,
@@ -65,16 +69,20 @@ const chartTheme = studioTheme.withParams({
   chartPaletteFills10Color: "#4b5570",
 });
 
+// Nothing is filtered on first load, so the reading view shows the charts alone; the filters panel
+// comes back with the others while rearranging.
+const PANELS: AgPanelConfig = { view: { left: [], right: [] } };
+
 /** Charts and tables the owner can rearrange, built with AG Studio from the visits. */
 export default function SalesStudio({ visits, stock }: { visits: VisitRow[]; stock: StockRow[] }) {
   const data = useMemo(() => buildStudioData(visits, stock), [visits, stock]);
   const [mode, setMode] = useState<"view" | "edit">("view");
 
   return (
-    <section className="ow-section" aria-labelledby="studio-h">
-      <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap" className="ow-section-head">
+    <section className="ow-explore" aria-labelledby="studio-h">
+      <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap" className="ow-explore-head">
         <Heading level={2} id="studio-h">
-          Sales
+          Explore sales
         </Heading>
         <Button
           label={mode === "view" ? "Rearrange or add charts" : "Done rearranging"}
@@ -83,12 +91,13 @@ export default function SalesStudio({ visits, stock }: { visits: VisitRow[]; sto
         />
       </HStack>
       {/* AG Studio keeps a minimum canvas width, so on a phone it scrolls inside this frame. */}
-      <div className="ow-studio-frame" tabIndex={0} role="group" aria-label="Sales charts">
+      <div className="ow-studio-frame" tabIndex={0} role="group" aria-label="Sales charts, scrolls sideways on a small screen">
         <div className="ow-studio-canvas">
         <AgStudioProvider>
           <AgStudio
             style={{ height: "100%", width: "100%" }}
             layout={{ widgetBorderEnabled: true }}
+            panels={PANELS}
             theme={chartTheme}
             data={data}
             initialState={salesReport}
