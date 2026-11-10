@@ -567,3 +567,206 @@ button:disabled {
 .demo-result {
   margin-top: 1rem;
 }
+
+/* Owner dashboard */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.owner-login {
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 4rem 1.1rem;
+}
+
+.owner-login h1 {
+  font-size: 2.4rem;
+  margin: 0 0 0.5rem;
+}
+
+.owner-login form {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.owner-login input,
+.owner-actions input {
+  min-height: 48px;
+  padding: 0 0.9rem;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+}
+
+.owner {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 2rem 1.1rem 4rem;
+}
+
+.owner-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.owner-head h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin: 0;
+}
+
+.owner-head p {
+  margin: 0.2rem 0 0;
+  color: var(--ink-soft);
+}
+
+.owner-head-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.owner-head-actions .btn {
+  min-height: 44px;
+}
+
+.owner h2 {
+  font-size: 1.6rem;
+  margin: 2.5rem 0 0.8rem;
+}
+
+.owner-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.owner-tiles > div {
+  padding: 1rem 1.1rem;
+  border-radius: 10px;
+  background: #f1eee2;
+}
+
+.owner-tiles > div.tag {
+  background: var(--tag);
+  padding-left: 2.6rem;
+}
+
+.owner-tiles > div[data-tone="beet"] {
+  background: #f3dbe3;
+  color: var(--beet);
+}
+
+.owner-tiles dt {
+  font-weight: 700;
+}
+
+.owner-tiles dd {
+  margin: 0.2rem 0 0;
+  font-size: 2.1rem;
+  line-height: 1.1;
+}
+
+.owner-restock {
+  margin: 1rem 0 0;
+  padding: 0.7rem 1rem;
+  border-left: 4px solid var(--tag);
+  background: #fdf6dc;
+}
+
+.owner-empty,
+.owner-loading {
+  padding: 1.5rem;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+}
+
+.owner-table-wrap {
+  overflow-x: auto;
+}
+
+.owner-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 44rem;
+}
+
+.owner-table th {
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  padding: 0 0.8rem 0.5rem 0;
+  border-bottom: 2px solid var(--ink);
+}
+
+.owner-table td {
+  padding: 0.7rem 0.8rem 0.7rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.owner-table small {
+  color: var(--ink-soft);
+  font-family: var(--font-body), sans-serif;
+  font-weight: 400;
+}
+
+.owner-table a {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.owner-actions button {
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ece9dc;
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.owner-actions form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.owner-actions input {
+  width: 5.5rem;
+  min-height: 40px;
+}
+
+.owner-studio-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.8rem;
+}
+
+.owner-studio-head .btn {
+  min-height: 44px;
+}
+
+.owner-studio-canvas {
+  height: 62rem;
+  margin-top: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+}

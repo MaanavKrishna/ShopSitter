@@ -15,6 +15,7 @@
     "@paypal/paypal-server-sdk": "^2.5.0",
     "@paypal/react-paypal-js": "^10.6.1",
     "@supabase/supabase-js": "^2.119.0",
+    "ag-studio-react": "^3.1.0",
     "ai": "^7.0.166",
     "next": "16.4.6",
     "qrcode": "^1.5.4",
