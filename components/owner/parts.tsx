@@ -13,7 +13,7 @@ import { formatCents } from "@/lib/money";
 import type { VisitRow } from "@/lib/owner";
 import { MAX_STOCK } from "@/lib/products";
 import { statusLabel } from "@/lib/studio-report";
-import { useOwner } from "./OwnerProvider";
+import { ownerSignedOut, useOwner } from "./OwnerProvider";
 
 export const when = (ms: number) =>
   new Date(ms).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
@@ -409,9 +409,8 @@ export function useRestock() {
       body: JSON.stringify({ left }),
     }).catch(() => null);
     if (res?.status === 401) {
-      // The sign-in ran out: leave through a full page load, as the rest of the owner area does.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      return window.location.assign("/owner/login");
+      // The sign-in ran out, or the trial stand ended.
+      return ownerSignedOut();
     }
     if (!res?.ok) {
       const code = res ? (await readJson<{ error?: string }>(res))?.error : undefined;

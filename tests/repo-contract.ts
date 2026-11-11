@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Repo } from "@/lib/repo";
-import type { Product } from "@/lib/types";
+import type { Product, Shop } from "@/lib/types";
 import { newVisit } from "@/lib/visits";
 
-const honey = (shop: "live" | "demo"): Product => ({
+const honey = (shop: Shop): Product => ({
   shop, sku: "honey", name: "Honey", description: "Jar", priceCents: 700, stock: 6, refImageUrl: null,
 });
 
@@ -107,6 +107,78 @@ export function repoContract(name: string, fresh: () => Promise<Repo>, reopen: (
       await repo.deletePhoto("demo-ref-never-there.jpg");
       expect(await reopen().getPhoto(gone)).toBeNull();
       expect(await repo.getPhoto(kept)).toEqual(bytes);
+    });
+
+    describe("trial stands", { timeout: 60_000 }, () => {
+      const A = "t-abcdefghij" as const;
+      const B = "t-zyxwvu2345" as const;
+      const ALL: Shop[] = ["live", "demo", A, B];
+      const bytes = (n: number) => new Uint8Array([255, 216, 255, n]);
+
+      // The same rows for every shop. Written shop by shop at once: a hosted database answers each call slowly.
+      const fill = () =>
+        Promise.all(
+          ALL.map(async (shop, i) => {
+            await repo.upsertProduct({ ...honey(shop), priceCents: 100 + i });
+            await repo.upsertProduct({ ...honey(shop), sku: "old", archived: true });
+            await repo.saveVisit(newVisit(`v-${shop}`, shop, [{ sku: "honey", qty: 1 }], 1_000 + i));
+            await repo.savePhoto(`${shop}-1-before.jpg`, bytes(i));
+            await repo.savePhoto(`${shop}-note.json`, bytes(10 + i));
+          }),
+        );
+
+      it("keeps each shop's products and visits apart, trials included", async () => {
+        await fill();
+        for (const [i, shop] of ALL.entries()) {
+          expect(await repo.listProducts(shop)).toEqual([{ ...honey(shop), priceCents: 100 + i }]);
+          expect((await repo.listVisits(shop)).map((v) => v.id)).toEqual([`v-${shop}`]);
+          expect((await repo.getOpenVisit(shop))!.id).toBe(`v-${shop}`);
+        }
+      });
+
+      it("deletes one trial's products, visits and stored keys and nothing else", async () => {
+        await fill();
+        await repo.deleteShop(A);
+        const after = reopen();
+        expect(await after.listProducts(A, { includeArchived: true })).toEqual([]);
+        expect(await after.listVisits(A)).toEqual([]);
+        expect(await after.getVisit(`v-${A}`)).toBeNull();
+        expect(await after.getPhoto(`${A}-1-before.jpg`)).toBeNull();
+        expect(await after.getPhoto(`${A}-note.json`)).toBeNull();
+        for (const shop of ["live", "demo", B] as Shop[]) {
+          expect(await after.listProducts(shop, { includeArchived: true })).toHaveLength(2);
+          expect(await after.listVisits(shop)).toHaveLength(1);
+          expect(await after.getPhoto(`${shop}-1-before.jpg`)).not.toBeNull();
+          expect(await after.getPhoto(`${shop}-note.json`)).not.toBeNull();
+        }
+      });
+
+      it("leaves a trial's stored keys alone when the live or demo stand is reset", async () => {
+        await fill();
+        await repo.resetShop("live", []);
+        await repo.resetShop("demo", []);
+        for (const shop of [A, B]) {
+          expect(await repo.getPhoto(`${shop}-1-before.jpg`)).toEqual(bytes(ALL.indexOf(shop)));
+          expect(await repo.listProducts(shop)).toHaveLength(1);
+          expect(await repo.listVisits(shop)).toHaveLength(1);
+        }
+      });
+
+      it("leaves the live stand's stored keys alone when a trial is deleted or reset", async () => {
+        await fill();
+        await repo.resetShop(A, []);
+        await repo.deleteShop(B);
+        expect(await repo.getPhoto("live-1-before.jpg")).toEqual(bytes(0));
+        expect(await repo.getPhoto("demo-1-before.jpg")).toEqual(bytes(1));
+      });
+
+      it("lists stored records by the end of their key, with their contents", async () => {
+        await fill();
+        const found = await repo.listStored("-note.json");
+        expect(found.map((f) => f.key).sort()).toEqual(ALL.map((s) => `${s}-note.json`).sort());
+        expect(found.find((f) => f.key === `${A}-note.json`)!.bytes).toEqual(bytes(12));
+        expect(await repo.listStored("-never.json")).toEqual([]);
+      });
     });
   });
 }

@@ -165,10 +165,10 @@ export default function Home() {
             </Reveal>
             <Reveal delay={0.06} className="lp-go-actions">
               <NextLink className="btn btn-coral" href="/demo">
-                Try the demo
+                Run your own stand
               </NextLink>
-              <NextLink className="btn btn-ghost" href="/owner">
-                Open the owner&apos;s dashboard
+              <NextLink className="btn btn-ghost" href="/owner/login">
+                Open the demo dashboard
               </NextLink>
             </Reveal>
           </div>

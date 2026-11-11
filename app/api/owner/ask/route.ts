@@ -5,6 +5,7 @@ import { ownerOverview } from "@/lib/owner";
 import { currentShop } from "@/lib/owner-http";
 import { paypalTools, toolkitReader } from "@/lib/paypal-read";
 import { getRepo } from "@/lib/repo";
+import { isTrial } from "@/lib/shops";
 
 // Briefs already written, by stand and period. Lives as long as this server instance.
 const briefs = new Map<string, { at: number; body: Answer }>();
@@ -21,7 +22,8 @@ export async function POST(req: Request) {
       {
         model: askModel,
         load: (s, days, now) => ownerOverview(getRepo(), s, days, now),
-        extraTools: (data: AskData, clock: Clock) => paypalTools(data, clock, toolkitReader),
+        // PayPal lookups read the one merchant account every stand shares, so a visitor's trial does not get them.
+        extraTools: isTrial(shop) ? undefined : (data: AskData, clock: Clock) => paypalTools(data, clock, toolkitReader),
         allow,
         now: Date.now,
         cache: briefs,

@@ -9,6 +9,7 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
   IconLogout,
+  IconPlayerStop,
   IconPackage,
   IconReceipt,
   IconRefresh,
@@ -22,6 +23,8 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { easeOut, springSnappy } from "@/lib/motion";
 import { PERIODS, useOwner } from "./OwnerProvider";
 import { PillSwitch } from "./PillSwitch";
+import { EndTrialDialog } from "./EndTrialDialog";
+import { TrialEnded, TrialStrip } from "./TrialStrip";
 import "@/app/owner/owner.css";
 
 const SECTIONS = [
@@ -71,8 +74,10 @@ const Keys = ({ children }: { children: string }) => (
 export function OwnerShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { shop, unmatched, days, changePeriod, refresh, refreshing, loadedAt, problem, clearProblem, signOut } =
+  const { shop, kind, trialStand, ended, markEnded, unmatched, days, changePeriod, refresh, refreshing, loadedAt, problem, clearProblem, signOut } =
     useOwner();
+  const trial = kind === "trial";
+  const [endAsked, setEndAsked] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [now, setNow] = useState(loadedAt);
   const section = sectionOf(pathname);
@@ -138,7 +143,13 @@ export function OwnerShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [router, refresh, changePeriod]);
 
-  const standName = shop === "demo" ? "Demo stand" : "Your stand";
+  const standName = trial ? "Your trial stand" : shop === "demo" ? "Demo stand" : "Your stand";
+  // A trial's stand screen opens from its own link, which carries the key; the others ask for their code.
+  const standHref = trial ? (trialStand?.standLink ?? "/owner/setup") : "/stand";
+  // Signing a trial out would strand it, so its way out is to end it.
+  const leaveLabel = trial ? "End trial stand" : "Sign out";
+  const onLeave = trial ? () => setEndAsked(true) : signOut;
+  const LeaveIcon = trial ? IconPlayerStop : IconLogout;
   const standNote =
     unmatched.length === 0 ? "Nothing unmatched" : `${unmatched.length} unmatched ${unmatched.length === 1 ? "visit" : "visits"}`;
 
@@ -150,6 +161,8 @@ export function OwnerShell({ children }: { children: ReactNode }) {
         : move.from === "below"
           ? { opacity: 0, y: 8 }
           : false;
+
+  if (ended) return <TrialEnded />;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -195,21 +208,22 @@ export function OwnerShell({ children }: { children: ReactNode }) {
           <div className="ow-nav ow-nav-end">
             <SideLink item={SECTIONS[5]} active={section.href === SECTIONS[5].href} collapsed={collapsed} />
             <Tooltip content="Open stand screen" placement="end" isEnabled={collapsed}>
-              <a href="/stand" target="_blank" rel="noreferrer" className="ow-nav-item">
+              <a href={standHref} target={trial && !trialStand ? undefined : "_blank"} rel="noreferrer" className="ow-nav-item">
                 <IconDeviceTablet size={18} stroke={1.75} aria-hidden="true" />
                 <span className="ow-side-text">Open stand screen</span>
               </a>
             </Tooltip>
-            <Tooltip content="Sign out" placement="end" isEnabled={collapsed}>
-              <button type="button" className="ow-nav-item" onClick={signOut}>
-                <IconLogout size={18} stroke={1.75} aria-hidden="true" />
-                <span className="ow-side-text">Sign out</span>
+            <Tooltip content={leaveLabel} placement="end" isEnabled={collapsed}>
+              <button type="button" className="ow-nav-item" onClick={onLeave}>
+                <LeaveIcon size={18} stroke={1.75} aria-hidden="true" />
+                <span className="ow-side-text">{leaveLabel}</span>
               </button>
             </Tooltip>
           </div>
         </aside>
 
         <div className="ow-content">
+          {trial && <TrialStrip now={now} />}
           <header className="ow-top">
             <h1 className="ow-top-title">{section.label}</h1>
             <div className="ow-top-tools">
@@ -267,9 +281,11 @@ export function OwnerShell({ children }: { children: ReactNode }) {
                   <span className="ow-wide">Refresh</span>
                 </button>
               </Tooltip>
-              <button type="button" className="ow-icon-btn ow-top-out ds-press" aria-label="Sign out" onClick={signOut}>
-                <IconLogout size={18} stroke={1.75} aria-hidden="true" />
-              </button>
+              {!trial && (
+                <button type="button" className="ow-icon-btn ow-top-out ds-press" aria-label="Sign out" onClick={signOut}>
+                  <IconLogout size={18} stroke={1.75} aria-hidden="true" />
+                </button>
+              )}
             </div>
           </header>
 
@@ -290,6 +306,8 @@ export function OwnerShell({ children }: { children: ReactNode }) {
             </motion.div>
           </main>
         </div>
+
+        {trial && <EndTrialDialog isOpen={endAsked} onOpenChange={setEndAsked} onEnded={markEnded} />}
 
         <nav className="ow-tabs" aria-label="Sections">
           {SECTIONS.map((s) => {

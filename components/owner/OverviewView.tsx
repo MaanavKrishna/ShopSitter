@@ -11,6 +11,7 @@ import { easeOut, spring } from "@/lib/motion";
 import { isLow } from "@/lib/owner-view";
 import { AskPanel } from "./AskPanel";
 import { CountUp } from "./CountUp";
+import { GetGoing } from "./GetGoing";
 import { useOwner } from "./OwnerProvider";
 import { PaidChart } from "./PaidChart";
 import { PhotoLinks, takenText, VisitAction, when } from "./parts";
@@ -27,12 +28,16 @@ const follow = { stiffness: 170, damping: 26, mass: 0.6 };
 /** The overview: what came in, where the shelf's value went, and the few things that want attention. */
 export function OverviewView() {
   const router = useRouter();
-  const { shop, data, shown, unmatched, days, dataDays, period, loadedAt, switching, refreshing, loading, hydrated, flash, setFilter } =
+  const { shop, kind, data, shown, unmatched, days, dataDays, period, loadedAt, switching, refreshing, loading, hydrated, flash, setFilter } =
     useOwner();
   const { totals, visits, stock } = data;
   const visitors = data.visitors ?? 0;
   const bought = visits.filter((v) => v.status.startsWith("paid")).length;
   const low = stock.filter((s) => isLow(s.left));
+  const trial = kind === "trial";
+  const standName = trial ? "Your trial stand" : shop === "demo" ? "Demo stand" : "Your stand";
+  // A trial with nothing sold has no chart or ledger worth drawing: the band says so in one line.
+  const nothingYet = trial && shown.length === 0;
 
   // A soft light that follows a mouse across the band. Touch and reduced motion get none (see the stylesheet).
   const x = useSpring(useMotionValue(0), follow);
@@ -50,14 +55,30 @@ export function OverviewView() {
 
   return (
     <div className="ow-overview">
+      {trial && <GetGoing />}
       <section
         className="ow-band void"
-        aria-label={`${shop === "demo" ? "Demo stand" : "Your stand"}, ${period.subtitle.toLowerCase()}`}
+        data-quiet={nothingYet || undefined}
+        aria-label={`${standName}, ${period.subtitle.toLowerCase()}`}
         aria-busy={switching || refreshing || undefined}
         onPointerMove={onMove}
         onPointerLeave={() => glow.set(0)}
       >
         <motion.div className="ow-spot" aria-hidden="true" style={{ x, y, opacity: glow }} />
+        {nothingYet ? (
+          <div className="ow-band-quiet">
+            <div>
+              <p className="ow-paid-label">Nothing sold yet</p>
+              <p className="ow-paid-note">
+                What your stand takes through PayPal shows here, with where the rest of the shelf&apos;s value went.
+                Follow Get going above to run your first visit.
+              </p>
+            </div>
+            <p className="ow-band-quiet-figure num" aria-label="Paid through PayPal: $0.00">
+              $0.00
+            </p>
+          </div>
+        ) : (
         <div className="ow-band-body" data-stale={switching || undefined}>
           <div className="ow-paid">
             <p className="ow-paid-label">
@@ -80,6 +101,7 @@ export function OverviewView() {
           </div>
           <ShelfLedger totals={totals} visits={shown} />
         </div>
+        )}
       </section>
 
       <AskPanel />
@@ -125,7 +147,11 @@ export function OverviewView() {
                 {shown.length === 0 ? (
                   <div className="ow-empty">
                     <b>No visits yet</b>
-                    <p>They appear here as soon as something leaves the shelf.</p>
+                    <p>
+                      {trial
+                        ? "They appear here as soon as something leaves the shelf. Get going above takes you to the first one."
+                        : "They appear here as soon as something leaves the shelf."}
+                    </p>
                   </div>
                 ) : unmatched.length === 0 ? (
                   <div className="ow-empty">
@@ -184,7 +210,13 @@ export function OverviewView() {
                 {low.length === 0 ? (
                   <div className="ow-empty">
                     <b>{stock.length === 0 ? "No products yet" : "Shelf is stocked"}</b>
-                    <p>{stock.length === 0 ? "Products appear here once the stand has some." : "Nothing is down to its last one."}</p>
+                    <p>
+                      {stock.length === 0
+                        ? trial
+                          ? "Add them in step 1 of Get going, above."
+                          : "Products appear here once the stand has some."
+                        : "Nothing is down to its last one."}
+                    </p>
                   </div>
                 ) : (
                   <ul className="ow-rows">

@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Repo } from "./repo";
+import { ownsKey } from "./shops";
 import type { Product, Shop } from "./types";
 import type { Visit } from "./visits";
 
@@ -58,6 +59,19 @@ export class FileRepo implements Repo {
     this.write("products.json", [...this.read<Product>("products.json").filter((p) => p.shop !== shop), ...products]);
   }
 
+  async deleteShop(shop: Shop): Promise<void> {
+    this.write("visits.json", this.read<Visit>("visits.json").filter((v) => v.shop !== shop));
+    this.write("products.json", this.read<Product>("products.json").filter((p) => p.shop !== shop));
+    for (const key of this.keys()) {
+      if (ownsKey(shop, key)) rmSync(path.join(this.dir, "shots", key), { force: true });
+    }
+  }
+
+  private keys(): string[] {
+    const dir = path.join(this.dir, "shots");
+    return existsSync(dir) ? readdirSync(dir) : [];
+  }
+
   async savePhoto(name: string, bytes: Uint8Array): Promise<string> {
     const dir = path.join(this.dir, "shots");
     mkdirSync(dir, { recursive: true });
@@ -73,5 +87,11 @@ export class FileRepo implements Repo {
 
   async deletePhoto(key: string): Promise<void> {
     rmSync(path.join(this.dir, "shots", path.basename(key)), { force: true });
+  }
+
+  async listStored(ending: string): Promise<{ key: string; bytes: Uint8Array }[]> {
+    return this.keys()
+      .filter((key) => key.endsWith(ending))
+      .map((key) => ({ key, bytes: new Uint8Array(readFileSync(path.join(this.dir, "shots", key))) }));
   }
 }

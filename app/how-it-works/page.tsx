@@ -129,10 +129,13 @@ export default async function HowItWorks() {
             <h2 id="close-h" className="ds-h2">
               See a visit happen
             </h2>
-            <p className="ds-lead">The demo runs a visit without a camera, and the bill is paid in the PayPal sandbox.</p>
+            <p className="ds-lead">
+              Start a trial stand with your own things and a camera, or watch sample shelves read without one. Either
+              way the bill is paid in the PayPal sandbox.
+            </p>
             <div className="in-close-actions">
               <NextLink href="/demo" className="in-btn in-btn-coral ds-focus">
-                Try the demo
+                Run your own stand
               </NextLink>
               <NextLink href="/trust" className="in-btn in-btn-ghost ds-focus">
                 What it keeps, and what it does not

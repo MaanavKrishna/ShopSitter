@@ -30,7 +30,7 @@ const STAGGERED = 10;
 /** Every visit of the period: filter, search by item, settle or refund, and open one for the detail. */
 export function VisitsView() {
   const router = useRouter();
-  const { shown, dataDays, period, loading, hydrated, flash, filter, setFilter, refreshing } = useOwner();
+  const { kind, shown, dataDays, period, loading, hydrated, flash, filter, setFilter, refreshing } = useOwner();
   const refund = useRefund();
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
@@ -136,6 +136,11 @@ export function VisitsView() {
             <div className="ow-empty ow-empty-tall">
               <b>No visits yet</b>
               <p>They appear here as soon as something leaves the shelf.</p>
+              {kind === "trial" && (
+                <Link href="/owner" className="ow-rowbtn ds-press">
+                  Back to Get going
+                </Link>
+              )}
             </div>
           ) : filtered.length === 0 ? (
             <div className="ow-empty ow-empty-tall">

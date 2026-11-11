@@ -5,7 +5,8 @@ import type { Shop } from "@/lib/types";
 export class EditError extends Error {
   constructor(
     /** "not_jpeg": a real picture, but PNG or WebP; reference photos are stored as JPEG only. */
-    public code: "bad_request" | "not_found" | "sku_taken" | "bad_photo" | "not_jpeg" | "photo_too_large",
+    /** "trial_limit": a trial stand already has as many products on sale as it may. */
+    public code: "bad_request" | "not_found" | "sku_taken" | "bad_photo" | "not_jpeg" | "photo_too_large" | "trial_limit",
     public status: number,
   ) {
     super(code);
@@ -14,7 +15,8 @@ export class EditError extends Error {
 
 /**
  * Runs a route that changes the catalogue: 401 when not signed in, and 403 for the demo stand,
- * whose passcode is public, so its products stay as they are.
+ * whose passcode is public, so its products stay as they are. A trial stand belongs to one
+ * visitor, so it can be edited like the owner's own.
  */
 export async function editRoute<T>(work: (shop: Shop) => Promise<T>): Promise<Response> {
   const shop = await currentShop();

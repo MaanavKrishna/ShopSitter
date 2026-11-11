@@ -1,5 +1,6 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import type { Repo } from "./repo";
+import { shopOfKey } from "./shops";
 import type { Product, Shop } from "./types";
 import type { Visit } from "./visits";
 
@@ -131,9 +132,18 @@ export class PostgresRepo implements Repo {
     for (const p of products) await this.upsertProduct(p);
   }
 
+  async deleteShop(shop: Shop): Promise<void> {
+    await this.run(`delete from ${this.visits} where shop = $1`, [shop]);
+    await this.run(`delete from ${this.products} where shop = $1`, [shop]);
+    // Stored keys go last: a trial's own record is one of them, so a delete that stops half way can be found and finished.
+    await this.run(`delete from ${this.photos} where shop = $1`, [shop]);
+  }
+
   async savePhoto(name: string, bytes: Uint8Array): Promise<string> {
-    // Photo names start with the shop they belong to ("live-1700000000000-before.jpg").
-    const shop = name.startsWith("demo-") ? "demo" : "live";
+    // Stored names start with the shop they belong to ("live-1700000000000-before.jpg"). The shop is
+    // read from that start, so a trial's keys are never filed under the live stand. A name that
+    // starts with no shop is filed under the live stand, as it always was.
+    const shop = shopOfKey(name) ?? "live";
     await this.run(
       `insert into ${this.photos} (key, shop, bytes_b64) values ($1, $2, $3)
        on conflict (key) do update set bytes_b64 = excluded.bytes_b64`,
@@ -149,6 +159,14 @@ export class PostgresRepo implements Repo {
 
   async deletePhoto(key: string): Promise<void> {
     await this.run(`delete from ${this.photos} where key = $1`, [key]);
+  }
+
+  async listStored(ending: string): Promise<{ key: string; bytes: Uint8Array }[]> {
+    const rows = await this.run<{ key: string; bytes_b64: string }>(
+      `select key, bytes_b64 from ${this.photos} where right(key, $2) = $1`,
+      [ending, ending.length],
+    );
+    return rows.map((r) => ({ key: r.key, bytes: new Uint8Array(Buffer.from(r.bytes_b64, "base64")) }));
   }
 
   /** Empties this instance's tables. Refuses to run on unprefixed (real) tables. */

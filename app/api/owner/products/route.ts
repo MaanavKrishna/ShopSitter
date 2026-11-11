@@ -3,6 +3,7 @@ import { saveProduct } from "@/lib/catalogue";
 import { ownerRoute } from "@/lib/owner-http";
 import { centsFromDollars, MAX_DESCRIPTION, MAX_NAME, MAX_PRICE_CENTS, MAX_STOCK, SKU_PATTERN } from "@/lib/products";
 import { getRepo } from "@/lib/repo";
+import { trialHasRoomFor } from "@/lib/trials";
 import { EditError, editRoute } from "./edit";
 
 const cents = z.number().int().min(0).max(MAX_PRICE_CENTS);
@@ -40,6 +41,8 @@ export async function PUT(req: Request) {
   return editRoute(async (shop) => {
     if (!parsed.success) throw new EditError("bad_request", 400);
     const { fields, create } = parsed.data;
+    // Only a trial stand has a limit on how many products it may have on sale.
+    if (!(await trialHasRoomFor(getRepo(), shop, fields.sku))) throw new EditError("trial_limit", 403);
     const product = await saveProduct(getRepo(), shop, fields, create);
     if (product === "sku_taken") throw new EditError("sku_taken", 409);
     return { product };

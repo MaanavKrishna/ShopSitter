@@ -37,7 +37,7 @@ export function DemoEmpty() {
             <NextLink className="dm-door ds-focus" href="/stand">
               <span>
                 <strong>Open the stand screen</strong>
-                <small>Asks for the stand code and a camera</small>
+                <small>Asks for a stand code, or opens from a trial stand&apos;s link</small>
               </span>
               <i aria-hidden="true">→</i>
             </NextLink>

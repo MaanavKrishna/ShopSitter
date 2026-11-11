@@ -9,7 +9,8 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { useAnnounce } from "@astryxdesign/core/hooks";
 import { IconPhoto, IconPlus, IconTrash } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { formatCents } from "@/lib/money";
 import { spring } from "@/lib/motion";
 import {
@@ -20,7 +21,7 @@ import {
   suggestSku,
 } from "@/lib/products";
 import type { Product } from "@/lib/types";
-import { useOwner } from "./OwnerProvider";
+import { ownerSignedOut, useOwner } from "./OwnerProvider";
 import { type PhotoChoice, ProductPhotoField } from "./ProductPhotoField";
 import { photoHref, useRestock } from "./parts";
 
@@ -45,6 +46,7 @@ const PROBLEMS: Record<string, string> = {
   offline: "The stand couldn't be reached. Check the connection and try again.",
   photo_too_large: "That photo is over 3 MB.",
   bad_request: "Some of those details were not accepted. Check them and try again.",
+  trial_limit: "A trial stand holds up to 12 products.",
 };
 const FALLBACK = "That didn't work. Nothing was changed.";
 
@@ -54,9 +56,8 @@ async function send(url: string, init: RequestInit): Promise<{ ok: true; product
     const res = await fetch(url, init);
     const body = (await res.json().catch(() => ({}))) as { error?: string; product?: Product };
     if (res.status === 401) {
-      // The sign-in ran out: leave through a full page load, as the rest of the owner area does.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.assign("/owner/login");
+      // The sign-in ran out, or the trial stand ended.
+      ownerSignedOut();
       return { ok: false, code: "unauthorized" };
     }
     return res.ok ? { ok: true, product: body.product } : { ok: false, code: body.error ?? "server_error" };
@@ -100,9 +101,10 @@ function Thumb({ product, preview }: { product: Product; preview?: string }) {
 
 /** The stand's catalogue: every product the camera can bill for, with add, edit and delete. */
 export function ProductsView() {
-  const { shop, data, refresh } = useOwner();
+  const { shop, kind, data, refresh } = useOwner();
   const announce = useAnnounce();
   const readOnly = shop === "demo";
+  const trial = kind === "trial";
 
   // The list as it will be once a change lands. It holds only until the shell's own data moves on.
   const [ahead, setAhead] = useState<{ base: Product[]; list: Product[] } | null>(null);
@@ -114,6 +116,18 @@ export function ProductsView() {
   const [working, setWorking] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
+
+  // "Add product" on the trial's checklist lands here with #add, and the form opens straight away.
+  useEffect(() => {
+    const openIfAsked = () => {
+      if (window.location.hash !== "#add") return;
+      window.history.replaceState(null, "", window.location.pathname);
+      queueMicrotask(() => setDraft((d) => d ?? emptyDraft()));
+    };
+    openIfAsked();
+    window.addEventListener("hashchange", openIfAsked);
+    return () => window.removeEventListener("hashchange", openIfAsked);
+  }, []);
 
   const restock = useRestock();
   // What is on the shelf now: the stored count less what visits have taken.
@@ -273,6 +287,12 @@ export function ProductsView() {
           {notice}
         </p>
       )}
+      {trial && products.length > 0 && products.some((p) => !p.refImageUrl && !previews[p.sku]) && (
+        <p className="ow-trial-tip" role="note">
+          <b>Add a photo of each thing on its own.</b> Photos make the camera far more accurate. Open a product to add
+          one.
+        </p>
+      )}
 
       <section className="ow-panel" aria-labelledby="products-h">
         <div className="ow-panel-head">
@@ -294,6 +314,11 @@ export function ProductsView() {
               Give it a name, a price and a line about what it looks like. A photo helps the camera tell it from the
               others.
             </p>
+            {trial && (
+              <p>
+                Trying it out? <Link href="/owner">Get going</Link> on Overview walks through a first visit.
+              </p>
+            )}
             {!readOnly && (
               <button type="button" className="ow-cta ds-press" onClick={() => setDraft(emptyDraft())}>
                 <IconPlus size={17} stroke={2} aria-hidden="true" />

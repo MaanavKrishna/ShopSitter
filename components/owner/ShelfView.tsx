@@ -12,7 +12,7 @@ import { DEMO_FIXED, RowButton, useRestock } from "./parts";
 
 /** Every product on the stand: how full its place on the shelf is, its price, and how many left in the period. */
 export function ShelfView() {
-  const { data, period, switching, shop } = useOwner();
+  const { data, period, switching, shop, kind } = useOwner();
   const { stock, products, visits } = data;
 
   // Lowest first, so what needs restocking is at the top.
@@ -68,6 +68,11 @@ export function ShelfView() {
             </Link>{" "}
             and it shows here.
           </p>
+          {kind === "trial" && (
+            <Link href="/owner" className="ow-rowbtn ds-press">
+              Back to Get going
+            </Link>
+          )}
         </div>
       ) : (
         <>

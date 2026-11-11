@@ -139,7 +139,8 @@ export default async function Owners() {
                 <h3>Enter the stand code</h3>
                 <p>
                   The stand asks for its code once and remembers it on that phone. Without the code, nothing can send
-                  photos as your stand.
+                  photos as your stand. A trial stand skips the typing: its screen opens from a link that carries its
+                  key.
                 </p>
               </Reveal>
               <Reveal as="li" delay={0.12}>

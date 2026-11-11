@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Wordmark } from "@/components/Wordmark";
 import { spring } from "@/lib/motion";
 import { CodeField } from "./CodeField";
-import { checkStandCode } from "./useStandToken";
+import { checkStand, type StandKind } from "./useStandToken";
 
 const CODE_LENGTH = 6;
 // Long enough for the button to show that the code was taken before the stand takes over.
@@ -13,6 +14,7 @@ const HANDOVER_MS = 380;
 
 const REFUSALS = {
   wrong: "That stand code isn't right. Check it and try again.",
+  ended: "That trial stand has ended. Start a new one from the demo page.",
   limited: "Too many tries. Try again in a few minutes.",
   unreachable: "Couldn't check the code. Check the connection and try again.",
 } as const;
@@ -27,7 +29,7 @@ export function Setup({
 }: {
   /** Why the stand sent this device back here, if it did. */
   problem: string | null;
-  onCode: (code: string) => void;
+  onCode: (code: string, kind: StandKind | null) => void;
 }) {
   const [draft, setDraft] = useState("");
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -46,9 +48,9 @@ export function Setup({
   async function start(code: string) {
     setCodeError(null);
     setStarting(true);
-    const [result] = await Promise.all([checkStandCode(code), new Promise((r) => setTimeout(r, HANDOVER_MS))]);
+    const [{ result, kind }] = await Promise.all([checkStand(code), new Promise((r) => setTimeout(r, HANDOVER_MS))]);
     if (!live.current) return;
-    if (result === "ok") return onCode(code);
+    if (result === "ok") return onCode(code, kind);
     setStarting(false);
     setCodeError(REFUSALS[result]);
     if (result === "wrong") setShake((n) => n + 1);
@@ -105,7 +107,34 @@ export function Setup({
             {starting ? "Checking the code" : "Start watching the shelf"}
           </button>
           <p className="sd-sheet-fine">A camera counts items on this shelf. It does not record people.</p>
+          <p className="sd-sheet-fine sd-sheet-try">
+            Trying it out? <Link href="/demo">Start a stand from the demo page</Link>
+          </p>
         </form>
+      </motion.div>
+    </main>
+  );
+}
+
+/** Shown in place of the stand when the trial behind this device's key is over. There is no code to type. */
+export function TrialEndedSheet() {
+  return (
+    <main className="void sd sd-setup">
+      <motion.div
+        className="sd-sheet sd-sheet-ended"
+        role="alert"
+        initial={{ opacity: 0, scale: 0.96, y: 14, filter: "blur(12px)" }}
+        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ ...spring, duration: 0.6 }}
+      >
+        <Wordmark />
+        <div className="sd-sheet-copy">
+          <h1>This trial stand has ended</h1>
+          <p>Its products and visits were deleted, so this screen has nothing to watch. Start a new one from the demo page.</p>
+        </div>
+        <Link href="/demo" className="sd-primary ds-press">
+          Go to the demo page
+        </Link>
       </motion.div>
     </main>
   );

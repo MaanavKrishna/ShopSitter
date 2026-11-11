@@ -6,7 +6,7 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { Source } from "@/lib/ask";
 import { easeOut, spring } from "@/lib/motion";
-import { useOwner } from "./OwnerProvider";
+import { ownerSignedOut, useOwner } from "./OwnerProvider";
 
 const SUGGESTED = ["What sold best?", "What is still unmatched?", "How much did I refund?"];
 const MAX_QUESTION = 300;
@@ -71,8 +71,7 @@ export function AskPanel() {
         signal: control.signal,
       });
       if (res.status === 401) {
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.assign("/owner/login");
+        ownerSignedOut();
         return;
       }
       const reply: Reply = await res.json().catch(() => ({}));

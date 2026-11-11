@@ -7,6 +7,7 @@ import { formatCents } from "./money";
 import type { StockRow, Totals, VisitRow } from "./owner";
 import { isLow } from "./owner-view";
 import { statusLabel } from "./studio-report";
+import { isTrial } from "./shops";
 import type { Product, Shop } from "./types";
 
 export type AskData = { visits: VisitRow[]; totals: Totals; stock: StockRow[]; products: Product[]; visitors?: number };
@@ -473,6 +474,8 @@ const Body = z.object({
 });
 
 const BRIEF_TTL_MS = 5 * 60_000;
+/** Questions one trial stand may ask in a day. */
+export const TRIAL_ASKS_PER_DAY = 30;
 const MINUTE_MS = 60_000;
 
 export type AskDeps = {
@@ -507,8 +510,11 @@ export async function handleAsk(deps: AskDeps, req: { shop: Shop; ip: string; bo
   }
 
   // A real stand has one owner. The demo stand is open to anyone, so each visitor gets less and the stand has a cap.
+  // A trial stand has one visitor and lasts a day, so it gets a smaller day's allowance of its own.
   const [minuteKey, perMinute, perDay] =
-    req.shop === "demo" ? [`ask:minute:demo:${req.ip}`, 5, 200] : [`ask:minute:${req.shop}`, 10, 100];
+    req.shop === "demo"
+      ? [`ask:minute:demo:${req.ip}`, 5, 200]
+      : [`ask:minute:${req.shop}`, 10, isTrial(req.shop) ? TRIAL_ASKS_PER_DAY : 100];
   if (!deps.allow(minuteKey, perMinute, MINUTE_MS)) {
     return refuse(429, "rate_limited", "That is a lot of questions at once. Try again in a minute.");
   }

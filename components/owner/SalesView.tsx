@@ -2,6 +2,7 @@
 
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useOwner } from "./OwnerProvider";
 
 // AG Studio draws on a canvas and measures the window, so it only runs in the browser.
@@ -24,13 +25,18 @@ const SalesStudio = dynamic(() => import("./SalesStudio"), {
 
 /** The charts board, given the whole width of the content area. */
 export function SalesView() {
-  const { data, shown } = useOwner();
+  const { data, shown, kind } = useOwner();
   if (shown.length === 0) {
     return (
       <section className="ow-panel" aria-label="Explore sales">
         <div className="ow-empty ow-empty-tall">
           <b>No sales to chart yet</b>
           <p>Charts appear here as soon as something leaves the shelf in this period.</p>
+          {kind === "trial" && (
+            <Link href="/owner" className="ow-rowbtn ds-press">
+              Back to Get going
+            </Link>
+          )}
         </div>
       </section>
     );

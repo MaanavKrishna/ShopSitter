@@ -54,10 +54,10 @@ export function DemoRunner({ samples }: { samples: Sample[] }) {
   return (
     <>
       <div className="dm-intro">
-        <h2 className="ds-h2">Pick a shelf to read</h2>
+        <h2 className="ds-h2">No camera? Watch it read sample shelves</h2>
         <p className="ds-lead">
-          Each run is a live read by the vision model and opens a visit at the demo stand, so it shows up on the
-          owner&apos;s dashboard too.
+          Pick a pair. Each run is a live read by the vision model and opens a visit at the shared demo stand, so it
+          shows up on the demo dashboard too.
         </p>
         <p className="dm-note">
           These are sample shelf pictures, composed from product photos. They are not photographs of a real stand.

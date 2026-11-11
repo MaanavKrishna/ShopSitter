@@ -31,13 +31,14 @@ Shopsitter needs one phone propped beside the shelf.
 
 | What | Where | Notes |
 | --- | --- | --- |
-| Demo without a camera | [/demo](https://shopsitter.vercel.app/demo) | Sample shelf pictures read by the real vision model |
-| Owner dashboard | [/owner/login](https://shopsitter.vercel.app/owner/login) | Passcode `demo` (example data, read-only products) |
+| Run your own stand | [/demo](https://shopsitter.vercel.app/demo) | Starts a private trial stand, no passcode: add your own products with photos, open the stand screen from its link or QR code, take something, pay in the sandbox, see it in your dashboard. Deleted after 24 hours |
+| Demo without a camera | [/demo](https://shopsitter.vercel.app/demo) | Lower on the same page: sample shelf pictures read by the real vision model |
+| Example dashboard | [/owner/login](https://shopsitter.vercel.app/owner/login) | Passcode `demo` (an example week, read-only products) |
 | How it works | [/how-it-works](https://shopsitter.vercel.app/how-it-works) | The whole flow, step by step |
 | What it stores | [/trust](https://shopsitter.vercel.app/trust) | Rules the stand keeps, and its limits |
-| Stand screen | [/stand](https://shopsitter.vercel.app/stand) | Needs the stand code and a camera; run your own copy to try it |
+| Stand screen | [/stand](https://shopsitter.vercel.app/stand) | Needs a camera, and either the stand code or a trial stand's link |
 
-Payments use the PayPal sandbox. To pay a demo bill, use a sandbox buyer account from your own PayPal developer
+Payments use the PayPal sandbox. To pay a demo or trial bill, use a sandbox buyer account from your own PayPal developer
 dashboard.
 
 ## Where PayPal is used

@@ -1,24 +1,26 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { readAngles } from "@/lib/angles";
-import { callerOf, demoReadGate, refuseStand } from "@/lib/auth";
+import { callerOf, demoReadGate } from "@/lib/auth";
 import { healDemo } from "@/lib/demo-reset";
 import { getRepo } from "@/lib/repo";
 import { readSample } from "@/lib/samples";
+import { ownsKey } from "@/lib/shops";
 import { handleShelfChange, type ShelfChangeDeps } from "@/lib/stand";
+import { TRIAL_MAX_STILL_BYTES, resolveStand, trialReadGate } from "@/lib/stand-access";
 import type { Product } from "@/lib/types";
 import { diffShelf } from "@/lib/vision";
 
 const MAX_PHOTO_BYTES = 3_000_000;
 const DemoBody = z.object({ shop: z.literal("demo"), sampleId: z.string().max(64) });
 
-/** Reads each product's stored reference photo, if it has one. */
+/** Reads each product's stored reference photo, if it has one. Only a photo stored by the product's own shop is read. */
 async function loadRefs(products: Product[]): Promise<Record<string, Uint8Array>> {
   const repo = getRepo();
   const refs: Record<string, Uint8Array> = {};
   await Promise.all(
     products.map(async (p) => {
-      if (!p.refImageUrl) return;
+      if (!p.refImageUrl || !ownsKey(p.shop, p.refImageUrl)) return;
       const bytes = await repo.getPhoto(p.refImageUrl);
       if (bytes) refs[p.sku] = bytes;
     }),
@@ -63,12 +65,13 @@ export async function POST(req: Request) {
     return Response.json(result);
   }
 
-  // Live stand: the camera page uploads the before and after stills.
-  const refusal = refuseStand(req);
-  if (refusal) {
-    if (refusal.status === 401) console.warn("stand change refused: wrong stand code");
-    return refusal;
+  // A stand with a camera (the live stand or a visitor's trial): the camera page uploads the before and after stills.
+  const stand = await resolveStand(req);
+  if (stand instanceof Response) {
+    if (stand.status === 401) console.warn("stand change refused: wrong stand code or ended trial");
+    return stand;
   }
+  const { shop } = stand;
   const form = await req.formData().catch(() => null);
   const before = form?.get("before");
   const after = form?.get("after");
@@ -77,18 +80,26 @@ export async function POST(req: Request) {
   if (!(before instanceof File) || !(after instanceof File)) return bad("bad_request");
   const zoomBefore = form?.get("beforeZoom");
   const zoomAfter = form?.get("afterZoom");
+  // Anyone can start a trial, so the stills it stores for its day are held to a smaller size.
+  const maxBytes = stand.kind === "trial" ? TRIAL_MAX_STILL_BYTES : MAX_PHOTO_BYTES;
   const hasZoom =
     zoomBefore instanceof File && zoomAfter instanceof File &&
-    zoomBefore.size <= MAX_PHOTO_BYTES && zoomAfter.size <= MAX_PHOTO_BYTES;
-  if (before.size > MAX_PHOTO_BYTES || after.size > MAX_PHOTO_BYTES) return bad("photo_too_large", 413);
+    zoomBefore.size <= maxBytes && zoomAfter.size <= maxBytes;
+  if (before.size > maxBytes || after.size > maxBytes) return bad("photo_too_large", 413);
   if (!Number.isFinite(changeStartedAt) || !Number.isFinite(settledAt) || settledAt < changeStartedAt) {
     return bad("bad_request");
   }
 
+  // Each read is a paid model call. A trial has a day's allowance, and all trials share one; the live stand has no cap.
+  if (stand.kind === "trial") {
+    const gate = trialReadGate(shop);
+    if (gate !== "ok") return bad(gate, 429);
+  }
+
   const started = Date.now();
-  const angles = await readAngles(getRepo(), "live", changeStartedAt).catch(() => []);
+  const angles = await readAngles(getRepo(), shop, changeStartedAt).catch(() => []);
   const result = await handleShelfChange(deps(), {
-    shop: "live",
+    shop,
     before: new Uint8Array(await before.arrayBuffer()),
     after: new Uint8Array(await after.arrayBuffer()),
     changeStartedAt,
@@ -100,7 +111,7 @@ export async function POST(req: Request) {
   });
   // One line per read, so a stand that seems stuck can be diagnosed from the logs.
   console.log(
-    `stand change: ${Date.now() - started}ms, photos ${before.size}+${after.size} bytes, close-ups ${hasZoom}, extra cameras ${angles.length}, ` +
+    `stand change (${stand.kind}): ${Date.now() - started}ms, photos ${before.size}+${after.size} bytes, close-ups ${hasZoom}, extra cameras ${angles.length}, ` +
       `visit ${result.visit?.id ?? "none"} ${result.visit?.status ?? ""} ` +
       `detected ${JSON.stringify(result.visit?.detected ?? [])} confidence ${result.visit?.confidence ?? "n/a"} ` +
       `manual ${result.visit?.needsManual ?? false}`,

@@ -3199,3 +3199,446 @@ tr[data-flash] > td {
 }
 
 /* ==================== End of qa fixes ==================== */
+
+/* ==================== trial ====================
+   A visitor's own trial stand: the strip over every section, the "Get going" checklist on
+   Overview, the quiet band before anything has sold, and the page shown once it has ended. */
+
+.ow-trial-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 36px;
+  padding: 0 var(--ow-pad);
+  background: var(--tint);
+  border-bottom: var(--hairline);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.ow-trial-strip p {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ow-trial-strip b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ow-trial-strip i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: var(--s-2);
+  border-radius: 50%;
+  background: var(--blue);
+  vertical-align: 1px;
+}
+
+.ow-trial-end {
+  flex: none;
+  min-height: 36px;
+  padding: 0 var(--s-1);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color var(--dur-fast);
+}
+
+@media (hover: hover) {
+  .ow-trial-end:hover {
+    color: var(--ow-coral-text);
+  }
+}
+
+.ow-trial-tip {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  border: var(--hairline);
+  background: var(--tint);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.ow-trial-tip b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ow-products .ow-trial-tip {
+  margin-bottom: var(--s-4);
+}
+
+.ow-prod-empty p a,
+.ow-empty p a {
+  color: var(--blue);
+  font-weight: 500;
+}
+
+/* Taking the photo there and then only makes sense on a device held in the hand. */
+.ow-photo-take {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .ow-photo-take {
+    display: inline-flex;
+  }
+}
+
+/* Get going */
+
+.ow-go-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ow-go-steps > li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-top: var(--hairline);
+}
+
+.ow-go-steps > li:last-child {
+  border-radius: 0 0 calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px);
+}
+
+.ow-go-steps > li[data-state="now"] {
+  padding-block: var(--s-4) var(--s-5);
+  background: linear-gradient(var(--tint), var(--paper) 72px);
+}
+
+.ow-go-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+.ow-go-mark > span {
+  display: grid;
+  place-items: center;
+}
+
+li[data-state="now"] > .ow-go-mark {
+  box-shadow: inset 0 0 0 1.5px var(--blue);
+  color: var(--blue);
+}
+
+.ow-go-mark[data-done] {
+  background: var(--blue);
+  box-shadow: none;
+  color: var(--on-blue);
+}
+
+.ow-go-step {
+  min-width: 0;
+}
+
+.ow-go-step h3 {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: var(--t-ui);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 24px;
+  color: var(--ink);
+}
+
+li[data-state="now"] .ow-go-step h3 {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+}
+
+li[data-state="later"] .ow-go-step h3 {
+  color: var(--ink-soft);
+}
+
+.ow-go-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.ow-go-body {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+.ow-go-body p {
+  max-width: 60ch;
+  color: var(--ink-soft);
+}
+
+.ow-go-body p b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ow-go-body .ow-go-tip {
+  justify-self: start;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--yellow-tint);
+  color: var(--yellow-text);
+}
+
+.ow-go-body .ow-go-tip b {
+  color: inherit;
+}
+
+.ow-go-body .ow-go-fine,
+.ow-go-fine {
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.ow-go-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+
+.ow-go-actions .ow-rowbtn {
+  height: 36px;
+  text-decoration: none;
+}
+
+.ow-go-actions [aria-disabled] {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.ow-go-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-size: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .ow-go-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.ow-go-stand {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.ow-go-stand > div {
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+}
+
+.ow-go-stand .ow-qr {
+  width: 148px;
+  background: var(--paper);
+  box-shadow: var(--e-1);
+}
+
+.ow-go-problem {
+  margin: 0 var(--s-4) var(--s-3);
+}
+
+.ow-go-meter {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: var(--s-3);
+  vertical-align: 1px;
+}
+
+.ow-go-meter i {
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--chip);
+  transition: background-color var(--dur);
+}
+
+.ow-go-meter i[data-done] {
+  background: var(--blue);
+}
+
+.ow-go-done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  padding: var(--s-2) var(--s-3) var(--s-2) var(--s-4);
+  border: var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--tint);
+}
+
+.ow-go-done p {
+  flex: 1 1 240px;
+  min-width: 0;
+  color: var(--ink-soft);
+}
+
+.ow-go-done p b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The band before anything has sold: one calm line, no empty chart. */
+
+.ow-band[data-quiet] {
+  padding-block: var(--s-5);
+}
+
+.ow-band-quiet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-6);
+}
+
+.ow-band-quiet > div {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.ow-band-quiet .ow-paid-label {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: var(--t-h3);
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+}
+
+.ow-band-quiet .ow-paid-note {
+  max-width: 62ch;
+  font-size: var(--t-ui);
+}
+
+.ow-band-quiet-figure {
+  color: rgb(255 255 255 / 0.5);
+  font-size: clamp(2rem, 3vw + 1rem, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* Setup, for a trial */
+
+.ow-setup-trial .ow-qr {
+  width: 148px;
+  background: var(--paper);
+}
+
+.ow-setup-trial .ow-go-actions {
+  margin-top: var(--s-4);
+}
+
+.ow-setup-trial .ow-go-actions .ow-rowbtn {
+  height: 44px;
+  padding: 0 var(--s-4);
+}
+
+/* Ended */
+
+.ow-trial-ended {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--s-6) var(--gutter);
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.ow-trial-ended > div {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-4);
+  width: min(100%, 440px);
+  padding: var(--s-6);
+  border: var(--hairline);
+  border-radius: var(--r-xl);
+  background: var(--paper);
+  box-shadow: var(--e-2);
+}
+
+.ow-trial-ended .wordmark {
+  color: var(--blue);
+}
+
+.ow-trial-ended h1 {
+  font-size: clamp(1.625rem, 2vw + 1rem, 2rem);
+  line-height: 1.1;
+  letter-spacing: var(--track-heading);
+}
+
+.ow-trial-ended p {
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.ow-trial-ended .ow-cta {
+  margin-top: var(--s-2);
+}
+
+@media (min-width: 720px) {
+  .ow-go-stand {
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: var(--s-5);
+  }
+
+  .ow-setup-trial {
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: var(--s-5);
+    align-items: start;
+  }
+}
+
+@media (max-width: 899px) {
+  .ow-trial-wide {
+    display: none;
+  }
+
+  .ow-trial-end {
+    min-height: 44px;
+  }
+
+  .ow-go-actions .ow-rowbtn,
+  .ow-go-actions .ow-cta {
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ow-go-meter i {
+    transition: none;
+  }
+}
+/* ==================== end of trial ==================== */

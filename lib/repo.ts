@@ -19,11 +19,15 @@ export interface Repo {
   listVisits(shop: Shop, sinceMs?: number): Promise<Visit[]>;
   /** Deletes the shop's visits and replaces its products. */
   resetShop(shop: Shop, products: Product[]): Promise<void>;
+  /** Deletes everything kept for the shop: products, visits and every stored key that starts with its id. */
+  deleteShop(shop: Shop): Promise<void>;
   /** Stores a shelf photo privately and returns the key to read it back with. */
   savePhoto(name: string, bytes: Uint8Array): Promise<string>;
   getPhoto(key: string): Promise<Uint8Array | null>;
   /** Removes a stored photo. Does nothing when the key is not there. */
   deletePhoto(key: string): Promise<void>;
+  /** Every stored key that ends with `ending`, with its contents. Meant for small records, not photos. */
+  listStored(ending: string): Promise<{ key: string; bytes: Uint8Array }[]>;
 }
 
 let cached: Repo | null = null;

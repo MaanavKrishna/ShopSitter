@@ -1,16 +1,33 @@
 import Link from "next/link";
 import { DemoRunner } from "@/components/DemoRunner";
+import { ExampleWeek, TrialStart } from "@/components/demo/TrialStart";
 import { Wordmark } from "@/components/Wordmark";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteNav } from "@/components/site/SiteNav";
+import { currentShop } from "@/lib/owner-http";
+import { getRepo } from "@/lib/repo";
 import { listSamples } from "@/lib/samples";
+import { isTrial } from "@/lib/shops";
+import { getTrial } from "@/lib/trials";
 import "../landing.css";
 import "./demo.css";
 
-export const metadata = { title: "Try Shopsitter without a camera" };
+export const metadata = { title: "Run your own Shopsitter stand" };
 
-export default function DemoPage() {
+/** The trial stand this browser already has, so the button reads right from the first paint. */
+async function myTrial() {
+  try {
+    const shop = await currentShop();
+    const trial = shop && isTrial(shop) ? await getTrial(getRepo(), shop, Date.now()) : null;
+    return trial ? { expiresAt: trial.expiresAt } : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function DemoPage() {
   const samples = listSamples();
+  const trial = await myTrial();
 
   return (
     <>
@@ -27,18 +44,20 @@ export default function DemoPage() {
           </nav>
         </header>
         <div className="ds-container dm-head-text">
-          <h1 className="ds-h1">Try it without a camera</h1>
+          <h1 className="ds-h1">Try it yourself</h1>
           <p className="ds-lead">
-            {samples.length > 0
-              ? "Each pair shows a sample shelf before and after a visitor. Pick one and the vision model reads what was taken, the server writes the bill, and you can pay it in the PayPal sandbox."
-              : "Shopsitter reads a before and after photo of the demo shelf, writes the bill, and lets you pay it in the PayPal sandbox."}
+            Run a stand of your own with the things on your desk, or watch the vision model read sample shelves.
           </p>
         </div>
       </section>
       <div data-site-nav-after />
       <main className="dm">
-        <div className="ds-container">
-          <DemoRunner samples={samples} />
+        <div className="ds-container dm-stack">
+          <TrialStart initial={trial} />
+          <section className="dm-samples-part" aria-label="Sample shelves">
+            <DemoRunner samples={samples} />
+          </section>
+          <ExampleWeek hasTrial={trial !== null} />
         </div>
       </main>
       <SiteFooter />

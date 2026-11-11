@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseShop } from "./shops";
 import type { Shop } from "./types";
 
 const safeEqual = (a: string, b: string) => {
@@ -30,13 +31,29 @@ const sign = (value: string) => createHmac("sha256", secret()).update(value).dig
 
 export const OWNER_COOKIE = "shopsitter_owner";
 
-/** Cookie value proving which shop's dashboard this browser may see. */
+/**
+ * Cookie value proving which shop's dashboard this browser may see. For a trial stand the cookie
+ * is only half of it: the trial must also still exist (see activeShop in lib/trials.ts).
+ */
 export const ownerCookieValue = (shop: Shop) => `${shop}.${sign(shop)}`;
+
+/** The cookie's maximum age for the live and demo stands, in seconds. */
+export const OWNER_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+
+/** How the owner cookie is set: unreadable by scripts, sent on same-site requests and top-level visits only. */
+export const ownerCookieOptions = (maxAgeSeconds: number = OWNER_COOKIE_MAX_AGE) => ({
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: maxAgeSeconds,
+});
 
 export function shopFromCookie(value: string | undefined): Shop | null {
   if (!value) return null;
-  const [shop, mac] = value.split(".");
-  if ((shop !== "live" && shop !== "demo") || !mac) return null;
+  const [name, mac] = value.split(".");
+  const shop = parseShop(name);
+  if (!shop || !mac) return null;
   return safeEqual(mac, sign(shop)) ? shop : null;
 }
 

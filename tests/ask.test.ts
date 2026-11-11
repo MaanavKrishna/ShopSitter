@@ -404,7 +404,7 @@ describe("handleAsk", () => {
     };
     return { deps, calls };
   };
-  const req = (body: unknown, shop: "demo" | "live" = "demo") => ({ shop, ip: "1.2.3.4", body });
+  const req = (body: unknown, shop: "demo" | "live" | `t-${string}` = "demo") => ({ shop, ip: "1.2.3.4", body });
 
   it("answers a question", async () => {
     const { deps } = make();
@@ -456,6 +456,16 @@ describe("handleAsk", () => {
     expect(asked).toEqual([
       ["ask:minute:live", 10, 60_000],
       ["ask:day:live", 100, DAY],
+    ]);
+  });
+
+  it("limits a trial stand to thirty questions a day, counted for that trial alone", async () => {
+    const asked: [string, number, number][] = [];
+    const { deps } = make({ allow: (key, max, windowMs) => (asked.push([key, max, windowMs]), true) });
+    await handleAsk(deps, req({ question: "q", days: 7 }, "t-abcdefghij"));
+    expect(asked).toEqual([
+      ["ask:minute:t-abcdefghij", 10, 60_000],
+      ["ask:day:t-abcdefghij", 30, DAY],
     ]);
   });
 

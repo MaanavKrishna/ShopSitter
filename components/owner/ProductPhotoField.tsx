@@ -1,6 +1,6 @@
 "use client";
 
-import { IconPhotoPlus } from "@tabler/icons-react";
+import { IconCamera, IconPhotoPlus } from "@tabler/icons-react";
 import { useId, useRef, useState } from "react";
 import { MAX_PHOTO_BYTES } from "@/lib/products";
 
@@ -50,6 +50,7 @@ export function ProductPhotoField({
 }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +113,18 @@ export function ProductPhotoField({
             {reading ? "Reading the picture…" : shown ? "Drop a new picture here to replace it." : "Drop a picture here, or"}
           </span>
           <span className="ow-photo-buttons">
+            {/* Shown on touch devices only (see the stylesheet): elsewhere the browser would just open the file picker. */}
+            <button
+              type="button"
+              className="ow-rowbtn ow-photo-take ds-press"
+              data-tone="strong"
+              disabled={disabled || reading}
+              aria-describedby={`${id}-hint`}
+              onClick={() => camera.current?.click()}
+            >
+              <IconCamera size={15} stroke={1.75} aria-hidden="true" />
+              Take a photo
+            </button>
             <button
               type="button"
               className="ow-rowbtn ds-press"
@@ -128,6 +141,18 @@ export function ProductPhotoField({
             )}
           </span>
         </div>
+        <input
+          ref={camera}
+          type="file"
+          accept={ACCEPT.join(",")}
+          capture="environment"
+          hidden
+          aria-label="Take a reference photo with the camera"
+          onChange={(e) => {
+            void take(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
         <input
           ref={input}
           type="file"

@@ -6,10 +6,11 @@ import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StandCamera, type CameraPhase, type ShelfChange } from "@/components/StandCamera";
 import { Wordmark } from "@/components/Wordmark";
-import { Setup } from "@/components/stand/Setup";
+import { Setup, TrialEndedSheet } from "@/components/stand/Setup";
 import { Stage } from "@/components/stand/Stage";
 import { Swap } from "@/components/stand/Swap";
 import { SAVED_CODE_REFUSED, useStandToken } from "@/components/stand/useStandToken";
+import { standChangeProblem } from "@/lib/trial-view";
 import { readJson, sendWithRetry } from "@/lib/client-retry";
 import { spring } from "@/lib/motion";
 import type { PricedBill } from "@/lib/types";
@@ -23,6 +24,7 @@ const isPaid = (v: Visit) => v.status === "paid" || v.status === "paid_adjusted"
 type Current = { visit: Visit; bill: PricedBill };
 
 const GAVE_UP = "Couldn't send the last shelf change. Press Read the shelf now.";
+const RETRYING = "Couldn't reach the server. Trying again…";
 
 /** The photos and times of a shelf change as the upload the server expects. */
 function changeForm(change: ShelfChange): FormData {
@@ -40,7 +42,7 @@ function changeForm(change: ShelfChange): FormData {
 
 export default function StandPage() {
   const router = useRouter();
-  const { token, booted, refused, save, forget } = useStandToken();
+  const { token, booted, refused, ended, kind, save, forget, end } = useStandToken();
   const [current, setCurrent] = useState<Current | null>(null);
   const [justPaid, setJustPaid] = useState<number | null>(null);
   const [reading, setReading] = useState(false);
@@ -57,8 +59,8 @@ export default function StandPage() {
   const queue = useRef<Promise<void>>(Promise.resolve());
   // A change the server never received. Its "before" photo is kept, so the next read still covers what left the shelf.
   const unsent = useRef<ShelfChange | null>(null);
-  /** An upload failed and is being sent again. */
-  const [retrying, setRetrying] = useState(false);
+  /** An upload failed and is being sent again: what to say while it is. */
+  const [retrying, setRetrying] = useState<string | null>(null);
   /** Why the camera could not start, when it could not. */
   const [cameraProblem, setCameraProblem] = useState<string | null>(null);
 
@@ -137,16 +139,23 @@ export default function StandPage() {
           : change;
         try {
           const form = changeForm(sending);
+          // The error code of the last refusal, so the stand can say why in its own words.
+          let refusal: string | undefined;
           const sent = await sendWithRetry(
-            () => fetch("/api/stand/change", { method: "POST", headers: { "x-stand-token": token ?? "" }, body: form }),
-            { onWaiting: () => setRetrying(true) },
+            async () => {
+              const res = await fetch("/api/stand/change", { method: "POST", headers: { "x-stand-token": token ?? "" }, body: form });
+              refusal = res.ok ? undefined : (await readJson<{ error?: string }>(res.clone()))?.error;
+              return res;
+            },
+            { onWaiting: () => setRetrying(standChangeProblem(refusal) ?? RETRYING) },
           );
           if (!sent.ok) {
             unsent.current = sending;
-            if (sent.reason === "wrong_code") {
+            if (sent.reason === "wrong_code" && refusal === "trial_ended") end();
+            else if (sent.reason === "wrong_code") {
               forget();
               setProblem("That stand code isn't right. Enter it again.");
-            } else setProblem(GAVE_UP);
+            } else setProblem(standChangeProblem(refusal) ?? GAVE_UP);
             return;
           }
           unsent.current = null;
@@ -164,12 +173,12 @@ export default function StandPage() {
           unsent.current = sending;
           setProblem(GAVE_UP);
         } finally {
-          setRetrying(false);
+          setRetrying(null);
           setReading(false);
         }
       });
     },
-    [token, forget],
+    [token, forget, end],
   );
 
   // Someone stopped by and has gone: only the count is reported.
@@ -185,13 +194,15 @@ export default function StandPage() {
 
   if (!booted) return <main className="void sd" />;
 
+  if (ended) return <TrialEndedSheet />;
+
   if (!token) {
     return (
       <Setup
         problem={problem ?? (refused ? SAVED_CODE_REFUSED : null)}
-        onCode={(code) => {
+        onCode={(code, standKind) => {
           setProblem(null);
-          save(code);
+          save(code, standKind);
         }}
       />
     );
@@ -203,7 +214,7 @@ export default function StandPage() {
   const status = cameraProblem
     ? "The camera isn't running."
     : retrying
-      ? "Couldn't reach the server. Trying again…"
+      ? retrying
       : reading
         ? "Reading the shelf…"
         : sighting?.hand
@@ -228,7 +239,7 @@ export default function StandPage() {
           reading={reading}
           moving={phase === "moving"}
           note={note}
-          trouble={retrying ? "Couldn't reach the server. Trying again…" : null}
+          trouble={retrying}
           cameraProblem={cameraProblem}
           qr={qr && qr.visitId === visitId ? qr.url : null}
         />
@@ -282,8 +293,15 @@ export default function StandPage() {
 
             {!collapsed && (
               <motion.div layout="position" className="sd-side" transition={spring} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                {stats && (
+                {(stats || kind === "trial") && (
                   <ul className="sd-chips">
+                    {kind === "trial" && (
+                      <li className="sd-chip sd-chip-trial" title="A private trial stand. It is deleted a day after it was started.">
+                        Trial stand
+                      </li>
+                    )}
+                    {stats && (
+                      <>
                     <motion.li layout className="sd-chip" style={{ borderRadius: 999 }} transition={spring}>
                       <Swap text={`${cameras} ${cameras === 1 ? "camera" : "cameras"}`} />
                     </motion.li>
@@ -296,6 +314,8 @@ export default function StandPage() {
                     >
                       <Swap text={presence} />
                     </motion.li>
+                      </>
+                    )}
                   </ul>
                 )}
                 <button

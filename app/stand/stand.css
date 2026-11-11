@@ -1313,3 +1313,29 @@
     backdrop-filter: none;
   }
 }
+
+/* ---------- Trial stands ---------- */
+
+/* Says quietly which kind of stand this is; it never changes, so it carries no highlight. */
+.sd-chip-trial {
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--on-blue-soft);
+  font-weight: 500;
+}
+
+.sd-sheet-try a {
+  color: var(--blue);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+/* A trial that is over has no code to ask for: the sheet holds the news and one way on. */
+.sd-sheet-ended {
+  display: grid;
+  gap: var(--s-5);
+}
+
+.sd-sheet-ended .sd-primary {
+  text-decoration: none;
+}

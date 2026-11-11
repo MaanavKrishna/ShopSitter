@@ -59,7 +59,7 @@ const STORED = [
   },
   {
     what: "Sign-in",
-    detail: "A signed cookie saying which stand’s dashboard this browser may open. The stand code is remembered on the stand’s own phone.",
+    detail: "A signed cookie saying which stand’s dashboard this browser may open. The stand code, or a trial stand’s key, is remembered on the stand’s own phone.",
     why: "To keep the dashboard and the stand to their owner.",
     who: "Only that browser. There are no personal accounts and no email addresses.",
   },
@@ -71,8 +71,8 @@ const LIMITS = [
     "If someone is in front of the shelf at the moment it goes still, part of them can be in the picture. The model is told to ignore them, and only the signed-in owner can open it.",
   ],
   ["Photos leave the stand to be read", "The before and after photos go to the vision model’s provider for each read."],
-  ["Nothing is deleted on a schedule yet", "Photos and visits stay until the stand is reset."],
-  ["One passcode per stand", "The dashboard opens with a shared passcode, not a personal account."],
+  ["Only trial stands are deleted on a schedule", "A trial and everything in it goes after 24 hours. Any other stand’s photos and visits stay until it is reset."],
+  ["One passcode per stand", "The dashboard opens with a shared passcode, not a personal account. A trial stand has none: it belongs to the browser that started it."],
   ["It can miscount", "One shelf, about six products that look different from each other, and good light."],
   ["PayPal sandbox only", "It is a prototype. Payments run in PayPal’s test environment and no real money moves."],
 ];
@@ -170,17 +170,20 @@ export default async function Trust() {
             <h2 id="close-h" className="ds-h2">
               Check it yourself
             </h2>
-            <p className="ds-lead">Run a visit in the demo, then open the dashboard and see what was kept.</p>
+            <p className="ds-lead">
+              Run a visit on a trial stand of your own, then open its dashboard and see what was kept. A trial and
+              everything in it is deleted after 24 hours.
+            </p>
             <div className="in-close-actions">
               <NextLink href="/demo" className="in-btn in-btn-coral ds-focus">
-                Try the demo
+                Run your own stand
               </NextLink>
               <NextLink href="/owner/login" className="in-btn in-btn-ghost ds-focus">
                 Open the demo dashboard
               </NextLink>
             </div>
             <p className="in-close-note">
-              The dashboard’s passcode is <strong>demo</strong>.
+              The demo dashboard’s passcode is <strong>demo</strong>.
             </p>
           </div>
         </section>

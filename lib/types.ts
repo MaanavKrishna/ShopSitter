@@ -1,4 +1,8 @@
-export type Shop = "live" | "demo";
+/** A visitor's own private stand: "t-" and ten random characters. It lasts a day. See lib/shops.ts. */
+export type TrialShop = `t-${string}`;
+
+/** The owner's real stand, the public demo stand, or one visitor's trial stand. */
+export type Shop = "live" | "demo" | TrialShop;
 
 /** A product id with a quantity. In a shelf change, a negative qty means "put back". */
 export type Line = { sku: string; qty: number };

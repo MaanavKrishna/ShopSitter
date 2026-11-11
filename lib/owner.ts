@@ -2,13 +2,17 @@ import { visitorsSince } from "./footfall";
 import { priceLines } from "./money";
 import { PayPalRefused, type PayPalGateway } from "./paypal";
 import type { Repo } from "./repo";
+import { shopKind } from "./shops";
 import type { Line, PricedBill, Product, Shop } from "./types";
 import { expireIfStale, isAdjusted, type Visit } from "./visits";
 
 export class OwnerError extends Error {
   constructor(
-    /** "paypal_refused": PayPal turned the refund down, so nothing was sent and nothing changed. */
-    public code: "not_found" | "not_allowed" | "bad_amount" | "paypal_refused",
+    /**
+     * "paypal_refused": PayPal turned the refund down, so nothing was sent and nothing changed.
+     * "demo_no_stand": the demo stand has no camera, so there is nothing to link a device to.
+     */
+    public code: "not_found" | "not_allowed" | "bad_amount" | "paypal_refused" | "demo_no_stand",
     public status: number,
   ) {
     super(code);
@@ -79,7 +83,8 @@ export async function ownerOverview(repo: Repo, shop: Shop, days: number, now: n
 
   // People the stand's own detector saw stop by. Zero when it is not in use.
   const visitors = await visitorsSince(repo, shop, days, now);
-  return { visits: rows, totals, stock: stockLeft(products, all), products, visitors };
+  // `shopKind` lets the screens tell the owner's stand, the demo stand and a visitor's trial apart.
+  return { visits: rows, totals, stock: stockLeft(products, all), products, visitors, shopKind: shopKind(shop) };
 }
 
 /** Units of each product the camera has seen leave the shelf, over every visit given. */
