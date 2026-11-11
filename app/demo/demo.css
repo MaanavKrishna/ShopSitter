@@ -1,98 +1,359 @@
-/* Demo page: a cobalt head, then white working cards. */
+/* Demo page: a cobalt head, then the working area. Built from the tokens in system.css. */
 
 .dm-head {
-  padding-bottom: clamp(2.5rem, 6vw, 4rem);
+  padding-bottom: var(--s-9);
 }
 
 .dm-head-text {
-  padding: 1.5rem clamp(1.1rem, 4.8vw, 4.4rem) 0;
-  max-width: 56rem;
+  display: grid;
+  gap: var(--s-5);
+  padding-top: var(--s-7);
 }
 
-.dm-head h1 {
-  font-size: clamp(2.6rem, 6.4vw, 4.8rem);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: var(--on-blue);
-}
-
-.dm-head-text p {
-  margin-top: 1.1rem;
-  max-width: 40rem;
-  font-size: 1.15rem;
+.dm-head-text .ds-lead {
+  max-width: 52ch;
   color: var(--on-blue-soft);
 }
 
 .dm {
-  max-width: 74rem;
-  margin: 0 auto;
-  padding: clamp(2rem, 5vw, 3.5rem) clamp(1.1rem, 4.8vw, 4.4rem) 4.5rem;
+  padding-block: var(--s-8) var(--section);
+  background: var(--tint);
 }
+
+/* ---------- No samples yet ---------- */
 
 .dm-empty {
-  max-width: 44rem;
-  margin: 0 auto;
+  display: grid;
+  gap: var(--s-8);
 }
 
-.dm-empty-main {
-  padding: 1.2rem 1.2rem 1.8rem;
+.dm-empty-now {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: var(--s-4);
 }
 
-.dm-empty-note {
-  margin-top: 0.4rem;
+.dm-empty-now .ds-lead {
+  color: var(--ink-soft);
+}
+
+.dm-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 28px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  border: var(--hairline);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dm-state i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+
+.dm-doors {
+  list-style: none;
+  margin: var(--s-4) 0 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  gap: var(--s-3);
+}
+
+.dm-door {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  min-height: 76px;
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  border: var(--hairline);
+  box-shadow: var(--e-1);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform var(--dur-press) ease-out,
+    box-shadow var(--dur) ease;
+}
+
+.dm-door:active {
+  transform: scale(0.98);
+}
+
+.dm-door span {
+  display: grid;
+  gap: 2px;
+}
+
+.dm-door strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.1875rem;
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+}
+
+.dm-door small {
+  font-size: var(--t-ui);
+  color: var(--ink-soft);
+}
+
+.dm-door small b {
+  color: var(--ink);
+}
+
+.dm-door i {
+  font-style: normal;
+  font-size: 1.25rem;
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.dm-door-main {
+  background: var(--blue);
+  border-color: transparent;
+  color: var(--on-blue);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    var(--e-blue);
+}
+
+.dm-door-main small {
+  color: var(--on-blue-soft);
+}
+
+.dm-door-main small b {
+  color: var(--on-blue);
+}
+
+.dm-door-main.ds-focus:focus-visible {
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dm-door:hover {
+    box-shadow: var(--e-2);
+  }
+
+  .dm-door-main:hover {
+    background: var(--blue-lit);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.25),
+      var(--e-blue);
+  }
+
+  .dm-door:hover i {
+    transform: translateX(4px);
+  }
+}
+
+.dm-plan > h2 {
+  font-family: var(--font-body), sans-serif;
+  font-size: var(--t-ui);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.dm-plan ol {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  border-radius: var(--r-xl);
+  background: var(--paper);
+  border: var(--hairline);
+  box-shadow: var(--e-2);
+  overflow: hidden;
+}
+
+.dm-plan li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+  padding: var(--s-5);
+}
+
+.dm-plan li + li {
+  border-top: var(--hairline);
+}
+
+.dm-plan-art {
+  display: grid;
+  place-items: center;
+  min-height: 132px;
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--tint);
+}
+
+.dm-plan-text {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--s-1) var(--s-3);
+  align-content: center;
+}
+
+.dm-plan-text > span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--on-blue);
+  font-size: var(--t-sm);
+}
+
+.dm-plan-text h3 {
+  font-size: 1.1875rem;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.dm-plan-text p {
+  font-size: var(--t-ui);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.dm-art-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: 300px;
+}
+
+.dm-art-pair figure {
+  min-width: 0;
+  margin: 0;
+  padding: var(--s-3) var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  border: var(--hairline);
+}
+
+.dm-art-pair .lp-shelf {
+  --slot: 26px;
+  padding: 0 4px;
+  border-bottom-width: 2px;
+}
+
+.dm-art-pair figcaption {
+  margin-top: var(--s-1);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-soft);
   text-align: center;
 }
 
-.dm-empty-next {
+/* A bill with its lines left blank: the shape of a result, with no made-up figures in it. */
+.dm-art-bill {
   display: grid;
-  gap: 1rem;
-  padding: 1.6rem clamp(1.2rem, 4vw, 2rem) 1.8rem;
+  gap: var(--s-2);
+  width: 100%;
+  max-width: 220px;
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  box-shadow: var(--e-blue);
 }
 
-.dm-run-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.7rem;
+.dm-art-bill span {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: rgb(255 255 255 / 0.3);
 }
 
-.dm-run-steps li {
-  display: grid;
-  grid-template-columns: 1.7rem minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: start;
+.dm-art-bill span:nth-child(2) {
+  width: 72%;
 }
 
-.dm-run-steps li > span:first-child {
-  display: grid;
-  place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: 50%;
-  background: var(--tint);
-  color: var(--blue);
-  font-family: var(--font-display), sans-serif;
-  font-weight: 800;
-  font-size: 0.85rem;
+.dm-art-bill span:nth-child(3) {
+  width: 84%;
 }
 
-.dm-back {
-  justify-self: start;
-  font-weight: 600;
-  color: var(--blue);
-  padding: 0.4rem 0;
+.dm-art-bill b {
+  justify-self: end;
+  width: 44%;
+  height: 16px;
+  margin-top: var(--s-2);
+  border-radius: var(--r-xs);
+  background: var(--on-blue);
 }
+
+.dm-art-pay {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-2);
+  color: var(--ink);
+}
+
+.dm-art-pay svg {
+  width: 72px;
+  padding: 6px;
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  border: var(--hairline);
+}
+
+.dm-art-pay span {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--r-xs);
+  background: var(--paypal);
+  color: #5a4300;
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+@media (min-width: 620px) {
+  .dm-plan li {
+    grid-template-columns: 264px minmax(0, 1fr);
+    align-items: center;
+    gap: var(--s-5);
+  }
+}
+
+@media (min-width: 1000px) {
+  .dm-empty {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--s-9);
+    align-items: start;
+  }
+
+  .dm-empty-now {
+    position: sticky;
+    top: calc(52px + var(--s-7));
+  }
+}
+
+/* ---------- With samples ---------- */
 
 .dm-intro {
   display: grid;
-  gap: 0.4rem;
-  margin-bottom: 1.6rem;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+
+.dm-intro .ds-lead {
+  color: var(--ink-soft);
 }
 
 .dm-problem {
-  margin-bottom: 1.4rem;
-  max-width: 44rem;
+  margin-bottom: var(--s-5);
+  max-width: var(--container-narrow);
 }
 
 .dm-samples {
@@ -100,24 +361,28 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--s-5);
   align-items: start;
 }
 
 .dm-sample {
-  display: grid;
-  gap: 0.9rem;
+  border-radius: var(--r-xl);
+  box-shadow: var(--e-2);
+  overflow: hidden;
 }
 
 .dm-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: 2px;
+  background: var(--line);
 }
 
 .dm-pair figure {
+  position: relative;
   margin: 0;
+  overflow: hidden;
 }
 
 .dm-pair img {
@@ -125,20 +390,69 @@
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  border-radius: 8px;
   background: var(--tint);
 }
 
 .dm-pair figcaption {
-  padding-top: 0.35rem;
-  font-size: 0.82rem;
+  position: absolute;
+  top: var(--s-2);
+  left: var(--s-2);
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  background: rgb(6 11 31 / 0.72);
+  color: var(--on-blue);
+  font-size: var(--t-xs);
   font-weight: 600;
-  color: var(--ink-soft);
+}
+
+/* While a shelf is being read, a band of light passes over the "after" photo. */
+.dm-scan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34%;
+  background: linear-gradient(90deg, transparent, rgb(33 82 242 / 0.3));
+  border-right: 2px solid var(--blue-lit);
+  opacity: 0;
+  transform: translateX(-110%);
+}
+
+.dm-sample[data-busy] .dm-scan {
+  opacity: 1;
+  animation: dm-scan 1.2s ease-in-out infinite;
+}
+
+@keyframes dm-scan {
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.dm-sample-body {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-5);
+}
+
+.dm-caption {
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .dm-result {
   display: grid;
-  gap: 0.9rem;
+  gap: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: var(--hairline);
+  color: var(--ink);
+}
+
+.dm-result h3 {
+  font-size: var(--t-h3);
 }
 
 .dm-receipt {
@@ -146,7 +460,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--s-2);
 }
 
 .dm-receipt li,
@@ -154,7 +468,7 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 1rem;
+  gap: var(--s-4);
 }
 
 .dm-receipt li > span:first-child {
@@ -162,32 +476,35 @@
   overflow-wrap: anywhere;
 }
 
+.dm-receipt b {
+  color: var(--blue);
+  font-weight: 700;
+}
+
 .dm-total {
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--line);
+  padding-top: var(--s-3);
+  border-top: var(--hairline);
   font-weight: 600;
 }
 
 .dm-total .num {
-  font-size: 1.7rem;
+  font-size: 2rem;
+  font-weight: 800;
 }
 
-/* Side by side when there is room, stacked full width on a phone. */
-.dm-empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.6rem;
-  width: 100%;
+@media (prefers-reduced-motion: reduce) {
+  .dm-sample[data-busy] .dm-scan {
+    animation: none;
+    opacity: 0;
+  }
+
+  .dm-door,
+  .dm-door i {
+    transition: none;
+  }
 }
 
-@media (max-width: 520px) {
-  .dm-empty-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .dm-empty-actions > * {
-    width: 100%;
-  }
+/* Comfortable to press on a phone. */
+.dm-sample-body :is(button, a[href]) {
+  min-height: 48px;
 }

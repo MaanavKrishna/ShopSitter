@@ -1,356 +1,1009 @@
-/* Customer pay page: opened on a phone at the stand, often outdoors. One column on a phone,
-   bill beside a sticky summary on wide screens. */
+/* Customer pay page: opened on a phone at the stand, often outdoors.
+   A white bill sheet rises over the cobalt studio; the total and the PayPal button ride in a
+   translucent bar pinned to the bottom, so paying is always one thumb away.
+   Sizes come from app/system.css; the few local values are named here. */
 
 .payx {
+  --pay-pad: calc(var(--s-4) + var(--s-1)); /* 20px side gutter inside the sheet */
+  --pay-sheet-w: 30rem;
+  --pay-figure: 1.75rem; /* the running total */
+  --pay-figure-lg: 3.5rem; /* the amount on the receipt */
+  --pay-target: 44px; /* smallest touch target */
+  --coral-text: #b02f17;
+  --coral-tint: #ffe2da;
+  --coral-wash: #fff3ef;
+
+  position: relative;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--tint);
+  background: var(--blue-deep);
+  isolation: isolate;
+}
+
+/* The studio stays put while the sheet scrolls over it. */
+.payx::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(80% 45% at 50% 108%, rgb(62 108 255 / 0.5), transparent 70%),
+    radial-gradient(130% 70% at 50% -8%, var(--blue-lit) 0%, var(--blue) 46%, var(--blue-deep) 100%);
 }
 
 .payx-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.1rem;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--pay-pad);
+  background: none;
+}
+
+.payx-top .wordmark {
+  font-size: 1.25rem;
 }
 
 .payx-top-note {
   color: var(--on-blue-soft);
-  font-size: 0.88rem;
+  font-size: var(--t-ui);
   font-weight: 600;
 }
 
+/* ---------- The sheet ---------- */
+
 .payx-main {
-  width: 100%;
-  max-width: 31rem;
-  margin: 0 auto;
-  padding: 1.6rem 1rem 3rem;
+  position: relative;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--pay-sheet-w);
+  margin: 0 auto;
 }
 
-.payx-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
+/* The white surface is its own layer, so it can slide up without moving the sticky bar's frame. */
+.payx-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: var(--paper);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 -10px 40px -12px rgb(0 20 120 / 0.55);
+  animation: payx-sheet-in var(--dur-slow) var(--ease-out) backwards;
 }
 
-.payx-col {
-  display: grid;
-  gap: 1rem;
-  align-content: start;
+.payx-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+}
+
+.payx-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+  padding: var(--s-5) var(--pay-pad) var(--s-6);
 }
 
 .payx-intro {
   display: grid;
-  gap: 0.45rem;
-  margin-bottom: 0.2rem;
+  gap: var(--s-2);
 }
 
 .payx-title {
-  font-size: 2.3rem;
-  letter-spacing: -0.03em;
+  font-size: 1.875rem;
+  letter-spacing: var(--track-display);
+  line-height: var(--lead-heading);
 }
 
 .payx-lede {
   color: var(--ink-soft);
+  font-size: var(--t-body);
+  line-height: 1.45;
   max-width: 34ch;
+  text-wrap: pretty;
+}
+
+.payx-small {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  line-height: 1.45;
+}
+
+/* Entrance: content follows the sheet up, a beat behind. Runs once, in CSS, before any script. */
+.payx-rise,
+.payx-content > .payx-note {
+  animation: payx-rise var(--dur-slow) var(--ease-out) 60ms backwards;
+}
+
+.payx-content > .payx-note {
+  animation-delay: 90ms;
+}
+
+.payx-lines.payx-rise {
+  animation-delay: 120ms;
+}
+
+.payx-adder.payx-rise,
+.payx-sandbox.payx-rise {
+  animation-delay: 160ms;
+}
+
+@keyframes payx-sheet-in {
+  from {
+    transform: translateY(56px);
+    opacity: 0;
+  }
+}
+
+@keyframes payx-rise {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+
+@keyframes payx-bar-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes payx-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- Notes: calm, inline, tinted ---------- */
+
+.payx-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4) var(--s-3) var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.payx-note-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--blue);
+}
+
+.payx-note-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.payx-note-text {
+  padding-top: 3px;
+  font-size: var(--t-ui);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.payx-note-text strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.payx-note[data-tone="look"],
+.payx-note[data-tone="error"] {
+  background: var(--coral-wash);
+}
+
+.payx-note[data-tone="look"] .payx-note-icon,
+.payx-note[data-tone="error"] .payx-note-icon {
+  background: var(--coral-tint);
+  color: var(--coral-text);
+}
+
+.payx-note[data-tone="error"] .payx-note-text {
+  color: var(--ink);
+}
+
+.payx-note[data-tone="error"] strong {
+  color: var(--coral-text);
 }
 
 /* ---------- Bill lines ---------- */
 
 .payx-lines,
-.payx-receipt,
-.payx-add {
+.payx-addlist,
+.payx-receipt-lines {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.payx-line {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "name total"
-    "each step";
-  align-items: center;
-  column-gap: 0.75rem;
-  row-gap: 0.35rem;
-  padding: 0.95rem 1rem;
+.payx-lines {
+  position: relative;
+  border-top: var(--hairline);
 }
 
-.payx-line + .payx-line,
-.payx-receipt li + li {
-  border-top: 1px solid var(--line);
+.payx-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(3.75rem, auto);
+  align-items: center;
+  column-gap: var(--s-2);
+  padding: var(--s-3) 0;
+  border-bottom: var(--hairline);
+  background: var(--paper);
+}
+
+.payx-line-what {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .payx-line-name {
-  grid-area: name;
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: var(--t-body);
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .payx-line-each {
-  grid-area: each;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: var(--t-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .payx-line-total {
-  grid-area: total;
-  text-align: right;
-  font-size: 1.2rem;
-}
-
-.payx-stepper {
-  grid-area: step;
   justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.1rem;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper);
-}
-
-/* Thumb-sized targets, whatever the design system's default control height is. */
-.payx-stepper .astryx-button {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  border-radius: 999px;
-  color: var(--blue);
-}
-
-.payx-stepper .astryx-button[aria-disabled="true"] {
-  color: var(--color-text-disabled);
-}
-
-.payx-qty {
-  min-width: 2rem;
-  text-align: center;
-  font-size: 1.1rem;
+  font-size: 1.0625rem;
 }
 
 .payx-empty {
-  padding: 1.4rem 1rem;
+  padding: var(--s-5) 0;
+  border-bottom: var(--hairline);
+  color: var(--ink-soft);
+  font-size: var(--t-ui);
+}
+
+/* Stepper: two thumb-sized targets around a rolling quantity. */
+.payx-stepper {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.payx-step {
+  display: grid;
+  place-items: center;
+  width: var(--pay-target);
+  height: var(--pay-target);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--blue);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast) ease-out;
+}
+
+.payx-step svg {
+  width: 20px;
+  height: 20px;
+}
+
+.payx-step:active:not(:disabled) {
+  background: var(--chip);
+}
+
+.payx-step:disabled {
+  color: rgb(75 85 112 / 0.45);
+  opacity: 1;
+}
+
+.payx-step:focus-visible {
+  outline-offset: -2px;
+}
+
+.payx-qty {
+  min-width: 1.75rem;
+  justify-content: center;
+  font-size: var(--t-body);
+}
+
+/* Rolling figures: each changed character slides inside a clipped line box. */
+.payx-roll {
+  display: inline-flex;
+}
+
+.payx-roll-row {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+  padding-block: 0.14em;
+  margin-block: -0.14em;
+  line-height: 1.15;
+}
+
+.payx-roll-char {
+  display: inline-block;
+  white-space: pre;
+}
+
+/* While a change is on its way to the server, money dims slightly; it never shows a guess. */
+.payx-money {
+  transition: opacity var(--dur-fast) ease-out;
+}
+
+[data-pending] .payx-money {
+  opacity: 0.45;
+  transition: opacity var(--dur) ease-out 140ms;
+}
+
+/* ---------- Adding something that isn't listed ---------- */
+
+.payx-adder {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.payx-adder-title {
+  margin-top: var(--s-3);
+  font-size: 1.125rem;
+  letter-spacing: var(--track-heading);
+  line-height: var(--lead-heading);
+}
+
+.payx-addbtn {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--s-4) 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--blue);
+  font: inherit;
+  font-size: var(--t-body);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast) ease-out;
+}
+
+.payx-addbtn:active {
+  background: var(--tint);
+}
+
+.payx-addbtn-mark,
+.payx-additem-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--blue);
+}
+
+.payx-addbtn-mark svg,
+.payx-additem-mark svg {
+  width: 16px;
+  height: 16px;
+}
+
+.payx-addlist {
+  position: relative;
+  border-top: var(--hairline);
+}
+
+.payx-addrow {
+  border-bottom: var(--hairline);
+  background: var(--paper);
+}
+
+.payx-additem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--s-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.payx-additem-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.payx-additem-price {
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: var(--t-ui);
+}
+
+.payx-additem-mark {
+  transition:
+    background-color var(--dur-fast) ease-out,
+    color var(--dur-fast) ease-out,
+    opacity var(--dur-fast) ease-out;
+}
+
+.payx-additem-mark svg {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--dur-fast) ease-out,
+    transform var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) ease-out;
+}
+
+.payx-additem-check {
+  opacity: 0;
+  transform: scale(0.6);
+  filter: blur(2px);
+}
+
+/* Tapped: the plus resolves into a check while the server adds the line. */
+.payx-additem[data-pending] .payx-additem-mark,
+.payx-additem[data-added] .payx-additem-mark {
+  background: var(--blue);
+  color: var(--on-blue);
+}
+
+.payx-additem[data-pending] .payx-additem-mark {
+  opacity: 0.6;
+}
+
+.payx-additem[data-added] {
+  cursor: default;
+}
+
+.payx-additem[data-added] .payx-additem-name {
   color: var(--ink-soft);
 }
 
-.payx-add {
+.payx-additem[data-pending] .payx-additem-plus,
+.payx-additem[data-added] .payx-additem-plus {
+  opacity: 0;
+  transform: scale(0.6);
+  filter: blur(2px);
+}
+
+.payx-additem[data-pending] .payx-additem-check,
+.payx-additem[data-added] .payx-additem-check {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.payx-additem[aria-disabled="true"]:not([data-pending]) {
+  cursor: default;
+}
+
+/* The same list as a bottom sheet. The dialog is only a full-viewport frame for scrim and sheet. */
+.payx-sheetdlg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  /* clip, not hidden: the frame must not become scrollable when focus moves inside it. */
+  overflow: clip;
+}
+
+.payx-sheetdlg::backdrop {
+  background: transparent;
+}
+
+.payx-sheetdlg:focus-visible {
+  outline: none;
+}
+
+.payx-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(6 11 31 / 0.44);
+}
+
+.payx-sheet {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 30rem;
+  max-height: min(82dvh, 40rem);
+  margin-inline: auto;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: var(--paper);
+  box-shadow: var(--e-3);
+  touch-action: pan-x;
+}
+
+/* Paper below the fold, so pulling the sheet up a little never shows a gap. */
+.payx-sheet::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: 120px;
+  background: inherit;
+}
+
+.payx-sheet-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-5) var(--s-3) var(--s-2) calc(var(--s-4) + var(--s-1));
+  cursor: grab;
+  touch-action: none;
+}
+
+.payx-sheet-grip {
+  position: absolute;
+  top: var(--s-2);
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  margin-left: -18px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+}
+
+.payx-sheet-title {
+  font-size: 1.25rem;
+  letter-spacing: var(--track-heading);
+  line-height: var(--lead-heading);
+}
+
+.payx-sheet-close {
   display: grid;
-  gap: 0.5rem;
+  place-items: center;
+  width: var(--pay-target);
+  height: var(--pay-target);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
 }
 
-.payx-add .astryx-button {
-  min-height: 50px;
+.payx-sheet-close::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--tint);
 }
 
-.payx-add-toggle {
-  justify-self: start;
+.payx-sheet-close svg {
+  grid-area: 1 / 1;
+  position: relative;
+  width: 16px;
+  height: 16px;
 }
 
-/* ---------- Summary: total and payment ---------- */
-
-.payx-summary {
+.payx-sheet-body {
   display: grid;
-  gap: 1rem;
-  padding: 1.2rem 1rem 1.1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-container);
-  background: var(--color-background-card);
-  box-shadow: 0 18px 30px -24px rgb(10 53 200 / 0.45);
+  gap: var(--s-4);
+  padding: var(--s-2) calc(var(--s-4) + var(--s-1)) calc(var(--s-5) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* ---------- Pay bar: total and PayPal, pinned to the bottom ---------- */
+
+.payx-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-dock);
+  background: var(--material-light);
+  -webkit-backdrop-filter: var(--material-filter);
+  backdrop-filter: var(--material-filter);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    0 -1px 0 var(--line),
+    0 -14px 28px -18px rgb(10 16 36 / 0.22);
+  animation: payx-bar-in var(--dur-slow) var(--ease-out) 140ms backwards;
+}
+
+.payx-bar-in {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--pay-pad) calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
 }
 
 .payx-total {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 1rem;
+  gap: var(--s-4);
 }
 
 .payx-total-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
+  font-size: var(--t-ui);
   font-weight: 600;
   color: var(--ink-soft);
 }
 
 .payx-total-amount {
-  font-size: 3rem;
+  font-size: var(--pay-figure);
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--track-display);
   line-height: 1;
-  transition: opacity 0.2s;
 }
 
-.payx-total-amount[data-busy="true"] {
-  opacity: 0.45;
+.payx-bar-hint {
+  min-height: var(--s-5);
 }
 
 .payx-paybox {
   display: grid;
-  gap: 0.7rem;
 }
 
-.payx-small {
-  color: var(--ink-soft);
-  font-size: 0.86rem;
-  line-height: 1.4;
+/* The PayPal button keeps its yellow; only its box is fitted to the bar. */
+.payx-bar .btn-pay {
+  min-height: 56px;
+  border-radius: var(--r-md);
+  font-size: 1.0625rem;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 -1px 0 rgb(90 67 0 / 0.16),
+    0 1px 2px rgb(90 67 0 / 0.22);
+  cursor: pointer;
+  transition:
+    transform var(--dur-press) ease-out,
+    filter var(--dur-fast) ease-out,
+    opacity var(--dur) ease-out;
 }
 
-/* ---------- Paid ---------- */
-
-.payx-paid {
-  display: grid;
-  justify-items: start;
-  gap: 0.25rem;
-  padding: 1.5rem 1.4rem 1.7rem;
-  border-radius: var(--radius-container);
-  box-shadow: 0 26px 40px -26px rgb(0 20 120 / 0.7);
+.payx-bar .btn-pay:hover:not(:disabled) {
+  transform: none;
+  filter: brightness(1.04);
 }
 
-.payx-paid-mark {
+.payx-bar .btn-pay:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.payx-bar .btn-pay:disabled {
+  cursor: default;
+}
+
+/* ---------- Paid: the sheet resolves into a receipt ---------- */
+
+.payx-receipt {
+  align-items: center;
+  gap: 0;
+  padding-top: var(--s-7);
+  text-align: center;
+}
+
+.payx-seal {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin-bottom: var(--s-5);
+}
+
+.payx-seal-disc,
+.payx-seal-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.payx-seal-disc {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 1rem;
-  border-radius: 50%;
-  background: var(--on-blue);
-  color: var(--blue);
+  background: radial-gradient(circle at 50% 20%, var(--blue-lit), var(--blue) 62%, var(--blue-deep));
+  color: var(--on-blue);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 16px 30px -14px rgb(0 36 166 / 0.7);
 }
 
-.payx-paid-label {
-  font-weight: 600;
-  color: var(--on-blue-soft);
+.payx-seal-disc svg {
+  width: 58px;
+  height: 58px;
 }
 
-.payx-paid-amount {
-  font-size: 4rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.payx-seal-ring {
+  border: 2px solid var(--blue-lit);
+}
+
+.payx-receipt-title {
+  font-size: 1.5rem;
+  letter-spacing: var(--track-heading);
+  line-height: var(--lead-heading);
+}
+
+.payx-receipt-amount {
+  margin-top: var(--s-2);
+  font-size: var(--pay-figure-lg);
   line-height: 1;
 }
 
-.payx-paid-title {
-  color: var(--on-blue);
-  margin-top: 0.7rem;
-  font-size: 1.5rem;
-  letter-spacing: -0.02em;
+.payx-receipt-amount .num {
+  font-weight: 800;
+  letter-spacing: var(--track-display);
 }
 
-.payx-receipt li {
+.payx-receipt-lines {
+  align-self: stretch;
+  margin-top: var(--s-6);
+  border-top: var(--hairline);
+  text-align: left;
+}
+
+.payx-receipt-lines li {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding: var(--s-3) 0;
+  border-bottom: var(--hairline);
+  font-size: var(--t-body);
+}
+
+.payx-receipt-qty {
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: var(--t-ui);
+}
+
+.payx-receipt-name {
+  overflow-wrap: anywhere;
+}
+
+.payx-receipt-meta {
+  align-self: stretch;
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-4) 0 0;
+  text-align: left;
+}
+
+.payx-receipt-meta div {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.8rem 1rem;
+  align-items: baseline;
+  gap: var(--s-4);
+}
+
+.payx-receipt-meta dt {
+  color: var(--ink-soft);
+  font-size: var(--t-ui);
+}
+
+.payx-receipt-meta dd {
+  margin: 0;
+  text-align: right;
+  font-size: var(--t-ui);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.payx-receipt-meta div:first-child dt {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: var(--t-body);
+}
+
+.payx-receipt-meta div:first-child dd {
+  font-size: 1.0625rem;
 }
 
 .payx-ref {
   overflow-wrap: anywhere;
 }
 
-/* ---------- Closed, missing and loading ---------- */
-
-.payx-closed {
-  padding: 2.5rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-container);
-  background: var(--color-background-card);
+.payx-receipt-close {
+  margin-top: var(--s-6);
 }
 
-.payx-closed-mark {
+/* ---------- Closed and missing: one quiet message ---------- */
+
+.payx-quiet {
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding-block: var(--s-8) var(--s-9);
+  text-align: center;
+}
+
+.payx-quiet-mark {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--s-3);
   border-radius: 50%;
-  background: var(--chip);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--line);
   color: var(--blue);
 }
 
-.payx-skeleton-rows {
-  display: grid;
-  gap: 1.1rem;
-  padding: 1.1rem 1rem;
+.payx-quiet-mark svg {
+  width: 24px;
+  height: 24px;
 }
 
-.payx-skeleton-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+.payx-quiet-title {
+  font-size: 1.5rem;
+  letter-spacing: var(--track-heading);
+  line-height: var(--lead-heading);
 }
 
-@media (min-width: 30rem) {
-  .payx-line {
-    grid-template-columns: minmax(0, 1fr) auto 5rem;
-    grid-template-areas:
-      "name step total"
-      "each step total";
-    row-gap: 0.1rem;
-    padding: 1rem 1.2rem;
+.payx-quiet-text {
+  max-width: 30ch;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* ---------- Pointer hover, where there is one ---------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .payx-step:hover:not(:disabled),
+  .payx-sheet-close:hover::before {
+    background: var(--chip);
   }
 
-  .payx-summary {
-    padding: 1.4rem 1.3rem 1.3rem;
+  .payx-addbtn:hover {
+    background: var(--tint);
   }
 
-  .payx-receipt li {
-    padding: 0.85rem 1.2rem;
+  .payx-additem:not([data-added]):hover .payx-additem-name {
+    color: var(--blue);
   }
 }
 
-@media (min-width: 60rem) {
+/* ---------- Wide screens: the same sheet, standing in the studio ---------- */
+
+@media (min-width: 48rem) {
+  .payx {
+    --pay-pad: var(--s-5);
+    padding-bottom: var(--s-7);
+  }
+
   .payx-top {
-    padding: 1.1rem 2.5rem;
+    padding: var(--s-5) var(--s-6);
   }
 
   .payx-main {
-    max-width: 62rem;
-    padding: 3.5rem 2.5rem 4rem;
+    flex: 0 1 auto;
+    min-height: 35rem;
+    margin-top: clamp(var(--s-3), 4vh, var(--s-7));
   }
 
-  /* Single-message states stay a readable column instead of stretching. */
-  .payx-main:has(> [data-state="paid"]),
-  .payx-main:has(> .payx-closed) {
-    max-width: 36rem;
+  .payx-main::before {
+    border-radius: var(--r-xl);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 40px 80px -30px rgb(0 14 90 / 0.75),
+      0 8px 20px -8px rgb(0 14 90 / 0.4);
   }
 
-  .payx-grid {
-    grid-template-columns: minmax(0, 1fr) 23rem;
-    gap: 1.2rem 2.5rem;
-    align-items: start;
-  }
-
-  .payx-summary {
-    position: sticky;
-    top: 2rem;
-  }
-
-  .payx-intro {
-    grid-column: 1 / -1;
-    margin-bottom: 0.6rem;
+  .payx-content {
+    padding-top: var(--s-6);
   }
 
   .payx-title {
-    font-size: 3rem;
+    font-size: 2.125rem;
   }
 
-  .payx-lede {
-    max-width: none;
+  .payx-receipt {
+    padding-top: var(--s-7);
+  }
+
+  /* The bar floats inside the sheet instead of running edge to edge. */
+  .payx-bar {
+    bottom: var(--s-3);
+    margin: 0 var(--s-3) var(--s-3);
+    border: var(--hairline);
+    border-radius: var(--r-lg);
+    box-shadow: var(--material-edge), var(--e-2);
+  }
+
+  .payx-bar-in {
+    padding: var(--s-4);
+  }
+
+  .payx-sheet {
+    bottom: var(--s-5);
+    border-radius: var(--r-xl);
+  }
+
+  .payx-sheet::after {
+    display: none;
   }
 }
 
+/* ---------- Preferences ---------- */
+
 @media (prefers-reduced-motion: reduce) {
-  .payx-total-amount {
+  .payx-main::before,
+  .payx-bar,
+  .payx-rise,
+  .payx-content > .payx-note {
+    animation: payx-fade var(--dur) ease-out backwards;
+  }
+
+  .payx-step,
+  .payx-addbtn,
+  .payx-bar .btn-pay,
+  .payx-additem-mark svg {
     transition: none;
+  }
+
+  .payx-bar .btn-pay:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .payx-bar {
+    background: var(--paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .payx-bar {
+    background: var(--paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 -1px 0 var(--ink);
   }
 }

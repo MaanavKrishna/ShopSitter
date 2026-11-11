@@ -104,3 +104,20 @@ export function countByFilter(visits: { status: string }[]): Record<VisitFilter,
 
 /** One or none left on the shelf: time to restock. */
 export const isLow = (left: number) => left <= 1;
+
+/** How many of each product left the shelf across the given visits, by sku. Visits where nothing was taken do not count. */
+export function takenBySku(visits: { status: string; detected: { sku: string; qty: number }[] }[]): Record<string, number> {
+  const taken: Record<string, number> = {};
+  for (const v of visits) {
+    if (v.status === "empty") continue;
+    for (const l of v.detected) taken[l.sku] = (taken[l.sku] ?? 0) + l.qty;
+  }
+  return taken;
+}
+
+/** True when any item on the visit has the search text in its name. An empty search matches every visit. */
+export function matchesSearch(v: { detectedBill: { lines: { name: string }[] } }, search: string): boolean {
+  const q = search.trim().toLowerCase();
+  if (!q) return true;
+  return v.detectedBill.lines.some((l) => l.name.toLowerCase().includes(q));
+}

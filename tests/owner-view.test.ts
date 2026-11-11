@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { Totals } from "@/lib/owner";
-import { countByFilter, isLow, ledgerParts, matchesFilter, paidBuckets, segmentShares } from "@/lib/owner-view";
+import {
+  countByFilter,
+  isLow,
+  ledgerParts,
+  matchesFilter,
+  matchesSearch,
+  paidBuckets,
+  segmentShares,
+  takenBySku,
+} from "@/lib/owner-view";
 
 const totals = (patch: Partial<Totals> = {}): Totals => ({
   soldCents: 0,
@@ -165,5 +174,36 @@ describe("visit filters", () => {
 describe("isLow", () => {
   it("marks a product with one or none left", () => {
     expect([0, 1, 2].map(isLow)).toEqual([true, true, false]);
+  });
+});
+
+describe("takenBySku", () => {
+  it("adds up how many of each product left the shelf", () => {
+    const taken = takenBySku([
+      { status: "paid", detected: [{ sku: "honey", qty: 2 }, { sku: "bread", qty: 1 }] },
+      { status: "unmatched", detected: [{ sku: "honey", qty: 1 }] },
+    ]);
+    expect(taken).toEqual({ honey: 3, bread: 1 });
+  });
+
+  it("leaves out visits where nothing was taken", () => {
+    expect(takenBySku([{ status: "empty", detected: [{ sku: "honey", qty: 4 }] }])).toEqual({});
+  });
+});
+
+describe("matchesSearch", () => {
+  const visit = { detectedBill: { lines: [{ name: "Sourdough loaf" }, { name: "Honey" }] } };
+
+  it("matches part of an item name, whatever the case", () => {
+    expect(matchesSearch(visit, "sourd")).toBe(true);
+    expect(matchesSearch(visit, "  HONEY ")).toBe(true);
+  });
+
+  it("matches everything when the search is empty", () => {
+    expect(matchesSearch(visit, "  ")).toBe(true);
+  });
+
+  it("does not match a name that is not on the visit", () => {
+    expect(matchesSearch(visit, "eggs")).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
 import "./layers.css";
 import "./globals.css";
+import "./system.css";
 import { AppTheme } from "@/components/AppTheme";
 
 // One family in two cuts: Inter for reading, Inter Tight for headlines and every figure of money.

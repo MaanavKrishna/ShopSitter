@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import { Suspense } from "react";
 import { CheckoutError, getBill } from "@/lib/checkout";
 import { getRepo } from "@/lib/repo";
@@ -7,6 +8,14 @@ import { Wordmark } from "@/components/Wordmark";
 import "../pay.css";
 
 export const dynamic = "force-dynamic";
+
+// Lets the pay bar read the phone's home-indicator inset, so it can pad itself clear of it.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0a35c8",
+};
 
 async function loadBill(visitId: string) {
   const now = Date.now();

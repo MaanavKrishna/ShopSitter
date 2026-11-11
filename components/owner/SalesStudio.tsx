@@ -1,11 +1,10 @@
 "use client";
 
-import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
 import { type AgPanelConfig, studioTheme } from "ag-studio";
 import { AgStudio, AgStudioProvider } from "ag-studio-react";
+import { motion } from "motion/react";
 import { useMemo, useState } from "react";
+import { easeOut } from "@/lib/motion";
 import type { StockRow, VisitRow } from "@/lib/owner";
 import { buildStudioData, salesReport } from "@/lib/studio-report";
 import "@/app/owner/owner.css";
@@ -21,9 +20,9 @@ const chartTheme = studioTheme.withParams({
   textColor: INK,
   borderColor: LINE,
   studioCanvasFontFamily: FONT,
-  studioCanvasBackgroundColor: "#f1f4ff",
+  studioCanvasBackgroundColor: "#f7f9ff",
   // The frame around the board is drawn by the page, so Studio's own wrapper stays invisible.
-  studioWrapperBackgroundColor: "#f1f4ff",
+  studioWrapperBackgroundColor: "#f7f9ff",
   studioWrapperBorder: false,
   studioCanvasBorder: false,
   studioWidgetBorder: { width: 1, color: LINE },
@@ -79,33 +78,44 @@ export default function SalesStudio({ visits, stock }: { visits: VisitRow[]; sto
   const [mode, setMode] = useState<"view" | "edit">("view");
 
   return (
-    <section className="ow-explore" aria-labelledby="studio-h">
-      <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap" className="ow-explore-head">
-        <Heading level={2} id="studio-h">
-          Explore sales
-        </Heading>
-        <Button
-          label={mode === "view" ? "Rearrange or add charts" : "Done rearranging"}
-          variant={mode === "view" ? "secondary" : "primary"}
+    <motion.section
+      className="ow-panel ow-explore"
+      aria-labelledby="studio-h"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: easeOut }}
+    >
+      <div className="ow-panel-head">
+        <div>
+          <h2 id="studio-h">Explore sales</h2>
+          <p className="ow-panel-meta">Charts built from the visits in this period. Rearrange them or add your own.</p>
+        </div>
+        <button
+          type="button"
+          className="ow-rowbtn ds-press"
+          data-tone={mode === "edit" ? "strong" : "plain"}
+          aria-pressed={mode === "edit"}
           onClick={() => setMode(mode === "view" ? "edit" : "view")}
-        />
-      </HStack>
+        >
+          {mode === "view" ? "Rearrange or add charts" : "Done rearranging"}
+        </button>
+      </div>
       {/* AG Studio keeps a minimum canvas width, so on a phone it scrolls inside this frame. */}
       <div className="ow-studio-frame" tabIndex={0} role="group" aria-label="Sales charts, scrolls sideways on a small screen">
         <div className="ow-studio-canvas">
-        <AgStudioProvider>
-          <AgStudio
-            style={{ height: "100%", width: "100%" }}
-            layout={{ widgetBorderEnabled: true }}
-            panels={PANELS}
-            theme={chartTheme}
-            data={data}
-            initialState={salesReport}
-            mode={mode}
-          />
-        </AgStudioProvider>
+          <AgStudioProvider>
+            <AgStudio
+              style={{ height: "100%", width: "100%" }}
+              layout={{ widgetBorderEnabled: true }}
+              panels={PANELS}
+              theme={chartTheme}
+              data={data}
+              initialState={salesReport}
+              mode={mode}
+            />
+          </AgStudioProvider>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }

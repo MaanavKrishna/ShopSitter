@@ -1,33 +1,30 @@
 "use client";
 
-import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { Heading } from "@astryxdesign/core/Heading";
-import { Spinner } from "@astryxdesign/core/Spinner";
-import { StatusDot } from "@astryxdesign/core/StatusDot";
-import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
+import { MotionConfig, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StandCamera, type CameraPhase, type ShelfChange } from "@/components/StandCamera";
 import { Wordmark } from "@/components/Wordmark";
-import { formatCents } from "@/lib/money";
+import { Setup } from "@/components/stand/Setup";
+import { Stage } from "@/components/stand/Stage";
+import { Swap } from "@/components/stand/Swap";
+import { useStandToken } from "@/components/stand/useStandToken";
+import { spring } from "@/lib/motion";
 import type { PricedBill } from "@/lib/types";
 import type { Visit } from "@/lib/visits";
 import "./stand.css";
 
-const TOKEN_KEY = "shopsitter-stand-token";
+const DOCK_KEY = "shopsitter-stand-dock";
 const PAID_MESSAGE_MS = 6000;
-const CODE_LENGTH = 6;
 const isPaid = (v: Visit) => v.status === "paid" || v.status === "paid_adjusted" || v.status === "paid_late";
 
 type Current = { visit: Visit; bill: PricedBill };
 
+
 export default function StandPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
-  const [codeError, setCodeError] = useState<string | null>(null);
+  const router = useRouter();
+  const { token, booted, save, forget } = useStandToken();
   const [current, setCurrent] = useState<Current | null>(null);
   const [justPaid, setJustPaid] = useState<number | null>(null);
   const [reading, setReading] = useState(false);
@@ -35,22 +32,21 @@ export default function StandPage() {
   const [note, setNote] = useState<string | null>(null);
   const [stats, setStats] = useState<{ moving: number; differs: number } | null>(null);
   const [readNow, setReadNow] = useState(0);
-  // 1 is the main camera, which shows the bill. 2 to 4 are extra cameras on other sides of the shelf.
-  const [angle, setAngle] = useState(1);
   const [cameras, setCameras] = useState(1);
   const [sighting, setSighting] = useState<{ hand: boolean; person: boolean; present: boolean } | null>(null);
-  const [sentAt, setSentAt] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [qr, setQr] = useState<string | null>(null);
+  const [qr, setQr] = useState<{ visitId: string; url: string } | null>(null);
+  // The dock can shrink to a pill so the display is clean; the choice stays on this device.
+  const [collapsed, setCollapsed] = useState(false);
   const queue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
-    // Saved on this device after the first visit; read after mount so the server render matches.
-    const saved = localStorage.getItem(TOKEN_KEY);
-    if (saved) queueMicrotask(() => setToken(saved));
-    const asked = Number(new URLSearchParams(window.location.search).get("angle"));
-    if ([2, 3, 4].includes(asked)) queueMicrotask(() => setAngle(asked));
-  }, []);
+    // Extra cameras used to live at /stand?angle=2; they have their own address now.
+    const asked = new URLSearchParams(window.location.search).get("angle");
+    if (asked && ["2", "3", "4"].includes(asked)) router.replace(`/stand/camera/${asked}`);
+    if (localStorage.getItem(DOCK_KEY) === "collapsed") queueMicrotask(() => setCollapsed(true));
+  }, [router]);
+
 
   // Keep the screen awake while the stand is running.
   useEffect(() => {
@@ -72,7 +68,7 @@ export default function StandPage() {
     if (!visitId) return;
     let live = true;
     QRCode.toDataURL(`${window.location.origin}/pay/${visitId}`, { margin: 1, width: 520 }).then((url) => {
-      if (live) setQr(url);
+      if (live) setQr({ visitId, url });
     });
     return () => {
       live = false;
@@ -120,8 +116,7 @@ export default function StandPage() {
             body: form,
           });
           if (res.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
-            setToken(null);
+            forget();
             setProblem("That stand code isn't right. Enter it again.");
             return;
           }
@@ -144,31 +139,7 @@ export default function StandPage() {
         }
       });
     },
-    [token],
-  );
-
-  // Extra cameras: send each new still of the shelf. The main camera decides when to read.
-  const onShot = useCallback(
-    (photo: Blob, takenAt: number) => {
-      const form = new FormData();
-      form.set("photo", photo, "angle.jpg");
-      form.set("angle", String(angle));
-      form.set("takenAt", String(takenAt));
-      fetch("/api/stand/angle", { method: "POST", headers: { "x-stand-token": token ?? "" }, body: form }).then(
-        (res) => {
-          if (res.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
-            setToken(null);
-            setProblem("That stand code isn't right. Enter it again.");
-          } else if (res.ok) {
-            setProblem(null);
-            setSentAt(takenAt);
-          } else setProblem("This camera couldn't reach the server. It will keep trying.");
-        },
-        () => setProblem("This camera couldn't reach the server. It will keep trying."),
-      );
-    },
-    [angle, token],
+    [token, forget],
   );
 
   // Someone stopped by and has gone: only the count is reported.
@@ -176,257 +147,147 @@ export default function StandPage() {
     void fetch("/api/stand/presence", { method: "POST", headers: { "x-stand-token": token ?? "" } }).catch(() => {});
   }, [token]);
 
-  const privacyLine = (
-    <p className="sd-privacy">
-      {angle > 1
-        ? "A camera counts items on this shelf. It does not record people."
-        : "A camera counts items on this shelf. It notices when someone is here, on this device only, and does not record people."}
-    </p>
-  );
-  const problemBanner = problem && (
-    <div role="alert" className="sd-problem">
-      <Banner status="warning" title={problem} />
-    </div>
-  );
+  const toggleDock = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem(DOCK_KEY, next ? "collapsed" : "open");
+  };
 
-  if (token && angle > 1) {
-    const connecting = phase === "starting" || !sentAt;
-    return (
-      <main className="void sd sd-angle">
-        <header className="sd-head">
-          <Wordmark href="/stand" />
-          <span className="sd-chip">Camera {angle}</span>
-        </header>
-        <div className="sd-body">
-          <div className="sd-ready">
-            <h1>Camera {angle}</h1>
-            <p>Point this at the shelf from another side. The bill shows on the main stand screen.</p>
-          </div>
-        </div>
-        <footer className="sd-foot">
-          {problemBanner}
-          <div className="sd-bar">
-            <StandCamera onChange={() => {}} onPhase={setPhase} onShot={onShot} onSighting={setSighting} />
-            <div className="sd-live">
-              <div className="sd-status" data-tone={connecting ? "busy" : "calm"}>
-                <span className="sd-indicator" aria-hidden="true">
-                  {connecting ? <Spinner size="md" shade="onMedia" /> : <StatusDot variant="neutral" label="Connected" />}
-                </span>
-                <p role="status">
-                  {phase === "starting"
-                    ? "Starting the camera…"
-                    : sentAt
-                      ? `Sending this view to the stand. Last sent ${new Date(sentAt).toLocaleTimeString()}.`
-                      : "Connecting to the stand…"}
-                </p>
-              </div>
-              {privacyLine}
-            </div>
-          </div>
-        </footer>
-      </main>
-    );
-  }
+  if (!booted) return <main className="void sd" />;
 
   if (!token) {
     return (
-      <main className="void sd sd-setup">
-        <header className="sd-head">
-          <Wordmark />
-        </header>
-        <div className="sd-setup-wrap">
-          <Card padding={6} elevation="high" width="100%">
-            <form
-              className="sd-setup-form"
-              noValidate
-              onSubmit={(e) => {
-                e.preventDefault();
-                const code = draft.trim();
-                if (code.length !== CODE_LENGTH) {
-                  setCodeError(
-                    code ? `The stand code has ${CODE_LENGTH} digits.` : `Enter the ${CODE_LENGTH}-digit stand code.`,
-                  );
-                  return;
-                }
-                localStorage.setItem(TOKEN_KEY, code);
-                setProblem(null);
-                setCodeError(null);
-                setToken(code);
-              }}
-            >
-              <div className="sd-setup-copy">
-                <Heading level={1}>Set up this stand</Heading>
-                <Text as="p" type="body" color="secondary">
-                  Prop this device so its camera sees the whole shelf, then enter the stand code.
-                </Text>
-              </div>
-              {problem && (
-                <div role="alert">
-                  <Banner status="error" title={problem} />
-                </div>
-              )}
-              <TextInput
-                label="Stand code"
-                description={`The ${CODE_LENGTH}-digit code for this stand.`}
-                value={draft}
-                onChange={(value) => {
-                  setDraft(value.replace(/\D/g, "").slice(0, CODE_LENGTH));
-                  setCodeError(null);
-                }}
-                size="lg"
-                width="100%"
-                inputMode="numeric"
-                autoComplete="off"
-                enterKeyHint="go"
-                hasAutoCorrect={false}
-                hasSpellCheck={false}
-                placeholder="000000"
-                status={codeError ? { type: "error", message: codeError } : undefined}
-                statusVariant="detached"
-                controlClassName="sd-code"
-              />
-              <Button type="submit" variant="primary" size="lg" width="100%" label="Start watching the shelf" />
-              <Text as="p" type="supporting">
-                A camera counts items on this shelf. It does not record people.
-              </Text>
-            </form>
-          </Card>
-        </div>
-      </main>
+      <Setup
+        problem={problem}
+        onCode={(code) => {
+          setProblem(null);
+          save(code);
+        }}
+      />
     );
   }
 
-  const lowConfidence = current?.visit.confidence !== null && (current?.visit.confidence ?? 1) < 0.6;
-  const manualOnly = !!current?.visit.needsManual && current.bill.totalCents === 0;
-
+  const view = justPaid !== null ? "paid" : current ? "bill" : "ready";
   const handAtShelf = !reading && !!sighting?.hand;
   const tone = reading ? "busy" : handAtShelf || phase === "moving" ? "alert" : phase === "starting" ? "busy" : "calm";
+  const status = reading
+    ? "Reading the shelf…"
+    : sighting?.hand
+      ? "A hand is at the shelf. Waiting until it is clear…"
+      : phase === "moving"
+        ? "Something moved. Waiting for the shelf to go still…"
+        : phase === "starting"
+          ? "Starting the camera…"
+          : (note ?? "Watching the shelf. Keep this device still.");
+  const presence =
+    sighting === null ? "People check starting or unavailable" : sighting.present ? "Someone is here" : "Nobody here";
 
   return (
-    <main className="void sd" data-view={justPaid !== null ? "paid" : current ? "bill" : "ready"}>
-      <header className="sd-head">
-        <Wordmark href="/stand" />
-      </header>
+    <MotionConfig reducedMotion="user">
+      <main className="void sd" data-view={view}>
+        <span className="sd-light" aria-hidden="true" />
 
-      <div className="sd-body" aria-live="polite">
-        {justPaid !== null ? (
-          <div className="sd-paid">
-            <svg className="sd-paid-mark" viewBox="0 0 48 48" aria-hidden="true">
-              <circle cx="24" cy="24" r="24" />
-              <path d="M14 24.5l7 7 13-14" />
-            </svg>
-            <span className="num">${formatCents(justPaid)}</span>
-            <h1>Paid, thank you</h1>
-          </div>
-        ) : current ? (
-          <>
-            <section className="sd-bill">
-              <h1>{manualOnly ? "Couldn’t read the shelf" : "Your bill"}</h1>
-              {manualOnly ? (
-                <p className="sd-hint">Scan the code to enter what you took.</p>
-              ) : (
-                <ul className="glass">
-                  {current.bill.lines.map((l) => (
-                    <li key={l.sku}>
-                      <span className="sd-qty">{l.qty}</span>
-                      <span className="sd-name">{l.name}</span>
-                      <span className="num">${formatCents(l.lineCents)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {!manualOnly && (lowConfidence || current.visit.needsManual) && (
-                <p className="sd-hint">Not sure we got that right. Please check it on your phone.</p>
-              )}
-            </section>
+        <Stage
+          view={view}
+          current={current}
+          paidCents={justPaid}
+          reading={reading}
+          moving={phase === "moving"}
+          note={note}
+          qr={qr && qr.visitId === visitId ? qr.url : null}
+        />
 
-            <aside className="sd-pay">
-              {!manualOnly && (
-                <p className="sd-total">
-                  <span>Total</span>
-                  <span className="num">${formatCents(current.bill.totalCents)}</span>
-                </p>
-              )}
-              <div className="sd-qr">
-                <div className="sd-qr-code">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- a generated data URL, nothing to optimise */}
-                  {qr && <img src={qr} alt="QR code to pay this bill with PayPal" />}
-                </div>
-                <div className="sd-qr-copy">
-                  <p className="sd-scan">Scan to pay with PayPal</p>
-                  <p className="sd-fix">Wrong? Fix it on your phone.</p>
-                </div>
-              </div>
-            </aside>
-          </>
-        ) : (
-          <div className="sd-ready">
-            <h1>Take what you like</h1>
-            <p>Your bill appears here.</p>
-          </div>
-        )}
-      </div>
+        <footer className="sd-foot">
+          {problem && (
+            <p role="alert" className="sd-note" data-tone="problem">
+              {problem}
+            </p>
+          )}
+          <motion.div
+            layout
+            className="sd-dock ds-material-blue"
+            data-collapsed={collapsed}
+            style={{ borderRadius: collapsed ? 999 : 24 }}
+            transition={spring}
+          >
+            <motion.div layout="position" className="sd-dock-cam" transition={spring}>
+              <StandCamera
+                onChange={onChange}
+                onPhase={setPhase}
+                onStats={setStats}
+                readNow={readNow}
+                onSighting={setSighting}
+                onVisitorLeft={onVisitorLeft}
+              />
+            </motion.div>
 
-      <footer className="sd-foot">
-        {problemBanner}
-        <div className="sd-bar">
-          <StandCamera
-            onChange={onChange}
-            onPhase={setPhase}
-            onStats={setStats}
-            readNow={readNow}
-            onSighting={setSighting}
-            onVisitorLeft={onVisitorLeft}
-          />
-          <div className="sd-live">
-            <div className="sd-status" data-tone={tone}>
-              <span className="sd-indicator" aria-hidden="true">
-                {tone === "busy" ? (
-                  <Spinner size="md" shade="onMedia" />
-                ) : (
-                  <StatusDot
-                    variant={tone === "alert" ? "warning" : "neutral"}
-                    isPulsing={tone === "alert"}
-                    label={tone === "alert" ? "Waiting" : "Watching"}
-                  />
-                )}
-              </span>
+            <motion.div layout="position" className="sd-status" transition={spring}>
+              <span className="sd-indicator" data-tone={tone} aria-hidden="true" />
               <p role="status">
-                {reading
-                  ? "Reading the shelf…"
-                  : sighting?.hand
-                    ? "A hand is at the shelf. Waiting until it is clear…"
-                    : phase === "moving"
-                      ? "Something moved. Waiting for the shelf to go still…"
-                      : phase === "starting"
-                        ? "Starting the camera…"
-                        : (note ?? "Watching the shelf. Keep this device still.")}
+                <Swap text={status} />
               </p>
-            </div>
-            {privacyLine}
-            {stats && (
-              <p className="sd-stats">
-                Moving areas {stats.moving}. Areas changed since last read {stats.differs}.
-              </p>
+            </motion.div>
+
+            {!collapsed && (
+              <motion.div layout="position" className="sd-fine" transition={spring} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <p className="sd-privacy">
+                  <Wordmark href="/stand" /> A camera counts items on this shelf. It notices when someone is here, on this
+                  device only, and does not record people.
+                </p>
+                {stats && (
+                  <p className="sd-stats">
+                    Moving areas {stats.moving}. Areas changed since last read {stats.differs}.
+                  </p>
+                )}
+              </motion.div>
             )}
-          </div>
-          <div className="sd-side">
-            {stats && (
-              <ul className="sd-chips">
-                <li className="sd-chip">
-                  {cameras} {cameras === 1 ? "camera" : "cameras"}
-                </li>
-                <li className="sd-chip" data-on={!!sighting?.present}>
-                  {sighting === null ? "People check starting or unavailable" : sighting.present ? "Someone is here" : "Nobody here"}
-                </li>
-              </ul>
+
+            {!collapsed && (
+              <motion.div layout="position" className="sd-side" transition={spring} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                {stats && (
+                  <ul className="sd-chips">
+                    <motion.li layout className="sd-chip" style={{ borderRadius: 999 }} transition={spring}>
+                      <Swap text={`${cameras} ${cameras === 1 ? "camera" : "cameras"}`} />
+                    </motion.li>
+                    <motion.li
+                      layout
+                      className="sd-chip"
+                      data-on={!!sighting?.present}
+                      style={{ borderRadius: 999 }}
+                      transition={spring}
+                    >
+                      <Swap text={presence} />
+                    </motion.li>
+                  </ul>
+                )}
+                <button
+                  type="button"
+                  className="sd-glass-btn ds-press"
+                  disabled={reading}
+                  onClick={() => setReadNow((n) => n + 1)}
+                >
+                  Read the shelf now
+                </button>
+              </motion.div>
             )}
-            <button type="button" className="btn btn-ghost sd-readnow" disabled={reading} onClick={() => setReadNow((n) => n + 1)}>
-              Read the shelf now
-            </button>
-          </div>
-        </div>
-      </footer>
-    </main>
+
+            <motion.button
+              layout="position"
+              type="button"
+              className="sd-dock-toggle"
+              whileTap={{ scale: 0.94 }}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? "Show stand details" : "Hide stand details"}
+              onClick={toggleDock}
+              transition={spring}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3.5 6l4.5 4.5L12.5 6" />
+              </svg>
+            </motion.button>
+          </motion.div>
+        </footer>
+      </main>
+    </MotionConfig>
   );
 }

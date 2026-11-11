@@ -1,0 +1,366 @@
+/* The shell every public page shares: the floating navigation and the footer. */
+
+.site-nav {
+  position: fixed;
+  z-index: var(--z-nav);
+  top: var(--s-3);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--s-3);
+  pointer-events: none;
+  transform-origin: 50% 0;
+}
+
+.site-nav-bar {
+  transition:
+    background-color var(--dur) ease,
+    color var(--dur) ease;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 52px;
+  padding: 0 var(--s-2) 0 var(--s-5);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+}
+
+/* A little more body than the base material, so the links keep their contrast over dark chapters. */
+.site-nav-bar.ds-material {
+  background: rgb(255 255 255 / 0.84);
+}
+
+/* Over cobalt at the top of a page: the blue material, with white type. */
+.site-nav-bar.ds-material-blue {
+  color: var(--on-blue);
+  box-shadow: var(--material-edge-on-blue), var(--e-2);
+}
+
+.site-nav-bar.ds-material-blue .site-nav-links a {
+  color: var(--on-blue-soft);
+}
+
+.site-nav-bar.ds-material-blue .site-nav-links a[aria-current="page"] {
+  color: var(--on-blue);
+  background: rgb(255 255 255 / 0.14);
+}
+
+.site-nav-bar.ds-material-blue .site-nav-cta {
+  background: var(--paper);
+  color: var(--blue);
+  box-shadow: 0 4px 10px -4px rgb(0 10 60 / 0.5);
+}
+
+.site-nav-bar.ds-material-blue .ds-focus:focus-visible {
+  outline-color: var(--paypal);
+}
+
+.site-nav-mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: var(--s-4);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: var(--track-display);
+  text-decoration: none;
+  border-radius: var(--r-xs);
+}
+
+.site-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.site-nav-links a {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  font-size: var(--t-ui);
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.site-nav-links a[aria-current="page"] {
+  color: var(--ink);
+  background: rgb(10 53 200 / 0.08);
+}
+
+.site-nav-cta,
+.site-nav-sheet-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  margin-left: var(--s-2);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-pill);
+  background: var(--blue);
+  color: var(--on-blue);
+  font-size: var(--t-ui);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 4px 10px -4px rgb(0 36 166 / 0.6);
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast) ease;
+}
+
+.site-nav-cta:active,
+.site-nav-sheet-cta:active,
+.site-nav-menu:active {
+  transform: scale(0.97);
+}
+
+.site-nav-menu {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: calc(-1 * var(--s-1));
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  transition: transform var(--dur-press) ease-out;
+}
+
+/* Two bars that cross into a close mark. */
+.site-nav-menu span,
+.site-nav-menu span::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.site-nav-menu span {
+  transform: translateY(-3.5px);
+}
+
+.site-nav-menu span::after {
+  content: "";
+  transform: translateY(7px);
+}
+
+.site-nav-menu span[data-open="true"] {
+  transform: rotate(45deg);
+}
+
+.site-nav-menu span[data-open="true"]::after {
+  transform: rotate(-90deg);
+}
+
+.site-nav-sheet {
+  pointer-events: auto;
+  position: absolute;
+  top: calc(52px + var(--s-2));
+  right: var(--s-3);
+  width: min(300px, calc(100vw - 2 * var(--s-3)));
+  display: grid;
+  gap: 2px;
+  padding: var(--s-2);
+  border-radius: var(--r-xl);
+  /* Grows out of the menu button at the bar's right end. */
+  transform-origin: calc(100% - 22px) -12px;
+  background: rgb(255 255 255 / 0.86);
+  box-shadow: var(--material-edge), var(--e-3);
+}
+
+.site-nav-sheet a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  font-size: var(--t-body);
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.site-nav-sheet a[aria-current="page"] {
+  background: rgb(10 53 200 / 0.08);
+}
+
+.site-nav-sheet a:active {
+  background: rgb(10 53 200 / 0.12);
+}
+
+.site-nav-sheet .site-nav-sheet-cta {
+  margin: var(--s-2) 0 0;
+  height: 48px;
+  color: var(--on-blue);
+  font-size: var(--t-body);
+  border-radius: var(--r-pill);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .site-nav-links a:hover {
+    color: var(--ink);
+    background: rgb(10 53 200 / 0.06);
+  }
+
+  .site-nav-bar.ds-material-blue .site-nav-links a:hover {
+    color: var(--on-blue);
+    background: rgb(255 255 255 / 0.12);
+  }
+
+  .site-nav-bar.ds-material-blue .site-nav-cta:hover {
+    background: var(--tint);
+  }
+
+  .site-nav-cta:hover,
+  .site-nav-sheet-cta:hover {
+    background: var(--blue-lit);
+  }
+
+  .site-nav-sheet a:not(.site-nav-sheet-cta):hover {
+    background: rgb(10 53 200 / 0.06);
+  }
+}
+
+/* Phone: a compact bar across the top; the links move into the sheet. */
+@media (max-width: 979px) {
+  .site-nav-bar {
+    width: 100%;
+    padding-left: var(--s-4);
+  }
+
+  .site-nav-mark {
+    margin-right: auto;
+  }
+
+  .site-nav-links {
+    display: none;
+  }
+
+  .site-nav-cta {
+    height: 44px;
+    margin-left: 0;
+  }
+
+  .site-nav-menu {
+    display: grid;
+  }
+}
+
+@media (min-width: 980px) {
+  .site-nav-sheet {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .site-nav-sheet {
+    background: var(--paper);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-nav-menu span,
+  .site-nav-menu span::after,
+  .site-nav-cta,
+  .site-nav-sheet-cta,
+  .site-nav-menu {
+    transition: none;
+  }
+}
+
+/* ---------- Footer ---------- */
+
+.site-foot {
+  background: var(--blue-deep);
+  color: var(--on-blue-soft);
+  padding-block: var(--s-8) var(--s-7);
+  font-size: var(--t-ui);
+}
+
+.site-foot-in {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-7) var(--s-6);
+}
+
+.site-foot-brand {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+  color: var(--on-blue);
+}
+
+.site-foot-brand .wordmark {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 44px;
+}
+
+.site-foot-brand p {
+  max-width: 34ch;
+  color: var(--on-blue-soft);
+  line-height: var(--lead-body);
+}
+
+.site-foot h2 {
+  font-family: var(--font-body), sans-serif;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.4;
+  color: var(--on-blue-soft);
+}
+
+.site-foot ul {
+  list-style: none;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+}
+
+.site-foot li a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--on-blue);
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: var(--r-xs);
+}
+
+@media (min-width: 720px) {
+  .site-foot-in {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .site-foot-brand {
+    grid-column: auto;
+  }
+
+  .site-foot li a {
+    min-height: 36px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .site-foot li a:hover {
+    text-decoration: underline;
+  }
+}

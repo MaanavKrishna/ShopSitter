@@ -1,16 +1,24 @@
 "use client";
 
-import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
-import { Spinner } from "@astryxdesign/core/Spinner";
-import { Text } from "@astryxdesign/core/Text";
 import { PayPalProvider, usePayPalOneTimePaymentSession } from "@paypal/react-paypal-js/sdk-v6";
-import { useCallback, useState, type SVGProps } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useCallback, useState, type ReactNode } from "react";
+import { AddList, AddSheet } from "@/components/pay/AddSheet";
+import {
+  AlertGlyph,
+  CheckGlyph,
+  ClockGlyph,
+  InfoGlyph,
+  ListGlyph,
+  LookGlyph,
+  MinusGlyph,
+  PlusGlyph,
+  SearchGlyph,
+} from "@/components/pay/glyphs";
+import { Receipt } from "@/components/pay/Receipt";
+import { RollingNumber } from "@/components/pay/RollingNumber";
+import { easeOut, spring } from "@/lib/motion";
 import { formatCents } from "@/lib/money";
 import type { Line, PricedBill, Product } from "@/lib/types";
 import type { Visit } from "@/lib/visits";
@@ -40,29 +48,32 @@ const MESSAGES: Record<string, string> = {
 };
 const explain = (code: string) => MESSAGES[code] ?? "Something went wrong and nothing was charged. Try again.";
 
-function MinusGlyph(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" {...props}>
-      <path d="M5 10h10" />
-    </svg>
-  );
-}
+type Tone = "info" | "look" | "error";
 
-function PlusGlyph(props: SVGProps<SVGSVGElement>) {
+/** A calm inline note: small icon, a title, one or two sentences. */
+function Note({ tone, icon, title, children }: { tone: Tone; icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" {...props}>
-      <path d="M5 10h10M10 5v10" />
-    </svg>
+    <div className="payx-note" data-tone={tone}>
+      <span className="payx-note-icon">{icon}</span>
+      <p className="payx-note-text">
+        <strong>{title}</strong> {children}
+      </p>
+    </div>
   );
 }
 
 export function PayPanel({ visitId, initialVisit, initialBill, products, expired = false, paypalClientId }: Props) {
+  const reduce = useReducedMotion();
   const [visit, setVisit] = useState(initialVisit);
   const [bill, setBill] = useState(initialBill);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  // With nothing read from the shelf, the list of things to add is the whole job, so it starts open.
-  const [adding, setAdding] = useState(initialVisit.needsManual && initialBill.lines.length === 0);
+  // With nothing read from the shelf, the list of things to add is the whole job, so it sits in the page.
+  const [inlineAdd] = useState(initialVisit.needsManual && initialBill.lines.length === 0);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [pendingSku, setPendingSku] = useState<string | null>(null);
+  // Set when the payment happens on this page, so the receipt plays its entrance once.
+  const [justPaid, setJustPaid] = useState(false);
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/visits/${visitId}`, { cache: "no-store" });
@@ -73,11 +84,13 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
   }, [visitId]);
 
   async function setQty(sku: string, qty: number) {
+    if (busy) return;
     const current: Line[] = bill.lines.map((l) => ({ sku: l.sku, qty: l.qty }));
     const next = current.some((l) => l.sku === sku)
       ? current.map((l) => (l.sku === sku ? { ...l, qty } : l))
       : [...current, { sku, qty }];
     setBusy(true);
+    setPendingSku(sku);
     setNotice(null);
     try {
       const res = await fetch(`/api/visits/${visitId}/lines`, {
@@ -86,272 +99,334 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
         body: JSON.stringify({ lines: next.filter((l) => l.qty > 0) }),
       });
       const data = await res.json();
-      if (!res.ok) setNotice(explain(data.error));
-      else {
+      if (!res.ok) {
+        setNotice(explain(data.error));
+        // The message lives in the pay bar, behind the sheet.
+        setSheetOpen(false);
+      } else {
         setBill(data.bill);
         setVisit(data.visit);
       }
     } finally {
       setBusy(false);
+      setPendingSku(null);
     }
   }
 
-  if (isPaid(visit)) {
-    return (
-      <section aria-live="polite" className="payx-col" data-state="paid">
-        <div className="payx-paid void">
-          <span className="payx-paid-mark" aria-hidden="true">
-            <Icon icon="check" size="lg" />
-          </span>
-          <p className="payx-paid-label">You paid</p>
-          <span className="num payx-paid-amount">${formatCents(visit.paidCents ?? 0)}</span>
-          <h1 className="payx-paid-title">Paid, thank you</h1>
-        </div>
-        <Card padding={0}>
-          <BillList bill={bill} />
-        </Card>
-        <p className="payx-small payx-ref">PayPal reference {visit.captureId}. You can close this page.</p>
-      </section>
-    );
-  }
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
 
-  if (visit.status === "empty" || visit.status === "settled_other") {
-    return (
-      <section className="payx-closed">
-        <EmptyState
-          headingLevel={1}
-          icon={
-            <span className="payx-closed-mark">
-              <Icon icon="check" size="lg" />
-            </span>
-          }
-          title="Nothing to pay"
-          description="This bill is closed. If you took something, scan the code on the stand again."
-        />
-      </section>
-    );
-  }
-
-  const notOnBill = products.filter((p) => !bill.lines.some((l) => l.sku === p.sku));
+  const paid = isPaid(visit);
+  const closed = visit.status === "empty" || visit.status === "settled_other";
+  const onBill = new Set(bill.lines.map((l) => l.sku));
+  const notOnBill = products.filter((p) => !onBill.has(p.sku));
   const lowConfidence = visit.confidence !== null && visit.confidence < LOW_CONFIDENCE;
+  const canAdd = notOnBill.length > 0 && !expired;
+
+  if (closed) {
+    return (
+      <QuietState icon={<CheckGlyph />} title="Nothing to pay">
+        This bill is closed. If you took something, scan the code on the stand again.
+      </QuietState>
+    );
+  }
 
   return (
-    <section className="payx-grid">
-      <div className="payx-intro">
-        <h1 className="payx-title">Your bill</h1>
-        <p className="payx-lede">
-          {visit.needsManual
-            ? "The stand couldn't read the shelf this time. Add what you took."
-              : "This is what the stand saw you take. Fix anything that's wrong."}
-        </p>
-      </div>
-
-      <div className="payx-col">
-        {expired ? (
-          <Banner
-            status="warning"
-            title="This bill has expired"
-            description="It is more than a day old and can't be paid here any more. Scan the code on the stand to start a new one."
-          />
-        ) : visit.needsManual ? (
-          <Banner
-            status="info"
-            title="Shelf not read"
-            description="Use the list below to add each thing you took, then pay."
-          />
-        ) : lowConfidence ? (
-          <Banner
-            status="info"
-            title="Please check this bill"
-            description="The stand wasn't sure about this one. Use the plus and minus buttons to match what you took."
-          />
-        ) : visit.status === "unmatched" ? (
-          <Banner
-            status="info"
-            title="This bill is still open"
-            description="It wasn't paid at the time. You can pay it here now."
-          />
-        ) : null}
-
-        <Card padding={0}>
-          {bill.lines.length === 0 ? (
-            <p className="payx-empty">Nothing on the bill yet.</p>
-          ) : (
-            <ul className="payx-lines">
-              {bill.lines.map((l) => (
-                <li key={l.sku} className="payx-line">
-                  <span className="payx-line-name">{l.name}</span>
-                  <span className="payx-line-each">${formatCents(l.unitCents)} each</span>
-                  <div className="payx-stepper">
-                    <IconButton
-                      variant="ghost"
-                      size="lg"
-                      label={`One fewer ${l.name}`}
-                      icon={<Icon icon={MinusGlyph} />}
-                      isDisabled={busy || expired}
-                      onClick={() => setQty(l.sku, l.qty - 1)}
-                    />
-                    <span className="num payx-qty" aria-label={`${l.qty} ${l.name}`}>
-                      {l.qty}
-                    </span>
-                    <IconButton
-                      variant="ghost"
-                      size="lg"
-                      label={`One more ${l.name}`}
-                      icon={<Icon icon={PlusGlyph} />}
-                      isDisabled={busy || expired || l.qty >= 20}
-                      onClick={() => setQty(l.sku, l.qty + 1)}
-                    />
-                  </div>
-                  <span className="num payx-line-total">${formatCents(l.lineCents)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        {notOnBill.length > 0 &&
-          !expired &&
-          (adding ? (
-            <ul className="payx-add">
-              {notOnBill.map((p) => (
-                <li key={p.sku}>
-                  <Button
-                    size="lg"
-                    width="100%"
-                    label={`Add ${p.name} ($${formatCents(p.priceCents)})`}
-                    isDisabled={busy}
-                    onClick={() => setQty(p.sku, 1)}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="payx-add-toggle">
-              <Button variant="secondary" label="I took something that isn't listed" onClick={() => setAdding(true)} />
+    <AnimatePresence mode="wait">
+      {paid ? (
+        <Receipt
+          key="paid"
+          bill={bill}
+          paidCents={visit.paidCents ?? 0}
+          captureId={visit.captureId}
+          celebrate={justPaid}
+        />
+      ) : (
+        <motion.div
+          key="bill"
+          className="payx-view"
+          exit="gone"
+          variants={{ gone: { transition: { duration: 0.22 } } }}
+        >
+          <motion.section
+            className="payx-content"
+            variants={{ gone: reduce ? { opacity: 0 } : { opacity: 0, y: -10, filter: "blur(4px)" } }}
+            transition={{ duration: 0.22, ease: easeOut }}
+          >
+            <div className="payx-intro payx-rise">
+              <h1 className="payx-title">Your bill</h1>
+              <p className="payx-lede">
+                {visit.needsManual
+                  ? "The stand couldn't read the shelf this time. Add what you took."
+                  : expired
+                    ? "This is what the stand saw you take."
+                    : "This is what the stand saw you take. Fix anything that's wrong."}
+              </p>
             </div>
-          ))}
-      </div>
 
-      <div className="payx-summary">
-        <div className="payx-total">
-          <span className="payx-total-label">
-            Total to pay
-            {busy && <Spinner size="sm" aria-label="Updating the bill" />}
-          </span>
-          <span className="num payx-total-amount" data-busy={busy}>
-            ${formatCents(bill.totalCents)}
-          </span>
-        </div>
+            {expired ? (
+              <Note tone="look" icon={<ClockGlyph />} title="This bill has expired.">
+                It is more than a day old and can&apos;t be paid here any more. Scan the code on the stand to start
+                a new one.
+              </Note>
+            ) : visit.needsManual ? (
+              <Note tone="info" icon={<ListGlyph />} title="Shelf not read.">
+                Use the list below to add each thing you took, then pay.
+              </Note>
+            ) : lowConfidence ? (
+              <Note tone="look" icon={<LookGlyph />} title="Please check this bill.">
+                The stand wasn&apos;t sure about this one. Use the plus and minus buttons to match what you took.
+              </Note>
+            ) : visit.status === "unmatched" ? (
+              <Note tone="info" icon={<InfoGlyph />} title="This bill is still open.">
+                It wasn&apos;t paid at the time. You can pay it here now.
+              </Note>
+            ) : null}
 
-        {notice && (
-          <div role="alert">
-            <Banner status="error" title="Payment problem" description={notice} />
-          </div>
-        )}
+            <ul className="payx-lines payx-rise" data-pending={busy || undefined}>
+              <AnimatePresence initial={false} mode="popLayout">
+                {bill.lines.map((l) => (
+                  <motion.li
+                    key={l.sku}
+                    layout="position"
+                    className="payx-line"
+                    initial={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1, transition: { ...spring, delay: 0.08 } }}
+                    exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.97 }}
+                    transition={spring}
+                  >
+                    <div className="payx-line-what">
+                      <span className="payx-line-name">{l.name}</span>
+                      <span className="payx-line-each">${formatCents(l.unitCents)} each</span>
+                    </div>
+                    <div className="payx-stepper">
+                      <button
+                        type="button"
+                        className="payx-step ds-press"
+                        aria-label={`One fewer ${l.name}`}
+                        disabled={expired}
+                        aria-disabled={busy || undefined}
+                        onClick={() => setQty(l.sku, l.qty - 1)}
+                      >
+                        <MinusGlyph />
+                      </button>
+                      <RollingNumber
+                        className="num payx-qty"
+                        value={l.qty}
+                        text={String(l.qty)}
+                        label={`${l.qty} ${l.name}`}
+                      />
+                      <button
+                        type="button"
+                        className="payx-step ds-press"
+                        aria-label={`One more ${l.name}`}
+                        disabled={expired || l.qty >= 20}
+                        aria-disabled={busy || undefined}
+                        onClick={() => setQty(l.sku, l.qty + 1)}
+                      >
+                        <PlusGlyph />
+                      </button>
+                    </div>
+                    <RollingNumber
+                      className="num payx-line-total payx-money"
+                      value={l.lineCents}
+                      text={`$${formatCents(l.lineCents)}`}
+                    />
+                  </motion.li>
+                ))}
+                {bill.lines.length === 0 && (
+                  <motion.li
+                    key="nothing-yet"
+                    layout="position"
+                    className="payx-empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Nothing on the bill yet.
+                  </motion.li>
+                )}
+              </AnimatePresence>
+            </ul>
 
-        {expired ? null : bill.totalCents === 0 ? (
-          <p className="payx-small">Add what you took to pay for it.</p>
-        ) : paypalClientId ? (
-          <div className="payx-paybox">
-            <PayPalProvider
-              clientId={paypalClientId}
-              environment="sandbox"
-              components={["paypal-payments"]}
-              pageType="checkout"
-            >
-              <PayButton
-                visitId={visitId}
-                totalCents={bill.totalCents}
-                disabled={busy}
-                onPaid={(v) => {
-                  setVisit(v);
-                  setNotice(null);
-                }}
-                onProblem={(code) => {
-                  setNotice(explain(code));
-                  void refresh();
-                }}
-              />
-            </PayPalProvider>
-          </div>
-        ) : (
-          <div role="alert">
-            <Banner
-              status="error"
-              title="PayPal isn't set up"
-              description="PayPal isn't set up on this stand yet, so it can't take payment."
-            />
-          </div>
-        )}
-        {!expired && <p className="payx-small">Payments go through the PayPal sandbox. No real money moves.</p>}
-      </div>
-    </section>
+            {canAdd && (
+              <motion.div layout="position" transition={spring} className="payx-adder payx-rise">
+                {inlineAdd ? (
+                  <>
+                    <h2 className="payx-adder-title">Add what you took</h2>
+                    <AddList
+                      products={notOnBill}
+                      pendingSku={pendingSku}
+                      busy={busy}
+                      onAdd={(sku) => setQty(sku, 1)}
+                    />
+                  </>
+                ) : (
+                  <button type="button" className="payx-addbtn ds-press" onClick={() => setSheetOpen(true)}>
+                    <span className="payx-addbtn-mark">
+                      <PlusGlyph />
+                    </span>
+                    I took something that isn&apos;t listed
+                  </button>
+                )}
+              </motion.div>
+            )}
+
+            {!expired && (
+              <motion.p layout="position" transition={spring} className="payx-small payx-sandbox payx-rise">
+                Payments go through the PayPal sandbox. No real money moves.
+              </motion.p>
+            )}
+          </motion.section>
+
+          <motion.div
+            className="payx-bar"
+            variants={{ gone: reduce ? { opacity: 0 } : { opacity: 0, y: "60%" } }}
+            transition={{ duration: 0.22, ease: easeOut }}
+          >
+            <div className="payx-bar-in">
+              <AnimatePresence initial={false}>
+                {notice && (
+                  <motion.div
+                    key="notice"
+                    role="alert"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={spring}
+                  >
+                    <Note tone="error" icon={<AlertGlyph />} title="Payment problem.">
+                      {notice}
+                    </Note>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="payx-total" data-pending={busy || undefined}>
+                <span className="payx-total-label">
+                  {expired ? "Total" : "Total to pay"}
+                  <span className="sr-only" role="status">
+                    {busy ? "Updating the bill" : ""}
+                  </span>
+                </span>
+                <RollingNumber
+                  className="num payx-total-amount payx-money"
+                  value={bill.totalCents}
+                  text={`$${formatCents(bill.totalCents)}`}
+                />
+              </div>
+
+              {expired ? (
+                <p className="payx-small payx-bar-hint">This bill can&apos;t be paid here any more.</p>
+              ) : bill.totalCents === 0 ? (
+                <p className="payx-small payx-bar-hint">Add what you took to pay for it.</p>
+              ) : paypalClientId ? (
+                <div className="payx-paybox">
+                  <PayPalProvider
+                    clientId={paypalClientId}
+                    environment="sandbox"
+                    components={["paypal-payments"]}
+                    pageType="checkout"
+                  >
+                    <PayButton
+                      visitId={visitId}
+                      totalCents={bill.totalCents}
+                      disabled={busy}
+                      onPaid={(v) => {
+                        setJustPaid(true);
+                        setVisit(v);
+                        setNotice(null);
+                      }}
+                      onProblem={(code) => {
+                        setNotice(explain(code));
+                        void refresh();
+                      }}
+                    />
+                  </PayPalProvider>
+                </div>
+              ) : (
+                <div role="alert">
+                  <Note tone="error" icon={<AlertGlyph />} title="PayPal isn't set up.">
+                    PayPal isn&apos;t set up on this stand yet, so it can&apos;t take payment.
+                  </Note>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          <AddSheet
+            open={sheetOpen && !expired}
+            onClose={closeSheet}
+            products={products}
+            onBill={onBill}
+            pendingSku={pendingSku}
+            busy={busy}
+            onAdd={(sku) => setQty(sku, 1)}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
-function BillList({ bill }: { bill: PricedBill }) {
+/** One quiet message in the sheet: a mark, a heading, one line of guidance. */
+function QuietState({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <ul className="payx-receipt">
-      {bill.lines.map((l) => (
-        <li key={l.sku}>
-          <span>
-            {l.qty} × {l.name}
-          </span>
-          <span className="num">${formatCents(l.lineCents)}</span>
-        </li>
-      ))}
-    </ul>
+    <section className="payx-content payx-quiet payx-rise">
+      <span className="payx-quiet-mark" aria-hidden="true">
+        {icon}
+      </span>
+      <h1 className="payx-quiet-title">{title}</h1>
+      <p className="payx-quiet-text">{children}</p>
+    </section>
   );
 }
 
 /** Shown when the link does not match any bill. */
 export function PayNotFound() {
   return (
-    <section className="payx-closed">
-      <EmptyState
-        headingLevel={1}
-        icon={
-          <span className="payx-closed-mark">
-            <Icon icon="search" size="lg" />
-          </span>
-        }
-        title="We can't find this bill"
-        description="Scan the code on the stand again to get a fresh link."
-      />
-    </section>
+    <QuietState icon={<SearchGlyph />} title="We can't find this bill">
+      Scan the code on the stand again to get a fresh link.
+    </QuietState>
   );
 }
 
-/** Placeholder in the shape of the bill while the server loads it. */
+/** Placeholder in the exact shape of the bill sheet and pay bar while the server loads the bill. */
 export function PaySkeleton() {
   return (
-    <section className="payx-grid" aria-busy="true">
-      <div className="payx-intro">
-        <Skeleton width={190} height={40} />
-        <Skeleton width="80%" height={18} index={1} />
-      </div>
-      <div className="payx-col">
-        <Card padding={0}>
-          <div className="payx-skeleton-rows">
-            {[0, 1].map((i) => (
-              <div key={i} className="payx-skeleton-row">
-                <Skeleton width="45%" height={22} index={i + 2} />
-                <Skeleton width={72} height={22} index={i + 2} />
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-      <div className="payx-summary">
-        <div className="payx-skeleton-row">
-          <Skeleton width={96} height={18} index={4} />
-          <Skeleton width={130} height={44} index={4} />
+    <div className="payx-view" aria-busy="true">
+      <section className="payx-content">
+        <div className="payx-intro">
+          <Skeleton width={150} height={34} />
+          <Skeleton width="82%" height={18} index={1} />
         </div>
-        <Skeleton height={62} index={5} />
-        <Text type="supporting">Loading your bill</Text>
+        <div className="payx-lines">
+          {[0, 1].map((i) => (
+            <div key={i} className="payx-line">
+              <div className="payx-line-what">
+                <Skeleton width={i ? 120 : 84} height={18} index={i + 2} />
+                <Skeleton width={70} height={14} index={i + 2} />
+              </div>
+              <Skeleton width={128} height={48} radius="rounded" index={i + 2} />
+              <Skeleton width={60} height={20} index={i + 2} />
+            </div>
+          ))}
+        </div>
+        <div className="payx-adder">
+          <Skeleton height={52} index={4} />
+        </div>
+        <p className="payx-small payx-sandbox">Loading your bill</p>
+      </section>
+      <div className="payx-bar">
+        <div className="payx-bar-in">
+          <div className="payx-total">
+            <Skeleton width={92} height={16} index={5} />
+            <Skeleton width={120} height={34} index={5} />
+          </div>
+          <Skeleton height={56} index={6} />
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -403,11 +478,9 @@ function PayButton({
   if (error) {
     return (
       <div role="alert">
-        <Banner
-          status="error"
-          title="PayPal couldn't load"
-          description="Check your connection and reload this page."
-        />
+        <Note tone="error" icon={<AlertGlyph />} title="PayPal couldn't load.">
+          Check your connection and reload this page.
+        </Note>
       </div>
     );
   }

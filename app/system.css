@@ -1,0 +1,202 @@
+/*
+  Shopsitter design system: the shared scales every screen builds from.
+  Colour lives in globals.css (:root) and the Astryx theme; this file adds space, type,
+  shape, depth, materials, motion timing and stacking order, plus a few system classes.
+*/
+:root {
+  /* Space: a 4px base. Tight inside groups, generous between them. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 128px;
+
+  /* Page frame */
+  --container: 1200px;
+  --container-narrow: 760px;
+  --gutter: clamp(20px, 5vw, 72px);
+  --section: clamp(72px, 11vw, 160px); /* vertical space between page sections */
+
+  /* Type scale. UI text is small and crisp; display text is large and tight. */
+  --t-xs: 0.75rem;
+  --t-sm: 0.8125rem;
+  --t-ui: 0.875rem;
+  --t-body: 1rem;
+  --t-lead: clamp(1.0625rem, 0.6vw + 0.95rem, 1.3125rem);
+  --t-h3: clamp(1.25rem, 0.8vw + 1.05rem, 1.5rem);
+  --t-h2: clamp(2rem, 3.4vw + 1rem, 3.5rem);
+  --t-h1: clamp(2.75rem, 6vw + 1rem, 5.5rem);
+  --t-figure: clamp(3rem, 8vw + 1rem, 7rem); /* hero money figures */
+  --track-display: -0.03em;
+  --track-heading: -0.02em;
+  --lead-display: 1;
+  --lead-heading: 1.1;
+  --lead-body: 1.55;
+  --measure: 60ch;
+
+  /* Shape */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* Lines */
+  --hairline: 1px solid var(--line);
+  --hairline-on-blue: 1px solid rgb(255 255 255 / 0.16);
+
+  /* Depth: every shadow has an offset and a soft blur, tinted from the ink. */
+  --e-1: 0 1px 2px rgb(10 16 36 / 0.06), 0 1px 1px rgb(10 16 36 / 0.04);
+  --e-2: 0 6px 16px -6px rgb(10 16 36 / 0.14), 0 2px 4px rgb(10 16 36 / 0.05);
+  --e-3: 0 24px 48px -16px rgb(10 16 36 / 0.28), 0 6px 12px -4px rgb(10 16 36 / 0.1);
+  --e-blue: 0 24px 60px -20px rgb(0 36 166 / 0.55);
+
+  /* Materials: translucent layers that float above content. */
+  --material-light: rgb(255 255 255 / 0.72);
+  --material-blue: rgb(10 53 200 / 0.62);
+  --material-ink: rgb(6 11 31 / 0.6);
+  --material-filter: blur(20px) saturate(180%);
+  --material-edge: inset 0 1px 0 rgb(255 255 255 / 0.5);
+  --material-edge-on-blue: inset 0 1px 0 rgb(255 255 255 / 0.22);
+
+  /* Motion timing for CSS transitions (springs live in lib/motion.ts). */
+  --dur-press: 100ms;
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 450ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Stacking order */
+  --z-raised: 10;
+  --z-nav: 50;
+  --z-dock: 55;
+  --z-sheet: 60;
+  --z-dialog: 70;
+  --z-toast: 80;
+
+  /* Named tints and text colours for the two signal families, and glass on cobalt. */
+  --coral-tint: #ffe2da;
+  --coral-text: #b02f17;
+  --yellow-tint: #fff0c2;
+  --yellow-text: #5a4300;
+  --glass-on-blue: rgb(255 255 255 / 0.12);
+  --hairline-on-blue-strong: 1px solid rgb(255 255 255 / 0.22);
+
+  /* Night ink, for the one dark section a page may have. */
+  --night: #060b1f;
+  --night-2: #0a1024;
+}
+
+/* Page frame: one container and one gutter for every screen. */
+.ds-container {
+  width: 100%;
+  max-width: calc(var(--container) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.ds-section {
+  padding-block: var(--section);
+}
+
+/* A translucent floating layer on a light page. */
+.ds-material {
+  background: var(--material-light);
+  -webkit-backdrop-filter: var(--material-filter);
+  backdrop-filter: var(--material-filter);
+  box-shadow: var(--material-edge), var(--e-2);
+  border: var(--hairline);
+}
+
+/* The same layer on the cobalt studio. */
+.ds-material-blue {
+  background: var(--material-blue);
+  -webkit-backdrop-filter: var(--material-filter);
+  backdrop-filter: var(--material-filter);
+  box-shadow: var(--material-edge-on-blue), var(--e-blue);
+  border: var(--hairline-on-blue);
+}
+
+/* A white working panel: hairline, small radius, barely-there lift. */
+.ds-panel {
+  background: var(--paper);
+  border: var(--hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e-1);
+}
+
+/* Press feedback on pointer-down, for anything tappable. */
+.ds-press {
+  transition: transform var(--dur-press) ease-out;
+}
+
+.ds-press:active {
+  transform: scale(0.97);
+}
+
+/* Display type */
+.ds-h1 {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: var(--t-h1);
+  font-weight: 800;
+  line-height: var(--lead-display);
+  letter-spacing: var(--track-display);
+  text-wrap: balance;
+}
+
+.ds-h2 {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: var(--t-h2);
+  font-weight: 800;
+  line-height: var(--lead-heading);
+  letter-spacing: var(--track-display);
+  text-wrap: balance;
+}
+
+.ds-lead {
+  font-size: var(--t-lead);
+  line-height: var(--lead-body);
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+/* Focus that shows on white and on cobalt alike. */
+.ds-focus:focus-visible,
+.ds-focus-within:focus-within {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.void .ds-focus:focus-visible {
+  outline-color: var(--paypal);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .ds-material {
+    background: var(--paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .ds-material-blue {
+    background: var(--blue);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-press {
+    transition: none;
+  }
+
+  .ds-press:active {
+    transform: none;
+  }
+}
