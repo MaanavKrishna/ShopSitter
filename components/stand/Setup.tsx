@@ -5,12 +5,22 @@ import { useEffect, useRef, useState } from "react";
 import { Wordmark } from "@/components/Wordmark";
 import { spring } from "@/lib/motion";
 import { CodeField } from "./CodeField";
+import { checkStandCode } from "./useStandToken";
 
 const CODE_LENGTH = 6;
 // Long enough for the button to show that the code was taken before the stand takes over.
 const HANDOVER_MS = 380;
 
-/** The first screen on a new device: one field for the stand code, on a white sheet. */
+const REFUSALS = {
+  wrong: "That stand code isn't right. Check it and try again.",
+  limited: "Too many tries. Try again in a few minutes.",
+  unreachable: "Couldn't check the code. Check the connection and try again.",
+} as const;
+
+/**
+ * The first screen on a new device: one field for the stand code, on a white sheet.
+ * The code is checked with the server before the stand starts, so a wrong one never gets past here.
+ */
 export function Setup({
   problem,
   onCode,
@@ -23,9 +33,28 @@ export function Setup({
   const [codeError, setCodeError] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const [starting, setStarting] = useState(false);
-  const handover = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const form = useRef<HTMLFormElement>(null);
+  const live = useRef(true);
 
-  useEffect(() => () => void (handover.current && clearTimeout(handover.current)), []);
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
+  }, []);
+
+  async function start(code: string) {
+    setCodeError(null);
+    setStarting(true);
+    const [result] = await Promise.all([checkStandCode(code), new Promise((r) => setTimeout(r, HANDOVER_MS))]);
+    if (!live.current) return;
+    if (result === "ok") return onCode(code);
+    setStarting(false);
+    setCodeError(REFUSALS[result]);
+    if (result === "wrong") setShake((n) => n + 1);
+    // The field was switched off while the code was checked; give the cursor back once it is on again.
+    setTimeout(() => form.current?.querySelector("input")?.focus(), 0);
+  }
 
   return (
     <main className="void sd sd-setup">
@@ -36,6 +65,7 @@ export function Setup({
         transition={{ ...spring, duration: 0.6 }}
       >
         <form
+          ref={form}
           noValidate
           onSubmit={(e) => {
             e.preventDefault();
@@ -46,9 +76,7 @@ export function Setup({
               setShake((n) => n + 1);
               return;
             }
-            setCodeError(null);
-            setStarting(true);
-            handover.current = setTimeout(() => onCode(code), HANDOVER_MS);
+            void start(code);
           }}
         >
           <Wordmark />
@@ -74,7 +102,7 @@ export function Setup({
           />
           <button type="submit" className="sd-primary ds-press" aria-busy={starting} data-loading={starting}>
             {starting && <span className="sd-spin" aria-hidden="true" />}
-            {starting ? "Starting the stand" : "Start watching the shelf"}
+            {starting ? "Checking the code" : "Start watching the shelf"}
           </button>
           <p className="sd-sheet-fine">A camera counts items on this shelf. It does not record people.</p>
         </form>

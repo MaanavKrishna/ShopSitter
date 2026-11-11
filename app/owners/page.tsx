@@ -10,7 +10,7 @@ import { EXTRA_ANGLES } from "@/lib/angles";
 import "../inner.css";
 
 export const metadata: Metadata = {
-  title: "For owners — Shopsitter",
+  title: "For owners",
   description:
     "What sold, what was paid through PayPal and which visits are unmatched, for a stand you were not standing at. See the owner’s dashboard and how a stand is set up.",
 };
@@ -38,8 +38,8 @@ export default async function Owners() {
               rows={week.rows.slice(0, 5)}
             />
             <p className="in-night-note">
-              The demo stand’s example week: {week.visitCount} made-up visits, not real sales. Sign in and you will find
-              the same figures.
+              The demo stand’s example week: {week.visitCount} made-up visits, not real sales. The demo dashboard starts
+              from these and changes as people try it.
             </p>
           </div>
         </header>
@@ -148,8 +148,8 @@ export default async function Owners() {
                 </span>
                 <h3>Add your products</h3>
                 <p>
-                  A name, a price, what each one looks like, and a photo if you have one. Your products and prices are
-                  loaded for you in this prototype: there is no product editor yet.
+                  A name, a price, what each one looks like, and a photo if you have one. You add and change them
+                  yourself under Products in the owner area.
                 </p>
               </Reveal>
             </ol>

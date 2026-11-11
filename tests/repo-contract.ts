@@ -32,6 +32,34 @@ export function repoContract(name: string, fresh: () => Promise<Repo>, reopen: (
     expect(products[0].priceCents).toBe(800);
   });
 
+  it("keeps an archived product in storage but leaves it out of the usual list", async () => {
+    await repo.upsertProduct(honey("demo"));
+    await repo.upsertProduct({ ...honey("demo"), sku: "jam", name: "Jam" });
+    await repo.upsertProduct(honey("live"));
+    await repo.upsertProduct({ ...honey("demo"), archived: true });
+    expect((await repo.listProducts("demo")).map((p) => p.sku)).toEqual(["jam"]);
+    const all = await reopen().listProducts("demo", { includeArchived: true });
+    expect(all.map((p) => p.sku).sort()).toEqual(["honey", "jam"]);
+    expect(all.find((p) => p.sku === "honey")).toEqual({ ...honey("demo"), archived: true });
+    expect(all.find((p) => p.sku === "jam")!.archived).toBeFalsy();
+    // The other shop's product with the same sku is untouched.
+    expect(await repo.listProducts("live")).toEqual([honey("live")]);
+  });
+
+  it("brings an archived product back when it is saved again without the flag", async () => {
+    await repo.upsertProduct({ ...honey("demo"), archived: true });
+    expect(await repo.listProducts("demo")).toEqual([]);
+    await repo.upsertProduct({ ...honey("demo"), priceCents: 900 });
+    expect(await repo.listProducts("demo")).toEqual([{ ...honey("demo"), priceCents: 900 }]);
+    expect(await repo.listProducts("demo", { includeArchived: true })).toHaveLength(1);
+  });
+
+  it("clears archived products too when a shop is reset", async () => {
+    await repo.upsertProduct({ ...honey("demo"), sku: "old", archived: true });
+    await repo.resetShop("demo", [honey("demo")]);
+    expect((await repo.listProducts("demo", { includeArchived: true })).map((p) => p.sku)).toEqual(["honey"]);
+  });
+
   it("round-trips a visit and survives a new instance on the same folder", async () => {
     const v = newVisit("v1", "demo", [{ sku: "honey", qty: 2 }], 1_000);
     await repo.saveVisit(v);
@@ -69,6 +97,16 @@ export function repoContract(name: string, fresh: () => Promise<Repo>, reopen: (
       const key = await repo.savePhoto("demo-123-before.jpg", bytes);
       expect(await reopen().getPhoto(key)).toEqual(bytes);
       expect(await repo.getPhoto("nope.jpg")).toBeNull();
+    });
+
+    it("deletes a stored photo, and only that one", async () => {
+      const bytes = new Uint8Array([255, 216, 255, 9]);
+      const gone = await repo.savePhoto("demo-ref-honey-1.jpg", bytes);
+      const kept = await repo.savePhoto("demo-ref-jam-1.jpg", bytes);
+      await repo.deletePhoto(gone);
+      await repo.deletePhoto("demo-ref-never-there.jpg");
+      expect(await reopen().getPhoto(gone)).toBeNull();
+      expect(await repo.getPhoto(kept)).toEqual(bytes);
     });
   });
 }

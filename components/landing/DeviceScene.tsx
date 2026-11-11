@@ -72,7 +72,7 @@ export function DeviceScene({ bill }: { bill: PricedBill }) {
             The shelf writes the bill
           </h2>
           <p className="ds-lead">
-            Nobody stands at this stand. The customer never opens an app, scans a barcode or types a thing.
+            Nobody stands at this stand. The customer installs no app and scans no barcodes: one QR code, then PayPal.
           </p>
         </div>
 

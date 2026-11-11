@@ -9,7 +9,7 @@ import { LATE_PAY_MS, OPEN_TIMEOUT_MS } from "@/lib/visits";
 import "../inner.css";
 
 export const metadata: Metadata = {
-  title: "How a visit goes — Shopsitter",
+  title: "How a visit goes",
   description:
     "From a hand reaching for a jar to the owner seeing it was paid: how Shopsitter notices a shelf change, reads it, writes the bill and takes payment with PayPal.",
 };

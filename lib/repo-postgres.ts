@@ -11,6 +11,7 @@ type ProductRow = {
   price_cents: number;
   stock: number;
   ref_image_url: string | null;
+  archived: boolean;
 };
 
 const toProduct = (r: ProductRow): Product => ({
@@ -21,6 +22,7 @@ const toProduct = (r: ProductRow): Product => ({
   priceCents: r.price_cents,
   stock: r.stock,
   refImageUrl: r.ref_image_url,
+  ...(r.archived ? { archived: true } : {}),
 });
 
 /**
@@ -52,6 +54,10 @@ export class PostgresRepo implements Repo {
         shop text not null, sku text not null, name text not null, description text not null default '',
         price_cents integer not null, stock integer not null default 0, ref_image_url text,
         primary key (shop, sku))`);
+      // Added after the first release: existing tables gain the column, with every product not archived.
+      await this.sql.query(
+        `alter table ${this.products} add column if not exists archived boolean not null default false`,
+      );
       await this.sql.query(`create table if not exists ${this.visits} (
         id text primary key, shop text not null, status text not null,
         opened_at bigint not null, data jsonb not null)`);
@@ -69,18 +75,22 @@ export class PostgresRepo implements Repo {
     return (await this.sql.query(text, params)) as T[];
   }
 
-  async listProducts(shop: Shop): Promise<Product[]> {
-    const rows = await this.run<ProductRow>(`select * from ${this.products} where shop = $1 order by sku`, [shop]);
+  async listProducts(shop: Shop, opts: { includeArchived?: boolean } = {}): Promise<Product[]> {
+    const rows = await this.run<ProductRow>(
+      `select * from ${this.products} where shop = $1 and (archived = false or $2) order by sku`,
+      [shop, opts.includeArchived === true],
+    );
     return rows.map(toProduct);
   }
 
   async upsertProduct(p: Product): Promise<void> {
     await this.run(
-      `insert into ${this.products} (shop, sku, name, description, price_cents, stock, ref_image_url)
-       values ($1, $2, $3, $4, $5, $6, $7)
+      `insert into ${this.products} (shop, sku, name, description, price_cents, stock, ref_image_url, archived)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
        on conflict (shop, sku) do update set name = excluded.name, description = excluded.description,
-         price_cents = excluded.price_cents, stock = excluded.stock, ref_image_url = excluded.ref_image_url`,
-      [p.shop, p.sku, p.name, p.description, p.priceCents, p.stock, p.refImageUrl],
+         price_cents = excluded.price_cents, stock = excluded.stock, ref_image_url = excluded.ref_image_url,
+         archived = excluded.archived`,
+      [p.shop, p.sku, p.name, p.description, p.priceCents, p.stock, p.refImageUrl, p.archived === true],
     );
   }
 
@@ -135,6 +145,10 @@ export class PostgresRepo implements Repo {
   async getPhoto(key: string): Promise<Uint8Array | null> {
     const rows = await this.run<{ bytes_b64: string }>(`select bytes_b64 from ${this.photos} where key = $1`, [key]);
     return rows[0] ? new Uint8Array(Buffer.from(rows[0].bytes_b64, "base64")) : null;
+  }
+
+  async deletePhoto(key: string): Promise<void> {
+    await this.run(`delete from ${this.photos} where key = $1`, [key]);
   }
 
   /** Empties this instance's tables. Refuses to run on unprefixed (real) tables. */

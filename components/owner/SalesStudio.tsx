@@ -61,8 +61,8 @@ const chartTheme = studioTheme.withParams({
   chartPaletteFills3Color: "#ffc439",
   chartPaletteFills4Color: "#0a1024",
   chartPaletteFills5Color: "#7f9bff",
-  chartPaletteFills6Color: "#c2371c",
-  chartPaletteFills7Color: "#c9d5ff",
+  chartPaletteFills6Color: "#c9d5ff",
+  chartPaletteFills7Color: "#c2371c",
   chartPaletteFills8Color: "#8b93ab",
   chartPaletteFills9Color: "#f3d27a",
   chartPaletteFills10Color: "#4b5570",
@@ -101,6 +101,7 @@ export default function SalesStudio({ visits, stock }: { visits: VisitRow[]; sto
         </button>
       </div>
       {/* AG Studio keeps a minimum canvas width, so on a phone it scrolls inside this frame. */}
+      <p className="ow-studio-hint">Swipe sideways to see every chart.</p>
       <div className="ow-studio-frame" tabIndex={0} role="group" aria-label="Sales charts, scrolls sideways on a small screen">
         <div className="ow-studio-canvas">
           <AgStudioProvider>

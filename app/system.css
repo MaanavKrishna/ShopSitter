@@ -200,3 +200,12 @@
     transform: none;
   }
 }
+
+/* The hero's glass card becomes solid when the person has asked for less transparency. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--blue-deep);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

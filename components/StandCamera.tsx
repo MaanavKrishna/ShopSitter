@@ -49,6 +49,8 @@ export function StandCamera({
   onShot,
   onSighting,
   onVisitorLeft,
+  onProblem,
+  problemShown = false,
 }: {
   onChange: (change: ShelfChange) => void;
   /** Tells the page whether the shelf is still or something is moving, so it can say so. */
@@ -63,6 +65,10 @@ export function StandCamera({
   onSighting?: (sighting: (Sighting & { present: boolean }) | null) => void;
   /** Called once each time someone who was at the stand has gone. */
   onVisitorLeft?: () => void;
+  /** Called with the reason when the camera cannot start, so the page can say the stand is not watching. */
+  onProblem?: (problem: string | null) => void;
+  /** The page shows the reason itself, so this only marks the camera as off. */
+  problemShown?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onChangeRef = useRef(onChange);
@@ -75,6 +81,15 @@ export function StandCamera({
   const lastReadNow = useRef(readNow);
   const [problem, setProblem] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
+  const onProblemRef = useRef(onProblem);
+
+  useEffect(() => {
+    onProblemRef.current = onProblem;
+  }, [onProblem]);
+
+  useEffect(() => {
+    onProblemRef.current?.(problem);
+  }, [problem]);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -256,7 +271,10 @@ export function StandCamera({
       timer = setTimeout(tick, SAMPLE_EVERY_MS);
     }
 
-    void start();
+    start().catch((e) => {
+      console.error("stand camera", e);
+      if (!stopped) setProblem("The camera could not start. Check that nothing else is using it, then reload this page.");
+    });
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
@@ -264,6 +282,8 @@ export function StandCamera({
       stream?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  if (problem && problemShown) return <p className="sd-cam-off">Camera off</p>;
 
   if (problem) {
     return (

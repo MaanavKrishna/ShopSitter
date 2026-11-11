@@ -18,6 +18,11 @@ export type Visit = {
   /** What the customer chose to pay for (may differ from detected). */
   paid: Line[] | null;
   paidCents: number | null;
+  /**
+   * True when what was paid for differs from what the camera saw, whenever it was paid.
+   * Set when the payment is recorded; visits stored before this existed do not have it (see isAdjusted).
+   */
+  adjusted?: boolean;
   refundedCents: number;
   paypalOrderId: string | null;
   /** Total of the PayPal order above, so a changed bill can be detected before capture. */
@@ -117,10 +122,21 @@ export function settlePayment(v: Visit, paidLines: Line[], paidCents: number, no
   if (v.status === "paid" || v.status === "paid_adjusted" || v.status === "paid_late") return v;
   if (v.status === "empty" || v.status === "settled_other") throw new Error("not_payable");
 
+  const adjusted = !sameLines(v.detected, paidLines);
   if (v.status === "unmatched") {
     if (now - (v.closedAt ?? v.lastSettledAt) > LATE_PAY_MS) throw new Error("too_late");
-    return { ...v, status: "paid_late", paid: paidLines, paidCents };
+    return { ...v, status: "paid_late", adjusted, paid: paidLines, paidCents };
   }
-  const status: VisitStatus = sameLines(v.detected, paidLines) ? "paid" : "paid_adjusted";
-  return { ...v, status, paid: paidLines, paidCents, closedAt: now };
+  return { ...v, status: adjusted ? "paid_adjusted" : "paid", adjusted, paid: paidLines, paidCents, closedAt: now };
+}
+
+/**
+ * Whether a paid visit was paid for something other than what the camera saw. Lateness is separate:
+ * a "paid_late" visit can be adjusted too. Works for visits stored before the flag existed.
+ */
+export function isAdjusted(v: Pick<Visit, "status" | "detected" | "paid" | "adjusted">): boolean {
+  if (v.status !== "paid" && v.status !== "paid_adjusted" && v.status !== "paid_late") return false;
+  if (v.adjusted !== undefined) return v.adjusted;
+  if (v.status === "paid_late") return v.paid !== null && !sameLines(v.detected, v.paid);
+  return v.status === "paid_adjusted";
 }

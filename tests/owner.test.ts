@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { OwnerError, ownerAction, ownerOverview } from "@/lib/owner";
-import type { PayPalGateway } from "@/lib/paypal";
+import { PayPalRefused, refusalFrom, type PayPalGateway } from "@/lib/paypal";
 import { FileRepo } from "@/lib/repo-file";
 import { DEMO_PRODUCTS, productsFor } from "@/lib/seed";
 import { newVisit, type Visit } from "@/lib/visits";
@@ -67,6 +67,37 @@ describe("ownerOverview", () => {
     expect(left).toMatchObject({ honey: 2, bread: 5, apples: 4, jam: 6 });
   });
 
+  it("counts the shortfall of a bill that was corrected and then paid late as adjusted", async () => {
+    // camera saw 2 honey (1400), paid for 1 (700) after the visit had gone unmatched
+    await repo.saveVisit(
+      visit("late-adjusted", { status: "paid_late", adjusted: true, paid: [{ sku: "honey", qty: 1 }], paidCents: 700, captureId: "CAP3" }),
+    );
+    // paid late in full: nothing adjusted
+    await repo.saveVisit(visit("late-full", { status: "paid_late", adjusted: false, paid: [{ sku: "honey", qty: 2 }], paidCents: 1400 }));
+    // stored before the flag existed
+    await repo.saveVisit(visit("late-old", { status: "paid_late", paid: [{ sku: "honey", qty: 1 }], paidCents: 700 }));
+    const { totals, visits } = await ownerOverview(repo, "demo", 7, NOW);
+    expect(totals.adjustedCents).toBe(700 + 700 + 700);
+    const row = (id: string) => visits.find((v) => v.id === id)!;
+    expect(row("late-adjusted").adjusted).toBe(true);
+    expect(row("late-old").adjusted).toBe(true);
+    expect(row("late-full").adjusted).toBe(false);
+    expect(row("adjusted").adjusted).toBe(true);
+    expect(row("paid").adjusted).toBe(false);
+    expect(row("unmatched").adjusted).toBe(false);
+    expect(row("late-adjusted").status).toBe("paid_late");
+  });
+
+  it("prices what the customer paid for on each row", async () => {
+    const { visits } = await ownerOverview(repo, "demo", 7, NOW);
+    const row = (id: string) => visits.find((v) => v.id === id)!;
+    expect(row("adjusted").paidBill).toEqual({
+      lines: [{ sku: "honey", name: "Honey", qty: 1, unitCents: 700, lineCents: 700 }],
+      totalCents: 700,
+    });
+    expect(row("unmatched").paidBill).toBeNull();
+  });
+
   it("turns a stale open visit into an unmatched one when the owner looks", async () => {
     await repo.saveVisit(newVisit("stale", "demo", [{ sku: "jam", qty: 1 }], NOW - 700_000));
     const { visits, totals } = await ownerOverview(repo, "demo", 7, NOW);
@@ -125,6 +156,46 @@ describe("ownerAction", () => {
     expect(await code(ownerAction(repo, paypal, "demo", "paid", { action: "refund", cents: 0 }))).toBe("bad_amount");
     expect(await code(ownerAction(repo, paypal, "demo", "paid", { action: "refund", cents: 10.5 }))).toBe("bad_amount");
     expect(refunds).toHaveLength(1);
+  });
+
+  it("says so when PayPal refuses the refund, and records nothing", async () => {
+    const refusing: PayPalGateway = { ...paypal, refundCapture: async () => { throw new PayPalRefused("refund"); } };
+    const result = await ownerAction(repo, refusing, "demo", "paid", { action: "refund", cents: 500 }).then(
+      () => null,
+      (e) => e,
+    );
+    expect(result).toBeInstanceOf(OwnerError);
+    expect(result.code).toBe("paypal_refused");
+    expect(result.status).toBe(422);
+    expect((await repo.getVisit("paid"))!.refundedCents).toBe(0);
+  });
+
+  it("leaves any other PayPal failure as an unexpected error", async () => {
+    const broken: PayPalGateway = { ...paypal, refundCapture: async () => { throw new Error("socket hang up"); } };
+    expect(await code(ownerAction(repo, broken, "demo", "paid", { action: "refund", cents: 500 }))).toMatch(/^unexpected/);
+    expect((await repo.getVisit("paid"))!.refundedCents).toBe(0);
+  });
+
+  it("tells a refusal from PayPal (a 4xx answer) from other failures", () => {
+    expect(refusalFrom(Object.assign(new Error("x"), { statusCode: 422 }))).toBe(true);
+    expect(refusalFrom(Object.assign(new Error("x"), { statusCode: 404 }))).toBe(true);
+    expect(refusalFrom(Object.assign(new Error("x"), { statusCode: 503 }))).toBe(false);
+    expect(refusalFrom(new Error("timeout"))).toBe(false);
+    expect(refusalFrom(null)).toBe(false);
+  });
+
+  it("lets the owner refund a payment that was captured but not recorded as paid", async () => {
+    await repo.saveVisit(visit("stuck", { status: "settled_other", paid: [{ sku: "honey", qty: 2 }], paidCents: 1400, captureId: "CAP9" }));
+    const v = await ownerAction(repo, paypal, "demo", "stuck", { action: "refund", cents: 1400 });
+    expect(refunds).toEqual([{ captureId: "CAP9", cents: 1400 }]);
+    expect(v.refundedCents).toBe(1400);
+  });
+
+  it("clears the adjusted flag when the owner's correction matches what was paid late", async () => {
+    await repo.saveVisit(visit("late-adjusted", { status: "paid_late", adjusted: true, paid: [{ sku: "honey", qty: 1 }], paidCents: 700 }));
+    const v = await ownerAction(repo, paypal, "demo", "late-adjusted", { action: "correct", lines: [{ sku: "honey", qty: 1 }] });
+    expect(v.status).toBe("paid_late");
+    expect(v.adjusted).toBe(false);
   });
 
   it("refuses to refund a visit that was never paid", async () => {

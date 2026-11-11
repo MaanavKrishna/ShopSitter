@@ -1,0 +1,8 @@
+{
+  "one-jar": [{ "sku": "honey", "qty": 1 }],
+  "two-alike": [{ "sku": "eggs", "qty": 2 }],
+  "two-kinds": [{ "sku": "apples", "qty": 1 }, { "sku": "flowers", "qty": 1 }],
+  "slid-along": [],
+  "light-change": [],
+  "gone-and-shifted": [{ "sku": "jam", "qty": 1 }]
+}

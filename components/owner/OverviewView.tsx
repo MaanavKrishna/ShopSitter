@@ -9,6 +9,7 @@ import type { PointerEvent } from "react";
 import { formatCents } from "@/lib/money";
 import { easeOut, spring } from "@/lib/motion";
 import { isLow } from "@/lib/owner-view";
+import { AskPanel } from "./AskPanel";
 import { CountUp } from "./CountUp";
 import { useOwner } from "./OwnerProvider";
 import { PaidChart } from "./PaidChart";
@@ -81,6 +82,8 @@ export function OverviewView() {
         </div>
       </section>
 
+      <AskPanel />
+
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={loading ? "loading" : dataDays}
@@ -108,9 +111,11 @@ export function OverviewView() {
             </>
           ) : (
             <>
-              <section className="ow-panel" aria-labelledby="look-h">
+              <section className="ow-panel" aria-labelledby="look-h" data-focus-list>
                 <div className="ow-panel-head">
-                  <h2 id="look-h">Needs a look</h2>
+                  <h2 id="look-h" tabIndex={-1} data-focus-heading>
+                    Needs a look
+                  </h2>
                   {unmatched.length > 0 && (
                     <p className="ow-look-total">
                       <span className="num">${formatCents(totals.unmatchedCents)}</span> unmatched
@@ -135,6 +140,7 @@ export function OverviewView() {
                           <motion.li
                             key={v.id}
                             className="ow-row ow-look-row"
+                            data-visit-row={v.id}
                             data-flash={flash === v.id || undefined}
                             layout="position"
                             initial={hydrated ? { opacity: 0 } : false}

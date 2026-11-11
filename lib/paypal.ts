@@ -40,10 +40,26 @@ export function buildOrderBody(bill: PricedBill, visitId: string) {
 
 export type OrderBody = ReturnType<typeof buildOrderBody>;
 
+/** PayPal answered and said no (a 4xx answer): nothing was sent or changed on its side. */
+export class PayPalRefused extends Error {
+  constructor(what: string) {
+    super(`PayPal refused the ${what}`);
+  }
+}
+
+/** True for an error that carries a 4xx answer from PayPal, as opposed to a timeout or a fault on its side. */
+export function refusalFrom(e: unknown): boolean {
+  const status = (e as { statusCode?: unknown } | null)?.statusCode;
+  return typeof status === "number" && status >= 400 && status < 500;
+}
+
 export interface PayPalGateway {
   createOrder(body: OrderBody): Promise<{ orderId: string }>;
   captureOrder(orderId: string): Promise<{ captureId: string; amountCents: number; status: string }>;
-  /** `key` identifies this refund: the same key retried returns the same refund instead of a second one. */
+  /**
+   * `key` identifies this refund: the same key retried returns the same refund instead of a second one.
+   * Throws PayPalRefused when PayPal turns the refund down.
+   */
   refundCapture(captureId: string, cents: number, key: string): Promise<{ refundId: string }>;
 }
 
@@ -87,11 +103,12 @@ class SandboxGateway implements PayPalGateway {
   }
 
   async refundCapture(captureId: string, cents: number, key: string) {
-    const { result } = await this.payments.refundCapturedPayment({
-      captureId,
-      paypalRequestId: key,
-      body: { amount: money(cents) },
-    });
+    const { result } = await this.payments
+      .refundCapturedPayment({ captureId, paypalRequestId: key, body: { amount: money(cents) } })
+      .catch((e: unknown) => {
+        if (refusalFrom(e)) throw new PayPalRefused("refund");
+        throw e;
+      });
     if (!result.id) throw new Error("PayPal returned no refund id");
     return { refundId: result.id };
   }

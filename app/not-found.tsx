@@ -3,7 +3,7 @@ import NextLink from "next/link";
 import "./inner.css";
 
 export const metadata: Metadata = {
-  title: "Page not found — Shopsitter",
+  title: "Page not found",
   description: "There is no page at this address.",
 };
 

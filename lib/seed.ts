@@ -1,4 +1,4 @@
-import { getRepo } from "./repo";
+import { getRepo, type Repo } from "./repo";
 import type { Line, Product, Shop } from "./types";
 import { newVisit, type Visit } from "./visits";
 
@@ -77,9 +77,12 @@ export function exampleVisits(shop: Shop, now: number): Visit[] {
   ];
 }
 
-/** Resets a shop to the starter catalogue with a week of example visits. */
-export async function seedShopWithExamples(shop: Shop, now = Date.now()): Promise<void> {
-  const repo = getRepo();
+/** Resets a shop in the given store to the starter catalogue with a week of example visits. */
+export async function seedExamples(repo: Repo, shop: Shop, now: number): Promise<void> {
   await repo.resetShop(shop, productsFor(shop).map((p) => ({ ...p, stock: 12 })));
   for (const v of exampleVisits(shop, now)) await repo.saveVisit(v);
+}
+
+export async function seedShopWithExamples(shop: Shop, now = Date.now()): Promise<void> {
+  await seedExamples(getRepo(), shop, now);
 }

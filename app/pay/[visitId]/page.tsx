@@ -1,6 +1,6 @@
 import type { Viewport } from "next";
 import { Suspense } from "react";
-import { CheckoutError, getBill } from "@/lib/checkout";
+import { CheckoutError, getBill, publicBill } from "@/lib/checkout";
 import { getRepo } from "@/lib/repo";
 import { LATE_PAY_MS } from "@/lib/visits";
 import { PayNotFound, PayPanel, PaySkeleton } from "@/components/PayPanel";
@@ -8,6 +8,7 @@ import { Wordmark } from "@/components/Wordmark";
 import "../pay.css";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Your bill", robots: { index: false } };
 
 // Lets the pay bar read the phone's home-indicator inset, so it can pad itself clear of it.
 export const viewport: Viewport = {
@@ -24,7 +25,7 @@ async function loadBill(visitId: string) {
     const { visit } = data;
     // Same cut-off the order route applies, so the page can say so before PayPal is opened.
     const expired = visit.status === "unmatched" && now - (visit.closedAt ?? visit.lastSettledAt) > LATE_PAY_MS;
-    return { ...data, expired };
+    return { ...publicBill(data), expired };
   } catch (e) {
     if (e instanceof CheckoutError) return null;
     throw e;

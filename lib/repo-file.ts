@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Repo } from "./repo";
 import type { Product, Shop } from "./types";
@@ -19,13 +19,18 @@ export class FileRepo implements Repo {
     writeFileSync(path.join(this.dir, name), JSON.stringify(rows, null, 2));
   }
 
-  async listProducts(shop: Shop): Promise<Product[]> {
-    return this.read<Product>("products.json").filter((p) => p.shop === shop);
+  async listProducts(shop: Shop, opts: { includeArchived?: boolean } = {}): Promise<Product[]> {
+    return this.read<Product>("products.json").filter((p) => p.shop === shop && (opts.includeArchived || !p.archived));
   }
 
   async upsertProduct(p: Product): Promise<void> {
-    const rest = this.read<Product>("products.json").filter((x) => !(x.shop === p.shop && x.sku === p.sku));
-    this.write("products.json", [...rest, p]);
+    // An edited product keeps its place in the list; a new one goes to the end.
+    const all = this.read<Product>("products.json");
+    const at = all.findIndex((x) => x.shop === p.shop && x.sku === p.sku);
+    // The flag is only stored when set, so products saved before it existed read the same as new ones.
+    const { archived, ...rest } = p;
+    const row: Product = archived ? { ...rest, archived: true } : rest;
+    this.write("products.json", at === -1 ? [...all, row] : all.map((x, i) => (i === at ? row : x)));
   }
 
   async getVisit(id: string): Promise<Visit | null> {
@@ -64,5 +69,9 @@ export class FileRepo implements Repo {
   async getPhoto(key: string): Promise<Uint8Array | null> {
     const file = path.join(this.dir, "shots", path.basename(key));
     return existsSync(file) ? new Uint8Array(readFileSync(file)) : null;
+  }
+
+  async deletePhoto(key: string): Promise<void> {
+    rmSync(path.join(this.dir, "shots", path.basename(key)), { force: true });
   }
 }

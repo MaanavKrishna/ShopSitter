@@ -44,7 +44,7 @@ export function ChapterRail({ chapters }: { chapters: Chapter[] }) {
   };
 
   return (
-    <nav className="lp-rail" aria-label="Chapters" data-tone={tone}>
+    <nav className="lp-rail" aria-label="Chapters" data-tone={tone} data-at-top={active === 0 || undefined}>
       <ol>
         {chapters.map((c, i) => (
           <li key={c.id}>

@@ -1,14 +1,35 @@
 import { z } from "zod";
+import { saveProduct } from "@/lib/catalogue";
 import { ownerRoute } from "@/lib/owner-http";
+import { centsFromDollars, MAX_DESCRIPTION, MAX_NAME, MAX_PRICE_CENTS, MAX_STOCK, SKU_PATTERN } from "@/lib/products";
 import { getRepo } from "@/lib/repo";
+import { EditError, editRoute } from "./edit";
 
-const Body = z.object({
-  sku: z.string().regex(/^[a-z0-9-]{1,32}$/),
-  name: z.string().min(1).max(60),
-  description: z.string().max(200),
-  priceCents: z.number().int().min(0).max(1_000_00),
-  stock: z.number().int().min(0).max(999),
-});
+const cents = z.number().int().min(0).max(MAX_PRICE_CENTS);
+
+const Body = z
+  .object({
+    sku: z.string().regex(SKU_PATTERN),
+    name: z.string().trim().min(1).max(MAX_NAME),
+    description: z.string().trim().max(MAX_DESCRIPTION),
+    /** The price as the owner typed it, in dollars. Turned into cents here. */
+    price: z.string().max(12).optional(),
+    priceCents: cents.optional(),
+    /** The count before anything was taken. Left out on an edit, it stays as it is; the restock route sets it from a shelf count. */
+    stock: z.number().int().min(0).max(MAX_STOCK).optional(),
+    /** True when adding: a product on sale with this sku is then left alone. A removed one comes back. */
+    create: z.boolean().optional(),
+  })
+  .transform((body, ctx) => {
+    const { price, priceCents, create, ...rest } = body;
+    const value = price === undefined ? priceCents : (centsFromDollars(price) ?? undefined);
+    const checked = cents.safeParse(value);
+    if (!checked.success || (price !== undefined && priceCents !== undefined)) {
+      ctx.addIssue({ code: "custom", message: "price", path: ["price"] });
+      return z.NEVER;
+    }
+    return { fields: { ...rest, priceCents: checked.data }, create: create ?? false };
+  });
 
 export async function GET() {
   return ownerRoute(async (shop) => ({ products: await getRepo().listProducts(shop) }));
@@ -16,12 +37,11 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return Response.json({ error: "bad_request" }, { status: 400 });
-  return ownerRoute(async (shop) => {
-    const repo = getRepo();
-    const existing = (await repo.listProducts(shop)).find((p) => p.sku === parsed.data.sku);
-    const product = { ...parsed.data, shop, refImageUrl: existing?.refImageUrl ?? null };
-    await repo.upsertProduct(product);
+  return editRoute(async (shop) => {
+    if (!parsed.success) throw new EditError("bad_request", 400);
+    const { fields, create } = parsed.data;
+    const product = await saveProduct(getRepo(), shop, fields, create);
+    if (product === "sku_taken") throw new EditError("sku_taken", 409);
     return { product };
   });
 }

@@ -10,7 +10,10 @@ const body = Inter({ variable: "--font-body", subsets: ["latin"] });
 const display = Inter_Tight({ variable: "--font-display", subsets: ["latin"], weight: ["600", "700", "800"] });
 
 export const metadata: Metadata = {
-  title: "Shopsitter — the stand that rings you up",
+  metadataBase: new URL("https://shopsitter.vercel.app"),
+  title: { default: "Shopsitter: the stand that rings you up", template: "%s | Shopsitter" },
+  openGraph: { siteName: "Shopsitter", type: "website" },
+  twitter: { card: "summary_large_image" },
   description:
     "Shopsitter minds an unattended stand. A phone camera counts what you take, your bill appears, and you pay with PayPal.",
 };

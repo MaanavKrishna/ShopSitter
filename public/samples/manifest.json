@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "one-jar",
+    "caption": "A jar leaves the top board",
+    "before": "one-jar-before.jpg",
+    "after": "one-jar-after.jpg"
+  },
+  {
+    "id": "two-alike",
+    "caption": "Two boxes from the lower board are gone",
+    "before": "two-alike-before.jpg",
+    "after": "two-alike-after.jpg"
+  },
+  {
+    "id": "two-kinds",
+    "caption": "Gaps open on both boards",
+    "before": "two-kinds-before.jpg",
+    "after": "two-kinds-after.jpg"
+  },
+  {
+    "id": "slid-along",
+    "caption": "A loaf is slid along the board",
+    "before": "slid-along-before.jpg",
+    "after": "slid-along-after.jpg"
+  },
+  {
+    "id": "light-change",
+    "caption": "The light dims between the two pictures",
+    "before": "light-change-before.jpg",
+    "after": "light-change-after.jpg"
+  },
+  {
+    "id": "gone-and-shifted",
+    "caption": "One thing goes and a jar is nudged sideways",
+    "before": "gone-and-shifted-before.jpg",
+    "after": "gone-and-shifted-after.jpg"
+  }
+]

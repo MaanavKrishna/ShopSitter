@@ -1461,3 +1461,40 @@
 .lp-code small {
   color: var(--on-blue-soft);
 }
+
+/* Top bar on the cobalt page head: the full link set on wide screens, the two key links on a phone. */
+.topbar nav .topbar-wide {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .topbar nav .topbar-wide {
+    display: inline;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar {
+    gap: 0.5rem;
+  }
+
+  .topbar nav {
+    gap: 0.85rem;
+    font-size: 0.92rem;
+  }
+}
+
+/* The chapter rail stays out of the hero, where it would sit behind the bill card. */
+.lp-rail {
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+.lp-rail[data-at-top] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lp-rail[data-at-top]:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}

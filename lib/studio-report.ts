@@ -3,6 +3,7 @@
 
 import type { AgDataSourcesDefinition, AgReportState, AgWidgetLayoutState } from "ag-studio";
 import type { StockRow, VisitRow } from "./owner";
+import { isAdjusted } from "./visits";
 
 const STATUS_LABEL: Record<string, string> = {
   open: "Open",
@@ -13,13 +14,27 @@ const STATUS_LABEL: Record<string, string> = {
   empty: "Nothing taken",
   settled_other: "Settled another way",
 };
+const STATUS_ORDER = ["paid", "unmatched", "paid_adjusted", "settled_other", "paid_late", "open"];
 export const statusLabel = (status: string) => STATUS_LABEL[status] ?? status;
 
 const dollars = (cents: number) => cents / 100;
 const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
+type ItemRow = { visitId: string; product: string; quantity: number; value: number };
+
+/** Rows grouped so the product with the most value comes first, which is the order the chart draws them in. */
+function bestSellersFirst(rows: ItemRow[]): ItemRow[] {
+  const total = new Map<string, number>();
+  for (const r of rows) total.set(r.product, (total.get(r.product) ?? 0) + r.value);
+  return [...rows].sort((a, b) => total.get(b.product)! - total.get(a.product)! || a.product.localeCompare(b.product));
+}
+
 export function buildStudioData(visits: VisitRow[], stock: StockRow[]): AgDataSourcesDefinition {
-  const shown = visits.filter((v) => v.status !== "empty");
+  // Charts colour categories in the order they first appear, so visits are listed by status first:
+  // paid (cobalt), unmatched (coral), adjusted (yellow), then the quieter ones.
+  const shown = visits
+    .filter((v) => v.status !== "empty")
+    .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.openedAt - b.openedAt);
   const days = shown.map((v) => day(v.openedAt)).sort();
   const today = day(Date.now());
 
@@ -40,7 +55,7 @@ export function buildStudioData(visits: VisitRow[], stock: StockRow[]): AgDataSo
           taken: dollars(v.detectedCents),
           paid: dollars(v.paidCents ?? 0),
           unmatched: v.status === "unmatched" ? dollars(v.detectedCents) : 0,
-          adjusted: v.status === "paid_adjusted" ? dollars(Math.max(0, v.detectedCents - (v.paidCents ?? 0))) : 0,
+          adjusted: isAdjusted(v) ? dollars(Math.max(0, v.detectedCents - (v.paidCents ?? 0))) : 0,
           refunded: dollars(v.refundedCents),
         })),
         fields: [
@@ -59,13 +74,15 @@ export function buildStudioData(visits: VisitRow[], stock: StockRow[]): AgDataSo
       {
         id: "items",
         description: "One row per product in a visit.",
-        data: shown.flatMap((v) =>
-          v.detectedBill.lines.map((l) => ({
-            visitId: v.id,
-            product: l.name,
-            quantity: l.qty,
-            value: dollars(l.lineCents),
-          })),
+        data: bestSellersFirst(
+          shown.flatMap((v) =>
+            v.detectedBill.lines.map((l) => ({
+              visitId: v.id,
+              product: l.name,
+              quantity: l.qty,
+              value: dollars(l.lineCents),
+            })),
+          ),
         ),
         fields: [
           { id: "visitId", name: "Visit", format: "textFormat", hide: true },

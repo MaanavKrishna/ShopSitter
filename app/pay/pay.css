@@ -104,6 +104,11 @@
   line-height: var(--lead-heading);
 }
 
+/* The heading only takes focus from script, when a removed line leaves nothing else to hold it. */
+.payx-title:focus {
+  outline: none;
+}
+
 .payx-lede {
   color: var(--ink-soft);
   font-size: var(--t-body);

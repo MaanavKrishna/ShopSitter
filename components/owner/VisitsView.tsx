@@ -12,7 +12,7 @@ import { easeOut } from "@/lib/motion";
 import type { VisitRow } from "@/lib/owner";
 import { countByFilter, matchesFilter, matchesSearch, type VisitFilter } from "@/lib/owner-view";
 import { useOwner } from "./OwnerProvider";
-import { paidText, PhotoLinks, RowButton, StatusBadge, takenText, useRefund, VisitAction, when } from "./parts";
+import { paidText, PhotoLinks, RowButton, takenText, useRefund, VisitAction, VisitStatus, when } from "./parts";
 import { PillSwitch } from "./PillSwitch";
 
 const FILTERS: { value: VisitFilter; label: string }[] = [
@@ -59,11 +59,20 @@ export function VisitsView() {
   );
 
   return (
-    <section className="ow-panel ow-visits" aria-labelledby="visits-h" aria-busy={refreshing || loading || undefined}>
+    <section
+      className="ow-panel ow-visits"
+      aria-labelledby="visits-h"
+      aria-busy={refreshing || loading || undefined}
+      data-focus-list
+    >
       <div className="ow-panel-head ow-visits-head">
-        <h2 id="visits-h" className="sr-only">
+        <h2 id="visits-h" className="sr-only" tabIndex={-1} data-focus-heading>
           Visits, {period.subtitle.toLowerCase()}
         </h2>
+        {/* Said to screen readers each time a filter or search changes what is listed. */}
+        <p className="sr-only" role="status">
+          {loading ? "" : filtered.length === 0 ? "No visits" : `${filtered.length} ${filtered.length === 1 ? "visit" : "visits"}`}
+        </p>
         <PillSwitch
           label="Show visits"
           className="ow-filter"
@@ -157,7 +166,7 @@ export function VisitsView() {
                 </thead>
                 <tbody>
                   {listed.map((v, i) => (
-                    <motion.tr key={v.id} data-flash={flash === v.id || undefined} onClick={() => open(v)} {...arrive(i)}>
+                    <motion.tr key={v.id} data-visit-row={v.id} data-flash={flash === v.id || undefined} onClick={() => open(v)} {...arrive(i)}>
                       <td className="ow-cell-when">{time(v.openedAt)}</td>
                       <td className="ow-cell-taken">
                         <span>
@@ -173,7 +182,7 @@ export function VisitsView() {
                         {v.refundedCents > 0 && <small>−${formatCents(v.refundedCents)} refunded</small>}
                       </td>
                       <td>
-                        <StatusBadge status={v.status} />
+                        <VisitStatus visit={v} />
                       </td>
                       <td className="ow-cell-action" data-end>
                         <VisitAction visit={v} onRefund={refund.open} />
@@ -185,10 +194,10 @@ export function VisitsView() {
 
               <ul className="ow-cards">
                 {listed.map((v, i) => (
-                  <motion.li key={v.id} data-flash={flash === v.id || undefined} onClick={() => open(v)} {...arrive(i)}>
+                  <motion.li key={v.id} data-visit-row={v.id} data-flash={flash === v.id || undefined} onClick={() => open(v)} {...arrive(i)}>
                     <div className="ow-card-top">
                       <span>{time(v.openedAt)}</span>
-                      <StatusBadge status={v.status} />
+                      <VisitStatus visit={v} />
                     </div>
                     <div className="ow-card-taken">
                       {title(v)}

@@ -13,6 +13,7 @@ import {
   IconReceipt,
   IconRefresh,
   IconSettings,
+  IconTag,
 } from "@tabler/icons-react";
 import { MotionConfig, motion } from "motion/react";
 import Link from "next/link";
@@ -27,9 +28,13 @@ const SECTIONS = [
   { href: "/owner", label: "Overview", key: "o", icon: IconLayoutDashboard },
   { href: "/owner/visits", label: "Visits", key: "v", icon: IconReceipt },
   { href: "/owner/shelf", label: "Shelf", key: "s", icon: IconPackage },
+  { href: "/owner/products", label: "Products", key: "p", icon: IconTag },
   { href: "/owner/sales", label: "Sales", key: "a", icon: IconChartBar },
   { href: "/owner/setup", label: "Setup", key: "t", icon: IconSettings },
 ] as const;
+
+/** Sections whose content does not follow the period, so the period switch and "Updated" are left out there. */
+const NO_PERIOD = new Set<string>(["/owner/products", "/owner/setup"]);
 
 const COLLAPSED_KEY = "shopsitter-owner-sidebar";
 
@@ -71,6 +76,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [now, setNow] = useState(loadedAt);
   const section = sectionOf(pathname);
+  const hasPeriod = !NO_PERIOD.has(section.href);
 
   // Which way the content arrives: sideways into and out of a visit, a small rise between sections.
   const [move, setMove] = useState({ path: pathname, from: "none" as "none" | "right" | "left" | "below" });
@@ -175,7 +181,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
           </div>
 
           <nav className="ow-nav" aria-label="Sections">
-            {SECTIONS.slice(0, 4).map((s) => (
+            {SECTIONS.slice(0, 5).map((s) => (
               <SideLink key={s.href} item={s} active={section.href === s.href} collapsed={collapsed}>
                 {s.href === "/owner/visits" && unmatched.length > 0 && (
                   <span className="ow-nav-count" aria-label={`${unmatched.length} unmatched`}>
@@ -187,7 +193,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ow-nav ow-nav-end">
-            <SideLink item={SECTIONS[4]} active={section.href === SECTIONS[4].href} collapsed={collapsed} />
+            <SideLink item={SECTIONS[5]} active={section.href === SECTIONS[5].href} collapsed={collapsed} />
             <Tooltip content="Open stand screen" placement="end" isEnabled={collapsed}>
               <a href="/stand" target="_blank" rel="noreferrer" className="ow-nav-item">
                 <IconDeviceTablet size={18} stroke={1.75} aria-hidden="true" />
@@ -207,9 +213,12 @@ export function OwnerShell({ children }: { children: ReactNode }) {
           <header className="ow-top">
             <h1 className="ow-top-title">{section.label}</h1>
             <div className="ow-top-tools">
-              <span className="ow-updated" aria-live="off">
-                {age(loadedAt, now)}
-              </span>
+              {hasPeriod && (
+                <span className="ow-updated" aria-live="off">
+                  {age(loadedAt, now)}
+                </span>
+              )}
+              {hasPeriod && (
               <Tooltip
                 content={
                   <>
@@ -226,7 +235,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
                     onChange={(value) => changePeriod(Number(value))}
                     options={PERIODS.map((p) => ({
                       value: String(p.days),
-                      name: p.label,
+                      name: p.subtitle,
                       label: (
                         <>
                           <span className="ow-wide">{p.label}</span>
@@ -237,6 +246,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
                   />
                 </span>
               </Tooltip>
+              )}
               <Tooltip
                 content={
                   <>

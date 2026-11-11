@@ -1239,6 +1239,50 @@
   }
 }
 
+/* ---------- Camera could not start ---------- */
+
+/* The stage says the stand is not watching, with the reason, instead of inviting anyone to take things. */
+.sd-blocked h1 {
+  max-width: 16ch;
+  font-size: clamp(2.4rem, 7.5vw, 5.5rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.sd-blocked .sd-ready-line {
+  max-width: 34ch;
+  text-wrap: balance;
+}
+
+.sd-angle-stage h1.sd-angle-off {
+  max-width: 16ch;
+  font-size: clamp(2.2rem, 7vw, 5rem);
+  line-height: 1;
+  text-wrap: balance;
+}
+
+/* Where the camera view would be, in the dock. */
+.sd-cam-off {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: var(--hairline-on-blue);
+  border-radius: 999px;
+  color: var(--on-blue);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sd-cam-off::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+
 /* ---------- Preferences ---------- */
 
 @media (prefers-reduced-motion: reduce) {

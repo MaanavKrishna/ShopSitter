@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { captureVisit } from "@/lib/checkout";
+import { captureVisit, publicVisit } from "@/lib/checkout";
 import { respond } from "@/lib/http";
 import { getGateway } from "@/lib/paypal";
 import { getRepo } from "@/lib/repo";
@@ -10,5 +10,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/visits/[id]/cap
   const { id } = await ctx.params;
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "bad_request" }, { status: 400 });
-  return respond(() => captureVisit(getRepo(), getGateway(), id, parsed.data.orderId, Date.now()));
+  return respond(async () => {
+    const { visit, receipt } = await captureVisit(getRepo(), getGateway(), id, parsed.data.orderId, Date.now());
+    return { visit: publicVisit(visit), receipt };
+  });
 }

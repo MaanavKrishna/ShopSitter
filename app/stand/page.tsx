@@ -9,7 +9,8 @@ import { Wordmark } from "@/components/Wordmark";
 import { Setup } from "@/components/stand/Setup";
 import { Stage } from "@/components/stand/Stage";
 import { Swap } from "@/components/stand/Swap";
-import { useStandToken } from "@/components/stand/useStandToken";
+import { SAVED_CODE_REFUSED, useStandToken } from "@/components/stand/useStandToken";
+import { readJson, sendWithRetry } from "@/lib/client-retry";
 import { spring } from "@/lib/motion";
 import type { PricedBill } from "@/lib/types";
 import type { Visit } from "@/lib/visits";
@@ -21,10 +22,25 @@ const isPaid = (v: Visit) => v.status === "paid" || v.status === "paid_adjusted"
 
 type Current = { visit: Visit; bill: PricedBill };
 
+const GAVE_UP = "Couldn't send the last shelf change. Press Read the shelf now.";
+
+/** The photos and times of a shelf change as the upload the server expects. */
+function changeForm(change: ShelfChange): FormData {
+  const form = new FormData();
+  form.set("before", change.before, "before.jpg");
+  form.set("after", change.after, "after.jpg");
+  if (change.zoom) {
+    form.set("beforeZoom", change.zoom.before, "before-zoom.jpg");
+    form.set("afterZoom", change.zoom.after, "after-zoom.jpg");
+  }
+  form.set("changeStartedAt", String(change.changeStartedAt));
+  form.set("settledAt", String(change.settledAt));
+  return form;
+}
 
 export default function StandPage() {
   const router = useRouter();
-  const { token, booted, save, forget } = useStandToken();
+  const { token, booted, refused, save, forget } = useStandToken();
   const [current, setCurrent] = useState<Current | null>(null);
   const [justPaid, setJustPaid] = useState<number | null>(null);
   const [reading, setReading] = useState(false);
@@ -39,6 +55,12 @@ export default function StandPage() {
   // The dock can shrink to a pill so the display is clean; the choice stays on this device.
   const [collapsed, setCollapsed] = useState(false);
   const queue = useRef<Promise<void>>(Promise.resolve());
+  // A change the server never received. Its "before" photo is kept, so the next read still covers what left the shelf.
+  const unsent = useRef<ShelfChange | null>(null);
+  /** An upload failed and is being sent again. */
+  const [retrying, setRetrying] = useState(false);
+  /** Why the camera could not start, when it could not. */
+  const [cameraProblem, setCameraProblem] = useState<string | null>(null);
 
   useEffect(() => {
     // Extra cameras used to live at /stand?angle=2; they have their own address now.
@@ -78,10 +100,13 @@ export default function StandPage() {
   // Follow the open bill: the customer may correct it or pay it from their phone.
   useEffect(() => {
     if (!visitId) return;
+    // An answer that arrives after the stand has moved on to another visit is dropped.
+    let live = true;
     const timer = setInterval(async () => {
       const res = await fetch(`/api/visits/${visitId}`, { cache: "no-store" }).catch(() => null);
       if (!res?.ok) return;
-      const data = (await res.json()) as Current;
+      const data = await readJson<Current>(res);
+      if (!live || !data?.visit || data.visit.id !== visitId) return;
       if (isPaid(data.visit)) {
         setJustPaid(data.visit.paidCents ?? 0);
         setCurrent(null);
@@ -92,49 +117,54 @@ export default function StandPage() {
         setCurrent(null);
       }
     }, 2000);
-    return () => clearInterval(timer);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
   }, [visitId]);
 
   const onChange = useCallback(
     (change: ShelfChange) => {
-      // One read at a time, in order, so bills never arrive out of sequence.
+      // One read at a time, in order, so bills never arrive out of sequence. A read that cannot be
+      // sent is tried again here, with later changes waiting their turn behind it.
       queue.current = queue.current.then(async () => {
         setReading(true);
+        // The camera has already made this change's "after" its new "before", so a change that was
+        // never received is carried forward: its "before" with the newest "after".
+        const held = unsent.current;
+        const sending: ShelfChange = held
+          ? { before: held.before, after: change.after, changeStartedAt: held.changeStartedAt, settledAt: change.settledAt }
+          : change;
         try {
-          const form = new FormData();
-          form.set("before", change.before, "before.jpg");
-          form.set("after", change.after, "after.jpg");
-          if (change.zoom) {
-            form.set("beforeZoom", change.zoom.before, "before-zoom.jpg");
-            form.set("afterZoom", change.zoom.after, "after-zoom.jpg");
-          }
-          form.set("changeStartedAt", String(change.changeStartedAt));
-          form.set("settledAt", String(change.settledAt));
-          const res = await fetch("/api/stand/change", {
-            method: "POST",
-            headers: { "x-stand-token": token ?? "" },
-            body: form,
-          });
-          if (res.status === 401) {
-            forget();
-            setProblem("That stand code isn't right. Enter it again.");
+          const form = changeForm(sending);
+          const sent = await sendWithRetry(
+            () => fetch("/api/stand/change", { method: "POST", headers: { "x-stand-token": token ?? "" }, body: form }),
+            { onWaiting: () => setRetrying(true) },
+          );
+          if (!sent.ok) {
+            unsent.current = sending;
+            if (sent.reason === "wrong_code") {
+              forget();
+              setProblem("That stand code isn't right. Enter it again.");
+            } else setProblem(GAVE_UP);
             return;
           }
-          if (!res.ok) {
-            setProblem("The stand couldn't reach the server. It will keep trying.");
-            return;
-          }
+          unsent.current = null;
           setProblem(null);
-          const data = (await res.json()) as { visit: Visit | null; bill: PricedBill | null; cameras?: number };
-          setCameras(data.cameras ?? 1);
-          const open = data.visit && data.bill && data.visit.status === "open";
+          const data = await readJson<{ visit: Visit | null; bill: PricedBill | null; cameras?: number }>(sent.response);
+          setCameras(data?.cameras ?? 1);
+          const open = data?.visit && data.bill && data.visit.status === "open";
           setCurrent(open ? { visit: data.visit!, bill: data.bill! } : null);
           // Say so when a change was seen but nothing is owed, so the stand never looks stuck.
           setNote(open ? null : "Nothing was taken.");
           if (!open) setTimeout(() => setNote(null), 6000);
-        } catch {
-          setProblem("The stand couldn't reach the server. It will keep trying.");
+        } catch (e) {
+          // Whatever went wrong, the queue carries on and the change is kept for the next read.
+          console.error("stand upload", e);
+          unsent.current = sending;
+          setProblem(GAVE_UP);
         } finally {
+          setRetrying(false);
           setReading(false);
         }
       });
@@ -158,7 +188,7 @@ export default function StandPage() {
   if (!token) {
     return (
       <Setup
-        problem={problem}
+        problem={problem ?? (refused ? SAVED_CODE_REFUSED : null)}
         onCode={(code) => {
           setProblem(null);
           save(code);
@@ -169,10 +199,14 @@ export default function StandPage() {
 
   const view = justPaid !== null ? "paid" : current ? "bill" : "ready";
   const handAtShelf = !reading && !!sighting?.hand;
-  const tone = reading ? "busy" : handAtShelf || phase === "moving" ? "alert" : phase === "starting" ? "busy" : "calm";
-  const status = reading
-    ? "Reading the shelf…"
-    : sighting?.hand
+  const tone = cameraProblem ? "alert" : reading ? "busy" : handAtShelf || phase === "moving" ? "alert" : phase === "starting" ? "busy" : "calm";
+  const status = cameraProblem
+    ? "The camera isn't running."
+    : retrying
+      ? "Couldn't reach the server. Trying again…"
+      : reading
+        ? "Reading the shelf…"
+        : sighting?.hand
       ? "A hand is at the shelf. Waiting until it is clear…"
       : phase === "moving"
         ? "Something moved. Waiting for the shelf to go still…"
@@ -194,6 +228,8 @@ export default function StandPage() {
           reading={reading}
           moving={phase === "moving"}
           note={note}
+          trouble={retrying ? "Couldn't reach the server. Trying again…" : null}
+          cameraProblem={cameraProblem}
           qr={qr && qr.visitId === visitId ? qr.url : null}
         />
 
@@ -218,6 +254,8 @@ export default function StandPage() {
                 readNow={readNow}
                 onSighting={setSighting}
                 onVisitorLeft={onVisitorLeft}
+                onProblem={setCameraProblem}
+                problemShown
               />
             </motion.div>
 
@@ -263,7 +301,7 @@ export default function StandPage() {
                 <button
                   type="button"
                   className="sd-glass-btn ds-press"
-                  disabled={reading}
+                  disabled={reading || cameraProblem !== null}
                   onClick={() => setReadNow((n) => n + 1)}
                 >
                   Read the shelf now

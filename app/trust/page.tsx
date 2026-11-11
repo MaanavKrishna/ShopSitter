@@ -9,7 +9,7 @@ import { LATE_PAY_MS, OPEN_TIMEOUT_MS } from "@/lib/visits";
 import "../inner.css";
 
 export const metadata: Metadata = {
-  title: "Trust — Shopsitter",
+  title: "Trust",
   description:
     "What Shopsitter’s camera looks at, what it stores and who can see it. It counts items, not people, never accuses anyone, and leaves the money to PayPal.",
 };

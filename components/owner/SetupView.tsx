@@ -1,9 +1,9 @@
 "use client";
 
-import { IconArrowUpRight } from "@tabler/icons-react";
+import { IconArrowRight, IconArrowUpRight } from "@tabler/icons-react";
+import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
-import { formatCents } from "@/lib/money";
 import { useOwner } from "./OwnerProvider";
 
 // The stand screen is camera 1; a stand can have up to three more.
@@ -36,9 +36,11 @@ function PageCode({ path, label }: { path: string; label: string }) {
   );
 }
 
-/** What the owner needs to run the stand: the stand screen, extra cameras, and the catalogue as it stands. */
+/** What the owner needs to run the stand: the stand screen, extra cameras, and the way to the products. */
 export function SetupView() {
-  const { data } = useOwner();
+  const { data, shop } = useOwner();
+  // The demo stand's products cannot be changed, so its link only offers a look.
+  const fixed = shop === "demo";
   const { products } = data;
 
   return (
@@ -84,30 +86,23 @@ export function SetupView() {
         </ul>
       </section>
 
-      <section className="ow-panel" aria-labelledby="products-h">
-        <div className="ow-panel-head">
+      <section className="ow-panel ow-setup-products" aria-labelledby="products-h">
+        <div>
           <h2 id="products-h">Products</h2>
-          <p className="ow-panel-meta">{products.length} on this stand</p>
+          <p>
+            {products.length === 0
+              ? "This stand has no products yet. Add the first one with a name, a price and a photo."
+              : `${products.length} ${products.length === 1 ? "product" : "products"} on this stand. ${
+                  fixed
+                    ? "The demo stand's products are fixed."
+                    : "Change names, prices, photos and how many the shelf holds."
+                }`}
+          </p>
         </div>
-        {products.length === 0 ? (
-          <div className="ow-empty">
-            <b>No products yet</b>
-            <p>Products appear here once the stand has some.</p>
-          </div>
-        ) : (
-          <ul className="ow-rows">
-            {products.map((p) => (
-              <li key={p.sku} className="ow-row ow-product-row">
-                <span className="ow-row-main">
-                  {p.name}
-                  {p.description && <small>{p.description}</small>}
-                </span>
-                <span className="ow-row-when">Starts at {p.stock}</span>
-                <span className="ow-row-money num">${formatCents(p.priceCents)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <Link href="/owner/products" className="ow-rowbtn ds-press">
+          {fixed ? "See products" : products.length === 0 ? "Add a product" : "Edit products"}
+          <IconArrowRight size={15} aria-hidden="true" />
+        </Link>
       </section>
     </div>
   );

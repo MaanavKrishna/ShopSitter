@@ -5,7 +5,12 @@ import type { Product, Shop } from "./types";
 import type { Visit } from "./visits";
 
 export interface Repo {
-  listProducts(shop: Shop): Promise<Product[]>;
+  /**
+   * The products the shop sells now. Archived ones are left out unless asked for; ask for them
+   * when pricing or naming the lines of a visit, which may hold products removed since.
+   */
+  listProducts(shop: Shop, opts?: { includeArchived?: boolean }): Promise<Product[]>;
+  /** Adds or replaces a product, its `archived` flag included: saving without the flag brings an archived product back. */
   upsertProduct(p: Product): Promise<void>;
   getVisit(id: string): Promise<Visit | null>;
   saveVisit(v: Visit): Promise<void>;
@@ -17,6 +22,8 @@ export interface Repo {
   /** Stores a shelf photo privately and returns the key to read it back with. */
   savePhoto(name: string, bytes: Uint8Array): Promise<string>;
   getPhoto(key: string): Promise<Uint8Array | null>;
+  /** Removes a stored photo. Does nothing when the key is not there. */
+  deletePhoto(key: string): Promise<void>;
 }
 
 let cached: Repo | null = null;

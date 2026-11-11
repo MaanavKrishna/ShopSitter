@@ -85,6 +85,8 @@ export function Stage({
   reading,
   moving,
   note,
+  trouble = null,
+  cameraProblem = null,
   qr,
 }: {
   view: StageView;
@@ -94,9 +96,13 @@ export function Stage({
   /** The shelf is changing and has not gone still yet. */
   moving: boolean;
   note: string | null;
+  /** An upload is being sent again: said in place of "Reading the shelf". */
+  trouble?: string | null;
+  /** Why the camera could not start. The stand then says it is not watching instead of inviting anyone. */
+  cameraProblem?: string | null;
   qr: string | null;
 }) {
-  const step = reading ? "Reading the shelf" : moving ? "Noticed a change" : null;
+  const step = trouble ?? (reading ? "Reading the shelf" : moving ? "Noticed a change" : null);
   const lowConfidence = current?.visit.confidence !== null && (current?.visit.confidence ?? 1) < 0.6;
   const manualOnly = !!current?.visit.needsManual && current.bill.totalCents === 0;
 
@@ -132,7 +138,7 @@ export function Stage({
                       transition={springSnappy}
                     >
                       <ScanFrame sweeping />
-                      Reading the shelf
+                      {trouble ?? "Reading the shelf"}
                     </motion.p>
                   )}
                 </AnimatePresence>
@@ -185,6 +191,11 @@ export function Stage({
               </motion.div>
             </aside>
           </motion.div>
+        ) : cameraProblem ? (
+          <motion.div layout="position" key="blocked" className="sd-ready sd-blocked" initial={from} animate={arrive} exit={leave}>
+            <h1>This stand isn&rsquo;t watching the shelf yet</h1>
+            <p className="sd-ready-line">{cameraProblem}</p>
+          </motion.div>
         ) : (
           <motion.div layout="position" key="ready" className="sd-ready" initial={from} animate={arrive} exit={leave}>
             <h1>Take what you like</h1>
@@ -202,7 +213,7 @@ export function Stage({
                     transition={spring}
                   >
                     <motion.span layout="position" className="sd-reading-icon">
-                      <ScanFrame sweeping={reading} />
+                      <ScanFrame sweeping={reading && !trouble} />
                     </motion.span>
                     <motion.span layout="position">
                       <Swap text={step} />

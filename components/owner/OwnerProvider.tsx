@@ -19,7 +19,7 @@ import type { Product, Shop } from "@/lib/types";
 export type Overview = { visits: VisitRow[]; totals: Totals; stock: StockRow[]; products: Product[]; visitors?: number };
 
 export const PERIODS = [
-  { days: 1, label: "Today", short: "Today", subtitle: "The last 24 hours", span: "24 hours" },
+  { days: 1, label: "24 hours", short: "24h", subtitle: "The last 24 hours", span: "24 hours" },
   { days: 7, label: "7 days", short: "7d", subtitle: "The last 7 days", span: "7 days" },
   { days: 30, label: "30 days", short: "30d", subtitle: "The last 30 days", span: "30 days" },
 ] as const;
@@ -30,7 +30,10 @@ const PROBLEMS: Record<string, string> = {
   bad_amount: "That refund is more than what's left of the payment.",
   not_allowed: "That can't be done for this visit.",
   not_found: "That visit no longer exists.",
+  paypal_refused: "PayPal didn't accept the refund. Nothing was sent.",
 };
+
+const REFUND_UNCONFIRMED = "We couldn't confirm the refund. Check PayPal before trying again.";
 
 /** A reload faster than this keeps the old rows on screen instead of flashing placeholders. */
 const SKELETON_AFTER_MS = 180;
@@ -155,6 +158,7 @@ export function OwnerProvider({ shop, initial, children }: { shop: Shop; initial
     async (id: string, body: object) => {
       setBusy(id);
       setProblem(null);
+      const refund = (body as { action?: string }).action === "refund";
       try {
         const res = await fetch(`/api/owner/visits/${id}`, {
           method: "POST",
@@ -162,13 +166,23 @@ export function OwnerProvider({ shop, initial, children }: { shop: Shop; initial
           body: JSON.stringify(body),
         });
         if (!res.ok) {
-          const { error } = await res.json();
-          const text = PROBLEMS[error] ?? "That didn't work. Nothing was changed.";
+          const { error } = (await res.json().catch(() => ({}))) as { error?: string };
+          // A refund that failed on the server side may or may not have reached PayPal.
+          const text =
+            (error && PROBLEMS[error]) ||
+            (refund && res.status >= 500 ? REFUND_UNCONFIRMED : "That didn't work. Nothing was changed.");
           setProblem(text);
           announce(text, "assertive");
         }
         await reload(daysNow.current);
         if (res.ok) setFlash(id);
+      } catch {
+        // No answer at all: it is not known whether the change landed, so the page says only that.
+        const text = refund
+          ? REFUND_UNCONFIRMED
+          : "The stand couldn't be reached. Check the connection, then refresh to see what was saved.";
+        setProblem(text);
+        announce(text, "assertive");
       } finally {
         setBusy(null);
       }

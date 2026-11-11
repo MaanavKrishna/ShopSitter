@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useDragControls, useReducedMotion } from "moti
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { easeOut, spring } from "@/lib/motion";
 import { formatCents } from "@/lib/money";
-import type { Product } from "@/lib/types";
+type Product = { sku: string; name: string; priceCents: number };
 import { CheckGlyph, CloseGlyph, PlusGlyph } from "./glyphs";
 
 type ListProps = {

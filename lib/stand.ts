@@ -42,7 +42,9 @@ export type ShelfChangeResult = { visit: Visit | null; bill: PricedBill | null; 
  */
 export async function handleShelfChange(deps: ShelfChangeDeps, input: ShelfChangeInput): Promise<ShelfChangeResult> {
   const { repo } = deps;
-  const products = await repo.listProducts(input.shop);
+  // The whole catalogue prices the bill; only what is on sale now is shown to the vision model.
+  const catalogue = await repo.listProducts(input.shop, { includeArchived: true });
+  const products = catalogue.filter((p) => !p.archived);
 
   let open: Visit | null = null;
   if (!input.standalone) {
@@ -96,7 +98,7 @@ export async function handleShelfChange(deps: ShelfChangeDeps, input: ShelfChang
   }
   await repo.saveVisit(visit);
 
-  const bill = priceLines(visit.paid ?? visit.detected, products);
+  const bill = priceLines(visit.paid ?? visit.detected, catalogue);
   return closed ? { visit, bill, closed } : { visit, bill };
 }
 

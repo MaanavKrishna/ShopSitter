@@ -31,7 +31,7 @@ export function VoidHero({ products }: { products: Product[] }) {
         <h1>The stand that rings you up</h1>
         <p>Take what you like. A camera counts it, your bill appears, you pay with PayPal.</p>
         <Link className="btn btn-coral" href="/demo">
-          Try it with real shelf photos
+          Try it with sample shelf pictures
         </Link>
       </div>
 

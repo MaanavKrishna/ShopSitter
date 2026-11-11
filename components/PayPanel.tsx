@@ -3,7 +3,7 @@
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { PayPalProvider, usePayPalOneTimePaymentSession } from "@paypal/react-paypal-js/sdk-v6";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AddList, AddSheet } from "@/components/pay/AddSheet";
 import {
   AlertGlyph,
@@ -18,10 +18,15 @@ import {
 } from "@/components/pay/glyphs";
 import { Receipt } from "@/components/pay/Receipt";
 import { RollingNumber } from "@/components/pay/RollingNumber";
+import { captureOutcome, focusAfterRemoval, readJson } from "@/lib/client-retry";
 import { easeOut, spring } from "@/lib/motion";
 import { formatCents } from "@/lib/money";
-import type { Line, PricedBill, Product } from "@/lib/types";
-import type { Visit } from "@/lib/visits";
+import type { publicBill } from "@/lib/checkout";
+import type { Line, PricedBill } from "@/lib/types";
+
+// The pay page is public, so it works from the trimmed record the server shares, not the stored one.
+type Visit = ReturnType<typeof publicBill>["visit"];
+type Product = ReturnType<typeof publicBill>["products"][number];
 import "@/app/pay/pay.css";
 
 type Props = {
@@ -36,6 +41,9 @@ type Props = {
 
 const isPaid = (v: Visit) => v.status === "paid" || v.status === "paid_adjusted" || v.status === "paid_late";
 
+/** Stands for "the add control" when a removed line leaves no other line to focus. */
+const ADD = "\u0000add";
+
 /** Below this the shelf read is shaky enough to ask the customer to double-check. Matches the stand screen. */
 const LOW_CONFIDENCE = 0.6;
 
@@ -45,8 +53,22 @@ const MESSAGES: Record<string, string> = {
   too_late: "This bill is more than a day old and can't be paid here any more.",
   amount_mismatch: "The bill changed while you were paying. Nothing was charged. Check the new total and pay again.",
   not_editable: "This bill can't be changed any more.",
+  order_failed: "Couldn't start the payment. Nothing was charged. Check your connection and try again.",
+  paypal_error: "PayPal couldn't finish the payment. Try again.",
+  slow_down: "The stand is busy right now. Wait a moment and try again.",
 };
-const explain = (code: string) => MESSAGES[code] ?? "Something went wrong and nothing was charged. Try again.";
+const EDIT_FAILED = "Couldn't update the bill. Check your connection and try again.";
+const UNCONFIRMED = "We couldn't confirm the payment. Check your PayPal activity before paying again.";
+const explain = (code: string | undefined) =>
+  (code && MESSAGES[code]) || "Something went wrong and nothing was charged. Try again.";
+
+/** What went wrong decides the heading: changing the bill, paying it, or a payment nobody could confirm. */
+type Notice = { about: "edit" | "pay" | "unconfirmed"; text: string };
+const NOTICE_TITLE: Record<Notice["about"], string> = {
+  edit: "Bill not updated.",
+  pay: "Payment problem.",
+  unconfirmed: "Payment not confirmed.",
+};
 
 type Tone = "info" | "look" | "error";
 
@@ -67,7 +89,7 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
   const [visit, setVisit] = useState(initialVisit);
   const [bill, setBill] = useState(initialBill);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   // With nothing read from the shelf, the list of things to add is the whole job, so it sits in the page.
   const [inlineAdd] = useState(initialVisit.needsManual && initialBill.lines.length === 0);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -75,13 +97,29 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
   // Set when the payment happens on this page, so the receipt plays its entrance once.
   const [justPaid, setJustPaid] = useState(false);
 
+  const view = useRef<HTMLDivElement>(null);
+  // Where focus should land once the bill has redrawn after a line was removed: a sku, or the add control.
+  const focusNext = useRef<string | null>(null);
+
+  /** Asks the server for the bill as it stands. Leaves the screen alone when there is no answer. */
   const refresh = useCallback(async () => {
-    const res = await fetch(`/api/visits/${visitId}`, { cache: "no-store" });
-    if (!res.ok) return;
-    const data = await res.json();
+    const res = await fetch(`/api/visits/${visitId}`, { cache: "no-store" }).catch(() => null);
+    if (!res?.ok) return;
+    const data = await readJson<{ visit: Visit; bill: PricedBill }>(res);
+    if (!data?.visit || !data.bill) return;
     setVisit(data.visit);
     setBill(data.bill);
   }, [visitId]);
+
+  // A removed line takes the focused button with it: hand focus to the next line, or to the add control.
+  useEffect(() => {
+    const want = focusNext.current;
+    if (want === null) return;
+    focusNext.current = null;
+    const root = view.current;
+    const line = want === ADD ? null : root?.querySelector<HTMLElement>(`[data-sku="${CSS.escape(want)}"] .payx-step`);
+    (line ?? root?.querySelector<HTMLElement>(".payx-addbtn, .payx-adder .payx-additem") ?? root?.querySelector<HTMLElement>(".payx-title"))?.focus();
+  }, [bill]);
 
   async function setQty(sku: string, qty: number) {
     if (busy) return;
@@ -98,15 +136,22 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ lines: next.filter((l) => l.qty > 0) }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setNotice(explain(data.error));
-        // The message lives in the pay bar, behind the sheet.
-        setSheetOpen(false);
-      } else {
+      const data = await readJson<{ error?: string; bill?: PricedBill; visit?: Visit }>(res);
+      if (res.ok && data?.bill && data.visit) {
+        if (qty <= 0) focusNext.current = focusAfterRemoval(current.map((l) => l.sku), sku) ?? ADD;
         setBill(data.bill);
         setVisit(data.visit);
+      } else {
+        // Nothing was changed on screen ahead of the answer, so the quantities still show what the server holds.
+        setNotice({ about: "edit", text: (data?.error && MESSAGES[data.error]) || EDIT_FAILED });
+        // The message lives in the pay bar, behind the sheet.
+        setSheetOpen(false);
+        // A refusal usually means the bill moved on (paid, closed): show it as it is now.
+        if (data?.error) void refresh();
       }
+    } catch {
+      setNotice({ about: "edit", text: EDIT_FAILED });
+      setSheetOpen(false);
     } finally {
       setBusy(false);
       setPendingSku(null);
@@ -143,6 +188,7 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
       ) : (
         <motion.div
           key="bill"
+          ref={view}
           className="payx-view"
           exit="gone"
           variants={{ gone: { transition: { duration: 0.22 } } }}
@@ -153,7 +199,9 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
             transition={{ duration: 0.22, ease: easeOut }}
           >
             <div className="payx-intro payx-rise">
-              <h1 className="payx-title">Your bill</h1>
+              <h1 className="payx-title" tabIndex={-1}>
+                Your bill
+              </h1>
               <p className="payx-lede">
                 {visit.needsManual
                   ? "The stand couldn't read the shelf this time. Add what you took."
@@ -189,6 +237,7 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
                     key={l.sku}
                     layout="position"
                     className="payx-line"
+                    data-sku={l.sku}
                     initial={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1, transition: { ...spring, delay: 0.08 } }}
                     exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.97 }}
@@ -295,8 +344,8 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
                     exit={{ opacity: 0 }}
                     transition={spring}
                   >
-                    <Note tone="error" icon={<AlertGlyph />} title="Payment problem.">
-                      {notice}
+                    <Note tone="error" icon={<AlertGlyph />} title={NOTICE_TITLE[notice.about]}>
+                      {notice.text}
                     </Note>
                   </motion.div>
                 )}
@@ -338,7 +387,12 @@ export function PayPanel({ visitId, initialVisit, initialBill, products, expired
                         setNotice(null);
                       }}
                       onProblem={(code) => {
-                        setNotice(explain(code));
+                        setNotice({ about: "pay", text: explain(code) });
+                        void refresh();
+                      }}
+                      onUnconfirmed={() => {
+                        // PayPal may already have taken the money: say so, and look again (it may now be paid).
+                        setNotice({ about: "unconfirmed", text: UNCONFIRMED });
                         void refresh();
                       }}
                     />
@@ -436,42 +490,53 @@ function PayButton({
   disabled,
   onPaid,
   onProblem,
+  onUnconfirmed,
 }: {
   visitId: string;
   totalCents: number;
   disabled: boolean;
   onPaid: (visit: Visit) => void;
-  onProblem: (code: string) => void;
+  /** The payment was turned down before any money moved. */
+  onProblem: (code: string | undefined) => void;
+  /** The capture got no clear answer, so the money may have moved. */
+  onUnconfirmed: () => void;
 }) {
   const [working, setWorking] = useState(false);
+  // Set when a step has already told the customer what happened, so the SDK's own error does not replace it.
+  const told = useRef(false);
 
   const { isPending, error, handleClick } = usePayPalOneTimePaymentSession({
     presentationMode: "auto",
     // Returned un-awaited to the SDK so the browser still treats the tap as a user action.
     createOrder: async () => {
-      const res = await fetch(`/api/visits/${visitId}/order`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        onProblem(data.error);
-        throw new Error(data.error);
+      const res = await fetch(`/api/visits/${visitId}/order`, { method: "POST" }).catch(() => null);
+      const data = res ? await readJson<{ error?: string; orderId?: string }>(res) : null;
+      if (!res?.ok || !data?.orderId) {
+        // No order was made, so nothing can have been charged.
+        told.current = true;
+        onProblem(data?.error ?? "order_failed");
+        throw new Error(data?.error ?? "order_failed");
       }
-      return { orderId: data.orderId as string };
+      return { orderId: data.orderId };
     },
     onApprove: async ({ orderId }) => {
       const res = await fetch(`/api/visits/${visitId}/capture`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ orderId }),
-      });
-      const data = await res.json();
+      }).catch(() => null);
+      const data = res ? await readJson<{ error?: string; visit?: Visit }>(res) : null;
       setWorking(false);
-      if (res.ok) onPaid(data.visit);
-      else onProblem(data.error);
+      told.current = true;
+      const outcome = captureOutcome(res?.status ?? null, data?.error);
+      if (outcome === "paid" && data?.visit) onPaid(data.visit);
+      else if (outcome === "refused") onProblem(data?.error);
+      else onUnconfirmed();
     },
     onCancel: () => setWorking(false),
     onError: () => {
       setWorking(false);
-      onProblem("paypal_error");
+      if (!told.current) onProblem("paypal_error");
     },
   });
 
@@ -491,8 +556,10 @@ function PayButton({
       className="btn btn-paypal btn-pay"
       disabled={disabled || isPending || working}
       onClick={() => {
+        told.current = false;
         setWorking(true);
-        void handleClick();
+        // A failure is reported through onError; this only keeps the rejection from going unhandled.
+        void Promise.resolve(handleClick()).catch(() => {});
       }}
     >
       {isPending ? "Loading PayPal…" : working ? "Waiting for PayPal…" : `Pay $${formatCents(totalCents)} with PayPal`}

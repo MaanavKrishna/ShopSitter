@@ -19,15 +19,18 @@ export default function DemoPage() {
         <header className="topbar">
           <Wordmark />
           <nav aria-label="Main">
-            <Link href="/">Home</Link>
-            <Link href="/owner">Owner&apos;s view</Link>
+            <Link className="topbar-wide" href="/how-it-works">How it works</Link>
+            <Link className="topbar-wide" href="/owners">For owners</Link>
+            <Link className="topbar-wide" href="/trust">Trust</Link>
+            <Link href="/" >Home</Link>
+            <Link href="/owner/login">Owner sign-in</Link>
           </nav>
         </header>
         <div className="ds-container dm-head-text">
           <h1 className="ds-h1">Try it without a camera</h1>
           <p className="ds-lead">
             {samples.length > 0
-              ? "Each pair is a real photo of the demo shelf before and after a visitor. Pick one and Shopsitter reads what was taken, writes the bill, and lets you pay it in the PayPal sandbox."
+              ? "Each pair shows a sample shelf before and after a visitor. Pick one and the vision model reads what was taken, the server writes the bill, and you can pay it in the PayPal sandbox."
               : "Shopsitter reads a before and after photo of the demo shelf, writes the bill, and lets you pay it in the PayPal sandbox."}
           </p>
         </div>

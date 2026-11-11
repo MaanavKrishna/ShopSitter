@@ -7,6 +7,7 @@ const STATUS: Record<CheckoutErrorCode, number> = {
   already_paid: 409,
   too_late: 409,
   amount_mismatch: 409,
+  captured_but_unrecorded: 500,
 };
 
 /** Runs a route handler body and turns known checkout errors into JSON responses. */

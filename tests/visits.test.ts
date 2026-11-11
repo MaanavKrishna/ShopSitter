@@ -6,6 +6,7 @@ import {
   applyShelfChange,
   expireIfStale,
   mergeLines,
+  isAdjusted,
   settlePayment,
 } from "@/lib/visits";
 
@@ -110,5 +111,37 @@ describe("settlePayment", () => {
     const v = open2Honey();
     const empty = applyShelfChange(v, [{ sku: "honey", qty: -2 }], 2_000, 3_000, "demo", newId).visit!;
     expect(() => settlePayment(empty, [], 0, 4_000)).toThrow("not_payable");
+  });
+});
+
+describe("adjusted", () => {
+  const late = () => expireIfStale(open2Honey(), 1_000 + 600_001);
+
+  it("is recorded apart from lateness when a payment is settled", () => {
+    expect(settlePayment(open2Honey(), [{ sku: "honey", qty: 2 }], 1400, 9_000).adjusted).toBe(false);
+    expect(settlePayment(open2Honey(), [{ sku: "honey", qty: 1 }], 700, 9_000).adjusted).toBe(true);
+    const u = late();
+    const paidLate = settlePayment(u, [{ sku: "honey", qty: 1 }], 700, u.closedAt! + 1000);
+    expect(paidLate.status).toBe("paid_late");
+    expect(paidLate.adjusted).toBe(true);
+    expect(settlePayment(u, [{ sku: "honey", qty: 2 }], 1400, u.closedAt! + 1000).adjusted).toBe(false);
+  });
+
+  it("is worked out for visits stored before the flag existed", () => {
+    const strip = <T extends { adjusted?: boolean }>(v: T) => {
+      const { adjusted: _dropped, ...rest } = v;
+      void _dropped;
+      return rest;
+    };
+    const u = late();
+    expect(isAdjusted(strip(settlePayment(open2Honey(), [{ sku: "honey", qty: 1 }], 700, 9_000)))).toBe(true);
+    expect(isAdjusted(strip(settlePayment(open2Honey(), [{ sku: "honey", qty: 2 }], 1400, 9_000)))).toBe(false);
+    expect(isAdjusted(strip(settlePayment(u, [{ sku: "honey", qty: 1 }], 700, u.closedAt! + 1000)))).toBe(true);
+    expect(isAdjusted(strip(settlePayment(u, [{ sku: "honey", qty: 2 }], 1400, u.closedAt! + 1000)))).toBe(false);
+  });
+
+  it("is never true for a visit that was not paid", () => {
+    expect(isAdjusted(open2Honey())).toBe(false);
+    expect(isAdjusted({ ...late(), paid: [{ sku: "honey", qty: 1 }] })).toBe(false);
   });
 });

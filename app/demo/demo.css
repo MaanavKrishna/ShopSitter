@@ -351,6 +351,17 @@
   color: var(--ink-soft);
 }
 
+.dm-note {
+  justify-self: start;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  border: var(--hairline);
+  font-size: var(--t-sm);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
 .dm-problem {
   margin-bottom: var(--s-5);
   max-width: var(--container-narrow);
@@ -441,6 +452,13 @@
 .dm-caption {
   font-weight: 600;
   color: var(--ink);
+}
+
+/* Side by side, captions of one and two lines keep the buttons level. */
+@media (min-width: 760px) {
+  .dm-caption {
+    min-height: 2lh;
+  }
 }
 
 .dm-result {

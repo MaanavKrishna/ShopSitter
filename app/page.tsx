@@ -63,14 +63,16 @@ export default function Home() {
   return (
     <>
       <SiteNav />
-      <ChapterRail chapters={CHAPTERS} />
 
       <section id="top" data-tone="dark" className="void hero">
         <header className="topbar">
           <Wordmark />
           <nav aria-label="Main">
-            <NextLink href="/demo">Try the demo</NextLink>
-            <NextLink href="/owner">Owner&apos;s view</NextLink>
+            <NextLink className="topbar-wide" href="/how-it-works">How it works</NextLink>
+            <NextLink className="topbar-wide" href="/owners">For owners</NextLink>
+            <NextLink className="topbar-wide" href="/trust">Trust</NextLink>
+            <NextLink href="/demo">Demo</NextLink>
+            <NextLink href="/owner/login">Owner sign-in</NextLink>
           </nav>
         </header>
         <VoidHero products={DEMO_PRODUCTS} />
@@ -173,6 +175,7 @@ export default function Home() {
         </section>
       </main>
 
+      <ChapterRail chapters={CHAPTERS} />
       <SiteFooter />
     </>
   );

@@ -17,7 +17,7 @@ export function DemoEmpty() {
           The shelf photos are still being taken
         </h2>
         <p className="ds-lead">
-          They&apos;re coming from a real shelf. Until they land, nothing here pretends to be a result: the three
+          They are on their way. Until they land, nothing here pretends to be a result: the three
           panels are drawings of what a run will do.
         </p>
 

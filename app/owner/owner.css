@@ -2238,3 +2238,964 @@ tr[data-flash] > td {
     transform: none;
   }
 }
+
+/* ==================== Products: the catalogue editor ==================== */
+
+.ow-products {
+  display: grid;
+  gap: var(--s-4);
+  max-width: 980px;
+}
+
+.ow-prod-fixed,
+.ow-prod-notice {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  font-size: var(--t-sm);
+}
+
+.ow-prod-fixed {
+  border: var(--hairline);
+  background: var(--tint);
+  color: var(--ink-soft);
+}
+
+.ow-prod-notice {
+  background: var(--ow-coral-tint, #ffe2da);
+  color: var(--ow-coral-text, #b02f17);
+  font-weight: 500;
+}
+
+.ow-prod-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--s-3);
+  min-width: 0;
+}
+
+.ow-prod-empty p {
+  margin-bottom: var(--s-3);
+}
+
+.ow-prod-cols {
+  display: none;
+}
+
+.ow-prod-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ow-prod-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "thumb main price"
+    "thumb meta actions";
+  align-items: center;
+  gap: 2px var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-top: var(--hairline);
+  background: var(--paper);
+  transition: background-color var(--dur-fast);
+}
+
+.ow-prod-row:last-child {
+  border-radius: 0 0 calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px);
+}
+
+.ow-prod-row[data-busy] {
+  background: var(--tint);
+}
+
+.ow-prod-thumb {
+  grid-area: thumb;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--tint);
+  color: var(--ink-soft);
+  overflow: hidden;
+}
+
+.ow-prod-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ow-prod-main {
+  grid-area: main;
+  display: grid;
+  min-width: 0;
+}
+
+.ow-prod-name {
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: 500;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ow-prod-open {
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* The name's hit area covers the whole row, so a tap anywhere on a product opens it. */
+.ow-prod-row:not([data-static]) {
+  position: relative;
+}
+
+.ow-prod-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.ow-prod-actions {
+  position: relative;
+}
+
+.ow-prod-main small {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ow-prod-sku {
+  display: none;
+  color: var(--ink-soft);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--t-xs);
+}
+
+.ow-prod-stock {
+  grid-area: meta;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-prod-row:has(.ow-prod-main small) .ow-prod-stock {
+  grid-area: auto;
+  grid-column: 2;
+}
+
+.ow-prod-price {
+  grid-area: price;
+  justify-self: end;
+  font-size: var(--t-ui);
+  white-space: nowrap;
+}
+
+.ow-prod-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-1);
+  min-height: 20px;
+}
+
+.ow-prod-saving {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 20px;
+  color: var(--blue);
+}
+
+/* On a phone the row opens the editor, and delete lives inside it. */
+.ow-prod-edit,
+.ow-prod-delete {
+  display: none;
+}
+
+.ow-icon-btn.ow-prod-delete:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .ow-prod-row:not([data-static]):hover {
+    background-color: var(--ow-hover);
+  }
+
+  .ow-icon-btn.ow-prod-delete:hover:not(:disabled) {
+    color: var(--ow-coral-text);
+    background-color: var(--ow-coral-tint);
+  }
+}
+
+/* The form inside the dialog */
+.ow-prod-form {
+  display: grid;
+  gap: var(--s-4);
+  overflow-y: auto;
+}
+
+.ow-prod-form textarea:focus-visible {
+  outline: none;
+}
+
+.ow-prod-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+  align-items: start;
+}
+
+.ow-prod-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding-top: var(--s-1);
+}
+
+.ow-prod-foot-end {
+  display: flex;
+  gap: var(--s-2);
+  margin-left: auto;
+}
+
+.ow-photo-field {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.ow-photo-label {
+  font-size: var(--t-ui);
+  font-weight: 500;
+}
+
+.ow-photo-label small {
+  margin-left: var(--s-1);
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
+  font-weight: 400;
+}
+
+.ow-photo-hint {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-photo-drop {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-4);
+  margin-top: var(--s-1);
+  padding: var(--s-3);
+  border: 1px dashed #b9c4e6;
+  border-radius: var(--r-md);
+  background: var(--tint);
+  transition:
+    border-color var(--dur-fast),
+    background-color var(--dur-fast);
+}
+
+.ow-photo-drop[data-filled] {
+  border-style: solid;
+  border-color: var(--line);
+  background: var(--paper);
+}
+
+.ow-photo-drop[data-over] {
+  border-color: var(--blue);
+  background: var(--chip);
+}
+
+.ow-photo-drop img,
+.ow-photo-empty {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--r-sm);
+}
+
+.ow-photo-drop img {
+  display: block;
+  border: var(--hairline);
+  object-fit: cover;
+}
+
+.ow-photo-empty {
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  color: var(--blue);
+  box-shadow: var(--e-1);
+}
+
+.ow-photo-actions {
+  display: grid;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.ow-photo-text {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-photo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.ow-field-error {
+  color: var(--ow-coral-text, #b02f17);
+  font-size: var(--t-sm);
+  font-weight: 500;
+}
+
+/* Setup's way in */
+.ow-setup-products {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-4);
+}
+
+.ow-setup-products p {
+  max-width: 58ch;
+  margin-top: var(--s-1);
+  color: var(--ink-soft);
+}
+
+.ow-setup-products .ow-rowbtn,
+.ow-shelf-edit {
+  text-decoration: none;
+}
+
+.ow-shelf-edit {
+  color: var(--blue);
+  font-weight: 500;
+}
+
+@media (min-width: 720px) {
+  .ow-prod-cols,
+  .ow-prod-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 150px) 104px 84px 104px;
+    grid-template-areas: none;
+    align-items: center;
+    gap: var(--s-4);
+  }
+
+  .ow-prod-cols {
+    padding: var(--s-2) var(--s-4);
+    border-top: var(--hairline);
+    color: var(--ink-soft);
+    font-size: var(--t-xs);
+    font-weight: 500;
+  }
+
+  .ow-prod-cols [data-end],
+  .ow-prod-row [data-end] {
+    justify-self: end;
+    text-align: right;
+  }
+
+  .ow-prod-row {
+    min-height: 60px;
+    padding-block: var(--s-2);
+  }
+
+  .ow-prod-row > *,
+  .ow-prod-row:has(.ow-prod-main small) .ow-prod-stock {
+    grid-area: auto;
+    grid-column: auto;
+  }
+
+  .ow-prod-sku {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ow-prod-stock {
+    color: var(--ink);
+    font-size: var(--t-ui);
+  }
+
+  .ow-prod-unit {
+    display: none;
+  }
+
+  .ow-prod-edit,
+  .ow-prod-delete {
+    display: inline-flex;
+  }
+}
+
+/* With a mouse the row's actions wait until the row is pointed at or holds focus. */
+@media (min-width: 720px) and (hover: hover) {
+  .ow-prod-edit,
+  .ow-prod-delete {
+    opacity: 0;
+    transition:
+      opacity var(--dur-fast),
+      color var(--dur-fast),
+      background-color var(--dur-fast),
+      transform var(--dur-press) ease-out;
+  }
+
+  .ow-prod-row:is(:hover, :focus-within) :is(.ow-prod-edit, .ow-prod-delete) {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 479px) {
+  /* A label that wraps must not push its field below the one beside it. */
+  .ow-prod-pair {
+    align-items: end;
+  }
+
+  .ow-photo-drop {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+
+  .ow-photo-drop img,
+  .ow-photo-empty {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* ==================== End of products ==================== */
+
+/* ==================== Ask: questions about the stand ==================== */
+
+.ow-ask {
+  display: grid;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.ow-ask-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 44px;
+  padding: 0 6px 0 var(--s-3);
+  border: var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink-soft);
+  box-shadow: var(--e-1);
+  transition:
+    border-color var(--dur-fast),
+    box-shadow var(--dur-fast);
+}
+
+.ow-ask-bar:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgb(10 53 200 / 0.16);
+}
+
+.ow-ask-bar > svg {
+  flex: none;
+}
+
+.ow-ask-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  /* Below 16px a phone zooms the page when the field takes focus. */
+  font-size: 16px;
+}
+
+.ow-ask-bar input:focus-visible {
+  outline: none;
+}
+
+.ow-ask-bar input::placeholder {
+  color: var(--ink-soft);
+}
+
+.ow-ask-key {
+  display: none;
+  flex: none;
+  min-width: 20px;
+  padding: 1px 5px;
+  border: var(--hairline);
+  border-radius: var(--r-xs);
+  background: var(--tint);
+  color: var(--ink-soft);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: var(--t-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.ow-ask-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--blue);
+  color: var(--paper);
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.ow-ask-send:disabled {
+  background: var(--tint);
+  color: var(--ink-soft);
+}
+
+.ow-ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ow-ask-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast),
+    opacity var(--dur-fast);
+}
+
+.ow-ask-chip:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.ow-ask-brief {
+  border-color: transparent;
+  background: var(--tint);
+  color: var(--blue);
+}
+
+.ow-ask-out {
+  margin-top: var(--s-1);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  border: var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--e-1);
+}
+
+.ow-ask-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 28px;
+}
+
+.ow-ask-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ow-ask-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -6px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--ink-soft);
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast);
+}
+
+.ow-ask-answer {
+  max-width: 72ch;
+  margin-top: var(--s-1);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.ow-ask-problem {
+  margin-top: var(--s-1);
+  color: var(--ow-coral-text);
+  font-size: var(--t-ui);
+  font-weight: 500;
+}
+
+.ow-ask-problem[data-limited] {
+  color: var(--yellow-text);
+}
+
+.ow-ask-reading {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+
+.ow-ask-reading span {
+  color: var(--ink-soft);
+  font-size: var(--t-ui);
+}
+
+.ow-ask-reading i {
+  display: block;
+  width: min(100%, 520px);
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--tint) 25%, #e2e8ff 50%, var(--tint) 75%) 0 0 / 200% 100%;
+  animation: ow-ask-read 1.4s linear infinite;
+}
+
+.ow-ask-reading i + i {
+  width: min(70%, 340px);
+}
+
+@keyframes ow-ask-read {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.ow-ask-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--s-3);
+}
+
+.ow-ask-from {
+  margin-right: 2px;
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
+}
+
+.ow-ask-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-xs);
+  background: var(--tint);
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.ow-ask-fact[data-link] {
+  color: var(--blue);
+}
+
+.ow-ask-fact[data-tone="paypal"] {
+  background: var(--yellow-tint);
+  color: var(--yellow-text);
+}
+
+@media (hover: hover) {
+  .ow-ask-chip:hover:not(:disabled) {
+    border-color: #b9c4e6;
+    background: var(--tint);
+    color: var(--ink);
+  }
+
+  .ow-ask-brief:hover:not(:disabled) {
+    border-color: transparent;
+    background: #e2e8ff;
+    color: var(--blue-deep);
+  }
+
+  .ow-ask-send:hover:not(:disabled) {
+    background: var(--blue-deep);
+  }
+
+  .ow-ask-close:hover {
+    background: var(--ow-hover);
+  }
+
+  .ow-ask-fact[data-link]:hover {
+    background: #e2e8ff;
+    color: var(--blue-deep);
+  }
+}
+
+/* The shortcut hint is for a keyboard; a phone has none. */
+@media (min-width: 900px) and (hover: hover) {
+  .ow-ask-key {
+    display: block;
+  }
+
+  .ow-ask-bar:focus-within .ow-ask-key {
+    display: none;
+  }
+}
+
+@media (max-width: 719px) {
+  .ow-ask-facts {
+    gap: var(--s-2) 6px;
+  }
+
+  .ow-ask-fact {
+    min-height: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ow-ask-reading i {
+    animation: none;
+  }
+}
+
+/* ==================== End of ask ==================== */
+
+/* Products: the id of an existing product is shown, not edited. */
+.ow-prod-form input[readonly] {
+  color: var(--ink-soft);
+}
+
+/* ---------- Sales on a phone: say that the board scrolls ---------- */
+.ow-studio-hint {
+  display: none;
+  margin: 0 0 var(--s-2);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+@media (max-width: 760px) {
+  .ow-studio-hint {
+    display: block;
+  }
+}
+
+/* ==================== qa fixes ==================== */
+
+/* A heading only takes focus from script, when the row that held it has gone. */
+[data-focus-heading]:focus {
+  outline: none;
+}
+
+/* "Paid late" and "Adjusted" side by side. */
+.ow-status-set {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ow-adjusted {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  background: var(--yellow-tint);
+  color: var(--yellow-text);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Settled another way: the button becomes its own question, in place. */
+.ow-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ow-rowbtn[data-off] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Shelf: the restock button ends each row. */
+.ow-shelf-wrap {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.ow-shelf-act {
+  justify-self: end;
+}
+
+@media (max-width: 719px) {
+  .ow-shelf-list > li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name name left"
+      "level level level"
+      "price taken act";
+  }
+
+  .ow-shelf-list > li > .ow-shelf-fact:last-of-type {
+    grid-area: taken;
+    justify-self: start;
+  }
+
+  .ow-shelf-act {
+    grid-area: act;
+  }
+}
+
+@media (min-width: 720px) {
+  .ow-shelf-cols,
+  .ow-shelf-list > li {
+    grid-template-columns: minmax(150px, 1.2fr) minmax(100px, 2fr) 88px 80px 132px 92px;
+    gap: var(--s-4);
+  }
+}
+
+/* Touch targets of at least 44px on a phone. */
+@media (max-width: 899px) {
+  .ow-photos a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .ow-card-taken .ow-visit-link,
+  .ow-row-main a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .ow-top .ow-switch-item {
+    min-width: 44px;
+  }
+
+  .ow-ask-chip {
+    min-height: 44px;
+  }
+
+  .ow-ask-send {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Six sections: each tab is 56px or wider on a 360px phone. */
+  .ow-tabs {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    padding-inline: var(--s-1);
+  }
+
+  .ow-tab {
+    font-size: 0.66rem;
+  }
+
+  .ow-tab .ow-tab-pill {
+    inset: 0 2px;
+  }
+}
+
+/* Product editor: the count of an existing product is shown, and changed through Restock. */
+.ow-prod-count {
+  display: grid;
+  gap: var(--s-1);
+}
+
+/* Matches the field labels beside it. */
+.ow-prod-count-label {
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.ow-prod-count-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 40px;
+}
+
+.ow-prod-count-row .num {
+  font-size: var(--t-ui);
+  font-weight: 600;
+}
+
+/* In the table the question is wider than its column, so it lies over the end of the row. */
+@media (min-width: 1100px) {
+  .ow-table .ow-cell-action {
+    position: relative;
+  }
+
+  .ow-table .ow-confirm[data-asking] {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    right: var(--s-4);
+    transform: translateY(-50%);
+    padding-left: var(--s-3);
+    background: var(--paper);
+    box-shadow: -12px 0 10px var(--paper);
+  }
+}
+
+@media (min-width: 1100px) and (hover: hover) {
+  .ow-table .ow-confirm[data-asking] {
+    background: #f6f8ff;
+    box-shadow: -12px 0 10px #f6f8ff;
+  }
+}
+
+/* ==================== End of qa fixes ==================== */

@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { readAngles } from "@/lib/angles";
-import { allow, isStandTokenValid } from "@/lib/auth";
+import { callerOf, demoReadGate, refuseStand } from "@/lib/auth";
+import { healDemo } from "@/lib/demo-reset";
 import { getRepo } from "@/lib/repo";
 import { readSample } from "@/lib/samples";
 import { handleShelfChange, type ShelfChangeDeps } from "@/lib/stand";
@@ -43,10 +44,12 @@ export async function POST(req: Request) {
   if (type.includes("application/json")) {
     const parsed = DemoBody.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return bad("bad_request");
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-    if (!allow(`demo:${ip}`, 10, 60_000)) return bad("slow_down", 429);
     const found = readSample(parsed.data.sampleId);
     if (!found) return bad("unknown_sample");
+    // Each read is a paid model call: limited per caller, and across everyone ("demo_busy").
+    const gate = demoReadGate(callerOf(req));
+    if (gate !== "ok") return bad(gate, 429);
+    await healDemo(getRepo(), Date.now()).catch((e) => console.error("demo reset failed", e));
     const now = Date.now();
     const result = await handleShelfChange(deps(), {
       shop: "demo",
@@ -61,12 +64,10 @@ export async function POST(req: Request) {
   }
 
   // Live stand: the camera page uploads the before and after stills.
-  const caller = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-  if (!isStandTokenValid(req.headers.get("x-stand-token")?.trim() ?? null)) {
-    console.warn("stand change refused: wrong stand code");
-    // The stand code is short enough to type on a phone, so guessing is slowed right down.
-    if (!allow(`standcode:${caller}`, 5, 10 * 60_000)) return bad("slow_down", 429);
-    return bad("unauthorized", 401);
+  const refusal = refuseStand(req);
+  if (refusal) {
+    if (refusal.status === 401) console.warn("stand change refused: wrong stand code");
+    return refusal;
   }
   const form = await req.formData().catch(() => null);
   const before = form?.get("before");

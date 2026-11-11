@@ -7,17 +7,22 @@ import { Wordmark } from "@/components/Wordmark";
 import { easeOut, spring } from "@/lib/motion";
 import { Setup } from "./Setup";
 import { Swap } from "./Swap";
-import { useStandToken } from "./useStandToken";
+import { SAVED_CODE_REFUSED, useStandToken } from "./useStandToken";
+
+// True as written: the camera takes a fresh still every few seconds and sends that one.
+const UNSENT = "This camera couldn't reach the server. It sends a new photo every few seconds.";
 
 /**
  * An extra camera on another side of the shelf. It sends each new still of the shelf to the
  * stand; the main stand screen decides when to read and shows the bill.
  */
 export function ExtraCamera({ angle }: { angle: number }) {
-  const { token, booted, save, forget } = useStandToken();
+  const { token, booted, refused, save, forget } = useStandToken();
   const [phase, setPhase] = useState<CameraPhase>("starting");
   const [sentAt, setSentAt] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  /** Why the camera could not start, when it could not. */
+  const [cameraProblem, setCameraProblem] = useState<string | null>(null);
 
   const onShot = useCallback(
     (photo: Blob, takenAt: number) => {
@@ -33,9 +38,9 @@ export function ExtraCamera({ angle }: { angle: number }) {
           } else if (res.ok) {
             setProblem(null);
             setSentAt(takenAt);
-          } else setProblem("This camera couldn't reach the server. It will keep trying.");
+          } else setProblem(UNSENT);
         },
-        () => setProblem("This camera couldn't reach the server. It will keep trying."),
+        () => setProblem(UNSENT),
       );
     },
     [angle, token, forget],
@@ -46,7 +51,7 @@ export function ExtraCamera({ angle }: { angle: number }) {
   if (!token) {
     return (
       <Setup
-        problem={problem}
+        problem={problem ?? (refused ? SAVED_CODE_REFUSED : null)}
         onCode={(code) => {
           setProblem(null);
           save(code);
@@ -56,7 +61,13 @@ export function ExtraCamera({ angle }: { angle: number }) {
   }
 
   const connecting = phase === "starting" || !sentAt;
-  const status = phase === "starting" ? "Starting the camera…" : sentAt ? "Sending this view to the stand." : "Connecting to the stand…";
+  const status = cameraProblem
+    ? "The camera isn't running."
+    : phase === "starting"
+      ? "Starting the camera…"
+      : sentAt
+        ? "Sending this view to the stand."
+        : "Connecting to the stand…";
 
   return (
     <MotionConfig reducedMotion="user">
@@ -67,8 +78,17 @@ export function ExtraCamera({ angle }: { angle: number }) {
           animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
           transition={spring}
         >
-          <h1>Camera {angle}</h1>
-          <p>Point this at the shelf from another side. The bill shows on the main stand screen.</p>
+          {cameraProblem ? (
+            <>
+              <h1 className="sd-angle-off">Camera {angle} isn&rsquo;t watching the shelf yet</h1>
+              <p role="alert">{cameraProblem}</p>
+            </>
+          ) : (
+            <>
+              <h1>Camera {angle}</h1>
+              <p>Point this at the shelf from another side. The bill shows on the main stand screen.</p>
+            </>
+          )}
         </motion.div>
 
         <footer className="sd-foot">
@@ -79,10 +99,10 @@ export function ExtraCamera({ angle }: { angle: number }) {
           )}
           <div className="sd-dock sd-dock-angle ds-material-blue">
             <div className="sd-dock-cam">
-              <StandCamera onChange={() => {}} onPhase={setPhase} onShot={onShot} />
+              <StandCamera onChange={() => {}} onPhase={setPhase} onShot={onShot} onProblem={setCameraProblem} problemShown />
             </div>
             <div className="sd-status">
-              <span className="sd-indicator" data-tone={connecting ? "busy" : "calm"} aria-hidden="true">
+              <span className="sd-indicator" data-tone={cameraProblem ? "alert" : connecting ? "busy" : "calm"} aria-hidden="true">
                 {sentAt && (
                   // One ring leaves the dot each time a photo is sent.
                   <motion.i

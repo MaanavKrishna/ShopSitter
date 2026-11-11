@@ -16,6 +16,7 @@ type Outcome = { sampleId: string; visit: Visit | null; bill: PricedBill | null 
 
 const PROBLEMS: Record<string, string> = {
   slow_down: "That's a lot of runs in a minute. Wait a moment and try again.",
+  demo_busy: "The demo is busy right now. Try again in a few minutes.",
   unknown_sample: "That sample isn't available any more. Reload the page.",
 };
 
@@ -55,7 +56,11 @@ export function DemoRunner({ samples }: { samples: Sample[] }) {
       <div className="dm-intro">
         <h2 className="ds-h2">Pick a shelf to read</h2>
         <p className="ds-lead">
-          Each run is a real visit at the demo stand, so it shows up on the owner&apos;s dashboard too.
+          Each run is a live read by the vision model and opens a visit at the demo stand, so it shows up on the
+          owner&apos;s dashboard too.
+        </p>
+        <p className="dm-note">
+          These are sample shelf pictures, composed from product photos. They are not photographs of a real stand.
         </p>
       </div>
       {problem && (
@@ -70,13 +75,13 @@ export function DemoRunner({ samples }: { samples: Sample[] }) {
             <li key={s.id} className="dm-sample ds-panel" data-busy={running === s.id || undefined}>
               <div className="dm-pair">
                 <figure>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- plain static sample photos */}
-                  <img src={s.before} alt="The shelf before the visitor" loading="lazy" />
+                  {/* eslint-disable-next-line @next/next/no-img-element -- plain static sample pictures */}
+                  <img src={s.before} alt="Sample shelf picture before the visitor" loading="lazy" />
                   <figcaption>Before</figcaption>
                 </figure>
                 <figure>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.after} alt={`The shelf after: ${s.caption}`} loading="lazy" />
+                  <img src={s.after} alt={`Sample shelf picture after: ${s.caption}`} loading="lazy" />
                   <figcaption>After</figcaption>
                   <span className="dm-scan" aria-hidden="true" />
                 </figure>

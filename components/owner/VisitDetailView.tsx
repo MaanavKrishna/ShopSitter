@@ -2,10 +2,10 @@
 
 import { IconArrowLeft } from "@tabler/icons-react";
 import Link from "next/link";
-import { formatCents, priceLines } from "@/lib/money";
+import { formatCents } from "@/lib/money";
 import type { BillLine } from "@/lib/types";
 import { useOwner } from "./OwnerProvider";
-import { photoHref, refundable, RowButton, StatusBadge, useRefund, VisitAction, whenLong } from "./parts";
+import { photoHref, refundable, RowButton, useRefund, VisitAction, VisitStatus, whenLong } from "./parts";
 
 function Lines({ lines, totalCents, totalLabel }: { lines: BillLine[]; totalCents: number; totalLabel: string }) {
   return (
@@ -70,9 +70,10 @@ export function VisitDetailView({ id }: { id: string }) {
   }
 
   const time = (ms: number) => (hydrated ? whenLong(ms) : " ");
-  const paidBill = visit.paid ? priceLines(visit.paid, data.products) : null;
-  // The customer changed the bill before paying: show what they paid for next to what the camera saw.
-  const corrected = visit.status === "paid_adjusted" && paidBill !== null;
+  // The customer paid for different lines than the camera saw, on time or late: show both.
+  // The server prices those lines, so a product removed since still shows on the bill.
+  const paidBill = visit.paidBill ?? null;
+  const corrected = visit.adjusted === true && paidBill !== null;
   const left = refundable(visit);
 
   const facts: [string, string][] = [["Opened", time(visit.openedAt)]];
@@ -83,12 +84,14 @@ export function VisitDetailView({ id }: { id: string }) {
   if (visit.captureId) facts.push(["PayPal capture", visit.captureId]);
 
   return (
-    <div className="ow-detail">
+    <div className="ow-detail" data-focus-list>
       {back}
-      <header className="ow-detail-head" data-flash={flash === visit.id || undefined}>
+      <header className="ow-detail-head" data-visit-row={visit.id} data-flash={flash === visit.id || undefined}>
         <div>
-          <h2>{time(visit.openedAt)}</h2>
-          <StatusBadge status={visit.status} />
+          <h2 tabIndex={-1} data-focus-heading>
+            {time(visit.openedAt)}
+          </h2>
+          <VisitStatus visit={visit} />
         </div>
         <VisitAction visit={visit} onRefund={refund.open} />
       </header>

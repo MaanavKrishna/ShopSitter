@@ -123,4 +123,66 @@ describe("checkout", () => {
   it("reports an unknown visit", async () => {
     expect(await errorCode(getBill(repo, "nope", NOW))).toBe("not_found");
   });
+
+  it("takes no money for a visit the owner settled another way while the customer was approving", async () => {
+    const { orderId } = await startOrder(repo, paypal, "v1", NOW);
+    await repo.saveVisit({ ...(await repo.getVisit("v1"))!, status: "settled_other", closedAt: NOW + 50 });
+    expect(await errorCode(captureVisit(repo, paypal, "v1", orderId, NOW + 100))).toBe("empty_bill");
+    expect(paypal.captures).toEqual([]);
+  });
+
+  it("takes no money for a visit that became empty while the customer was approving", async () => {
+    const { orderId } = await startOrder(repo, paypal, "v1", NOW);
+    await repo.saveVisit({ ...(await repo.getVisit("v1"))!, status: "empty", closedAt: NOW + 50 });
+    expect(await errorCode(captureVisit(repo, paypal, "v1", orderId, NOW + 100))).toBe("empty_bill");
+    expect(paypal.captures).toEqual([]);
+  });
+
+  it("takes no money once an unmatched visit is past the late-payment window", async () => {
+    const stale = expireIfStale((await repo.getVisit("v1"))!, 1_000 + 600_001);
+    await repo.saveVisit(stale);
+    const { orderId } = await startOrder(repo, paypal, "v1", stale.closedAt! + 1_000);
+    expect(await errorCode(captureVisit(repo, paypal, "v1", orderId, stale.closedAt! + 86_400_001))).toBe("too_late");
+    expect(paypal.captures).toEqual([]);
+  });
+
+  it("keeps the capture on the visit and says money may have moved when recording the payment fails", async () => {
+    const { orderId } = await startOrder(repo, paypal, "v1", NOW);
+    // Storage fails once, straight after PayPal has captured.
+    const save = repo.saveVisit.bind(repo);
+    let failures = 1;
+    repo.saveVisit = async (v) => {
+      if (paypal.captures.length > 0 && failures-- > 0) throw new Error("storage down");
+      return save(v);
+    };
+    expect(await errorCode(captureVisit(repo, paypal, "v1", orderId, NOW + 100))).toBe("captured_but_unrecorded");
+    const stored = (await repo.getVisit("v1"))!;
+    expect(stored.captureId).toBe("CAP-ORDER1");
+    expect(stored.paidCents).toBe(1900);
+
+    // Trying again does not reach PayPal a second time.
+    const again = await captureVisit(repo, paypal, "v1", orderId, NOW + 200);
+    expect(again.receipt.captureId).toBe("CAP-ORDER1");
+    expect(paypal.captures).toEqual(["ORDER1"]);
+  });
+
+  it("still says money may have moved when nothing at all can be stored after the capture", async () => {
+    const { orderId } = await startOrder(repo, paypal, "v1", NOW);
+    repo.saveVisit = async () => {
+      throw new Error("storage down");
+    };
+    expect(await errorCode(captureVisit(repo, paypal, "v1", orderId, NOW + 100))).toBe("captured_but_unrecorded");
+    expect(paypal.captures).toEqual(["ORDER1"]);
+  });
+
+  it("flags a corrected bill as adjusted when it is paid late, and keeps the late status", async () => {
+    const stale = expireIfStale((await repo.getVisit("v1"))!, 1_000 + 600_001);
+    await repo.saveVisit(stale);
+    await editLines(repo, "v1", [{ sku: "honey", qty: 1 }], stale.closedAt! + 500);
+    const { orderId } = await startOrder(repo, paypal, "v1", stale.closedAt! + 1_000);
+    const { visit } = await captureVisit(repo, paypal, "v1", orderId, stale.closedAt! + 2_000);
+    expect(visit.status).toBe("paid_late");
+    expect(visit.adjusted).toBe(true);
+    expect(visit.paid).toEqual([{ sku: "honey", qty: 1 }]);
+  });
 });
