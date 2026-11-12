@@ -18,6 +18,7 @@ close-ups and no second camera: the same input the demo page sends.
 | `slid-along` | The loaf is slid about 160 px along its board and turned a little | nothing |
 | `light-change` | The whole picture is 16% darker and slightly warmer | nothing |
 | `gone-and-shifted` | One of three jam jars is removed and a honey jar is slid 100 px | 1 jam |
+| `put-back` | A honey jar is put back into the gap it left (added later, see below) | 1 honey returned |
 
 The expected readings live in `scripts/sample-truth.json`. They are not sent to the browser or to
 the model. A read counts as a match only if every product and quantity is exactly right.
@@ -49,6 +50,19 @@ Every pair was read twice.
 - Time per read: mean 2157 ms, fastest 1538 ms, slowest 2417 ms (the model call only, from one laptop).
 
 This was the first and only evaluation run: the pictures were not changed after seeing results.
+
+### Added later: putting something back
+
+The `put-back` pair (the reverse of `one-jar`: the after picture has the honey jar back in its gap) was added
+on 12 Nov to check that the reader reports a return as a negative count. Read three times:
+
+| Pair | Read 1 | Read 2 | Read 3 | Model's own confidence |
+| --- | --- | --- | --- | --- |
+| `put-back` | 1 honey returned (match, 3311 ms) | 1 honey returned (match, 2293 ms) | 1 honey returned (match, 2707 ms) | 0.97 |
+
+- Exact matches: 3 of 3. Together with the first run: 15 of 15 reads across 7 pairs.
+- A return is taken off the open bill however long the shopper took to decide, and off the latest
+  unmatched visit that held it (within a day) when no bill is open (`lib/visits.ts`, `lib/stand.ts`).
 
 ## Limits
 

@@ -121,4 +121,22 @@ describe("handleShelfChange", () => {
     await handleShelfChange(d, change(1_000, 3_000, { angles }));
     expect(seen).toBe(angles);
   });
+
+  it("takes items put back after a visit went unmatched off that visit", async () => {
+    const first = await handleShelfChange(deps([{ sku: "honey", qty: 2 }]), change(1_000, 3_000));
+    // Ten minutes pass with no payment: the next change finds the visit stale.
+    const back = await handleShelfChange(deps([{ sku: "honey", qty: -2 }]), change(3_000 + 700_000, 705_000));
+    expect(back.visit).toBeNull();
+    expect(back.returned!.id).toBe(first.visit!.id);
+    expect((await repo.getVisit(first.visit!.id))!.status).toBe("empty");
+  });
+
+  it("reports a put-back that went onto the open bill", async () => {
+    await handleShelfChange(deps([{ sku: "honey", qty: 2 }]), change(1_000, 3_000));
+    const back = await handleShelfChange(deps([{ sku: "honey", qty: -1 }]), change(95_000, 97_000));
+    expect(back.closed).toBeUndefined();
+    expect(back.visit!.status).toBe("open");
+    expect(back.bill!.totalCents).toBe(700);
+    expect(back.returned).toBeTruthy();
+  });
 });

@@ -4,5 +4,6 @@
   "two-kinds": [{ "sku": "apples", "qty": 1 }, { "sku": "flowers", "qty": 1 }],
   "slid-along": [],
   "light-change": [],
-  "gone-and-shifted": [{ "sku": "jam", "qty": 1 }]
+  "gone-and-shifted": [{ "sku": "jam", "qty": 1 }],
+  "put-back": [{ "sku": "honey", "qty": -1 }]
 }

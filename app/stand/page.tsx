@@ -160,12 +160,12 @@ export default function StandPage() {
           }
           unsent.current = null;
           setProblem(null);
-          const data = await readJson<{ visit: Visit | null; bill: PricedBill | null; cameras?: number }>(sent.response);
+          const data = await readJson<{ visit: Visit | null; bill: PricedBill | null; cameras?: number; returned?: unknown }>(sent.response);
           setCameras(data?.cameras ?? 1);
           const open = data?.visit && data.bill && data.visit.status === "open";
           setCurrent(open ? { visit: data.visit!, bill: data.bill! } : null);
           // Say so when a change was seen but nothing is owed, so the stand never looks stuck.
-          setNote(open ? null : "Nothing was taken.");
+          setNote(open ? null : data?.returned ? "Thanks. That's back on the shelf." : "Nothing was taken.");
           if (!open) setTimeout(() => setNote(null), 6000);
         } catch (e) {
           // Whatever went wrong, the queue carries on and the change is kept for the next read.

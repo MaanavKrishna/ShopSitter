@@ -153,7 +153,7 @@ export function DemoRunner({ samples }: { samples: Sample[] }) {
                             />
                           </>
                         ) : (
-                          <p>Nothing was taken, so there&apos;s no bill.</p>
+                          <p>Nothing left the shelf, so there&apos;s no bill.</p>
                         )}
                       </motion.div>
                     )}

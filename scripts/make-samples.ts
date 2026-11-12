@@ -236,6 +236,12 @@ const PAIRS: Pair[] = [
     after: { items: shelfB, light: { brightness: 0.84, warmth: 0.035 } },
   },
   {
+    id: "put-back",
+    caption: "A jar goes back into the gap on the top board",
+    before: { items: without(shelfA, "honey2") },
+    after: { items: shelfA },
+  },
+  {
     id: "gone-and-shifted",
     caption: "One thing goes and a jar is nudged sideways",
     before: { items: shelfC },

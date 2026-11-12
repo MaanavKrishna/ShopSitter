@@ -4,10 +4,13 @@ import {
   LATE_PAY_MS,
   OPEN_TIMEOUT_MS,
   applyShelfChange,
+  applyReturns,
   expireIfStale,
   mergeLines,
   isAdjusted,
+  newVisit,
   settlePayment,
+  type Visit,
 } from "@/lib/visits";
 
 let n = 0;
@@ -143,5 +146,55 @@ describe("adjusted", () => {
   it("is never true for a visit that was not paid", () => {
     expect(isAdjusted(open2Honey())).toBe(false);
     expect(isAdjusted({ ...late(), paid: [{ sku: "honey", qty: 1 }] })).toBe(false);
+  });
+
+  it("takes a late put-back off the open bill instead of closing it as unmatched", () => {
+    const v = open2Honey();
+    const r = applyShelfChange(v, [{ sku: "honey", qty: -1 }], v.lastSettledAt + 90_000, v.lastSettledAt + 92_000, "demo", newId);
+    expect(r.close).toBeUndefined();
+    expect(r.visit!.id).toBe(v.id);
+    expect(r.visit!.status).toBe("open");
+    expect(r.visit!.detected).toEqual([{ sku: "honey", qty: 1 }]);
+  });
+
+  it("closes the open bill as empty when everything comes back after the join window", () => {
+    const v = open2Honey();
+    const r = applyShelfChange(v, [{ sku: "honey", qty: -2 }], v.lastSettledAt + 120_000, v.lastSettledAt + 122_000, "demo", newId);
+    expect(r.close).toBeUndefined();
+    expect(r.visit!.status).toBe("empty");
+  });
+});
+
+describe("applyReturns", () => {
+  const unmatched = (): Visit => ({
+    ...newVisit("u1", "demo", [{ sku: "honey", qty: 2 }, { sku: "jam", qty: 1 }], 1_000),
+    status: "unmatched",
+    closedAt: 601_000,
+  });
+
+  it("takes returned items off an unmatched visit", () => {
+    const r = applyReturns(unmatched(), [{ sku: "jam", qty: -1 }], 700_000);
+    expect(r!.status).toBe("unmatched");
+    expect(r!.detected).toEqual([{ sku: "honey", qty: 2 }]);
+  });
+
+  it("closes the visit as empty when everything it held comes back", () => {
+    const r = applyReturns(unmatched(), [{ sku: "honey", qty: -2 }, { sku: "jam", qty: -1 }], 700_000);
+    expect(r!.status).toBe("empty");
+  });
+
+  it("ignores items the visit never held and counts no more than it held", () => {
+    expect(applyReturns(unmatched(), [{ sku: "bread", qty: -1 }], 700_000)).toBeNull();
+    expect(applyReturns(unmatched(), [{ sku: "jam", qty: -5 }], 700_000)!.detected).toEqual([{ sku: "honey", qty: 2 }]);
+  });
+
+  it("only touches unmatched visits that are still within a day", () => {
+    const paid = { ...unmatched(), status: "paid" as const };
+    expect(applyReturns(paid, [{ sku: "jam", qty: -1 }], 700_000)).toBeNull();
+    expect(applyReturns(unmatched(), [{ sku: "jam", qty: -1 }], 601_000 + 86_400_001)).toBeNull();
+  });
+
+  it("ignores changes that take something", () => {
+    expect(applyReturns(unmatched(), [{ sku: "jam", qty: -1 }, { sku: "bread", qty: 1 }], 700_000)).toBeNull();
   });
 });

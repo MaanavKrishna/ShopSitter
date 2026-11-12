@@ -82,7 +82,12 @@ export function applyShelfChange(
   shop: Shop,
   newId: () => string,
 ): ChangeResult {
-  const joins = open !== null && open.status === "open" && changeStartedAt - open.lastSettledAt <= JOIN_WINDOW_MS;
+  // Things put back belong to the bill that is still open, however long the shopper took to decide.
+  const onlyReturns = delta.length > 0 && delta.every((d) => d.qty < 0);
+  const joins =
+    open !== null &&
+    open.status === "open" &&
+    (onlyReturns || changeStartedAt - open.lastSettledAt <= JOIN_WINDOW_MS);
 
   if (joins) {
     const detected = mergeLines(open.detected, delta);
@@ -97,6 +102,22 @@ export function applyShelfChange(
   const detected = mergeLines([], delta);
   const visit = detected.length === 0 ? null : newVisit(newId(), shop, detected, settledAt);
   return close ? { close, visit } : { visit };
+}
+
+/**
+ * Takes items put back off a visit that has already turned unmatched, while it can still be paid.
+ * Only items the visit held count, and never more of them than it held. Returns null when the change
+ * takes something, or touches nothing on this visit.
+ */
+export function applyReturns(v: Visit, delta: Line[], now: number): Visit | null {
+  if (v.status !== "unmatched") return null;
+  if (delta.length === 0 || delta.some((d) => d.qty >= 0)) return null;
+  if (now - (v.closedAt ?? v.lastSettledAt) > LATE_PAY_MS) return null;
+  const held = new Set(v.detected.map((l) => l.sku));
+  const relevant = delta.filter((d) => held.has(d.sku));
+  if (relevant.length === 0) return null;
+  const detected = mergeLines(v.detected, relevant);
+  return detected.length === 0 ? { ...v, detected, status: "empty" } : { ...v, detected };
 }
 
 export function expireIfStale(v: Visit, now: number): Visit {

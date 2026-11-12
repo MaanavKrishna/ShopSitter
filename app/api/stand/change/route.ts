@@ -116,5 +116,5 @@ export async function POST(req: Request) {
       `detected ${JSON.stringify(result.visit?.detected ?? [])} confidence ${result.visit?.confidence ?? "n/a"} ` +
       `manual ${result.visit?.needsManual ?? false}`,
   );
-  return Response.json({ ...result, cameras: 1 + angles.length });
+  return Response.json({ ...result, returned: result.returned ? { id: result.returned.id } : undefined, cameras: 1 + angles.length });
 }

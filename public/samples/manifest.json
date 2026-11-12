@@ -30,6 +30,12 @@
     "after": "light-change-after.jpg"
   },
   {
+    "id": "put-back",
+    "caption": "A jar goes back into the gap on the top board",
+    "before": "put-back-before.jpg",
+    "after": "put-back-after.jpg"
+  },
+  {
     "id": "gone-and-shifted",
     "caption": "One thing goes and a jar is nudged sideways",
     "before": "gone-and-shifted-before.jpg",

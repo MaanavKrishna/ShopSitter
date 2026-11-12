@@ -3,7 +3,7 @@ import { priceLines } from "./money";
 import type { Repo } from "./repo";
 import type { PricedBill, Product, Shop } from "./types";
 import type { ShelfDiff } from "./vision";
-import { JOIN_WINDOW_MS, applyShelfChange, expireIfStale, newVisit, type Visit } from "./visits";
+import { JOIN_WINDOW_MS, LATE_PAY_MS, applyReturns, applyShelfChange, expireIfStale, newVisit, type Visit } from "./visits";
 
 export type ShelfChangeDeps = {
   repo: Repo;
@@ -33,7 +33,13 @@ export type ShelfChangeInput = {
   photoUrls?: { before: string; after: string };
 };
 
-export type ShelfChangeResult = { visit: Visit | null; bill: PricedBill | null; closed?: Visit };
+export type ShelfChangeResult = {
+  visit: Visit | null;
+  bill: PricedBill | null;
+  closed?: Visit;
+  /** The visit that items put back were taken off, when this change only put things back. */
+  returned?: Visit;
+};
 
 /**
  * Turns one settled shelf change into the current visit and its bill.
@@ -87,7 +93,14 @@ export async function handleShelfChange(deps: ShelfChangeDeps, input: ShelfChang
   }
 
   if (closed) await repo.saveVisit(closed);
-  if (!visit) return closed ? { visit: null, bill: null, closed } : { visit: null, bill: null };
+
+  const onlyReturns = diff !== null && diff.delta.length > 0 && diff.delta.every((d) => d.qty < 0);
+  if (!visit) {
+    // Nothing open to put them back on: they come off the latest unmatched visit that held them.
+    const returned = onlyReturns && !input.standalone ? await returnToUnmatched(repo, input, diff!.delta) : undefined;
+    const base = closed ? { visit: null, bill: null, closed } : { visit: null, bill: null };
+    return returned ? { ...base, returned } : base;
+  }
 
   const changed = diff === null || diff.delta.length > 0;
   if (changed) {
@@ -99,7 +112,20 @@ export async function handleShelfChange(deps: ShelfChangeDeps, input: ShelfChang
   await repo.saveVisit(visit);
 
   const bill = priceLines(visit.paid ?? visit.detected, catalogue);
-  return closed ? { visit, bill, closed } : { visit, bill };
+  const result: ShelfChangeResult = closed ? { visit, bill, closed } : { visit, bill };
+  return onlyReturns ? { ...result, returned: visit } : result;
+}
+
+async function returnToUnmatched(repo: Repo, input: ShelfChangeInput, delta: ShelfDiff["delta"]) {
+  const recent = await repo.listVisits(input.shop, input.settledAt - LATE_PAY_MS);
+  for (const v of recent) {
+    const updated = applyReturns(v, delta, input.settledAt);
+    if (updated) {
+      await repo.saveVisit(updated);
+      return updated;
+    }
+  }
+  return undefined;
 }
 
 async function storePair(repo: Repo, stem: string, before: Uint8Array, after: Uint8Array) {
