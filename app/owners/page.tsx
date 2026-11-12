@@ -14,7 +14,7 @@ import "../inner.css";
 export const metadata: Metadata = {
   title: "For owners",
   description:
-    "Your store map with a QR per shelf, how shoppers pay, unmatched by shelf, refunds and restocking, for a shop you were not standing in. And how to set one up.",
+    "Your store map with a QR per shelf, how shoppers pay, unmatched by shelf, refunds and restocking, for any shop from one shelf to many aisles. And how to set one up.",
 };
 
 export default async function Owners() {
@@ -52,7 +52,7 @@ export default async function Owners() {
               <h2 id="do-h" className="ds-h2">
                 What you can do from there
               </h2>
-              <p className="in-sub">All of it in the owner area today, for a shop of one shelf or a few aisles.</p>
+              <p className="in-sub">All of it in the owner area today, whether your shop is one shelf or several aisles.</p>
             </Reveal>
 
             <ul className="in-do">
@@ -175,6 +175,25 @@ export default async function Owners() {
                 </p>
               </Reveal>
             </ul>
+          </div>
+        </section>
+
+        <section className="in-band" aria-labelledby="grow-h">
+          <div className="ds-container">
+            <Reveal>
+              <h2 id="grow-h" className="ds-h2">
+                From one shelf to many aisles
+              </h2>
+              <p className="in-sub in-sub-wide">
+                A shop here is shelves grouped by aisle, each with its own camera and product list, so it grows one shelf
+                at a time. A market stall can start with one phone on one shelf. A bigger store can start with one aisle
+                or a grab-and-go section, using the CCTV it already has through the bridge, and add aisles from there.
+              </p>
+              <p className="in-sub in-sub-wide">
+                So far it has been proven on a small sample store. A full supermarket, with thousands of products, crowds
+                and staff restocking mid-visit, has not been tried, and neither has a real CCTV stream.
+              </p>
+            </Reveal>
           </div>
         </section>
 

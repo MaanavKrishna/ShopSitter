@@ -26,7 +26,7 @@ export default function OpengraphImage() {
             The stand that rings you up
           </div>
           <div style={{ display: "flex", marginTop: 28, fontSize: 36, color: "#c9d5ff", maxWidth: 900 }}>
-            A camera counts what you take, your bill appears, and you pay with PayPal.
+            Walk-out checkout for any shop, from a market stall to a supermarket aisle, with PayPal for the money.
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", fontSize: 28, color: "#c9d5ff" }}>

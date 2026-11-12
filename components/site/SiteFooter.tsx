@@ -30,7 +30,7 @@ export function SiteFooter() {
           <NextLink href="/" className="wordmark ds-focus">
             Shopsitter
           </NextLink>
-          <p>Built for the PayPal AI Hackathon 2026. Payments run in the PayPal sandbox.</p>
+          <p>Any shop can be a walk-out shop. Built for the PayPal AI Hackathon 2026. Payments run in the PayPal sandbox.</p>
         </div>
         {COLUMNS.map((col) => (
           <nav key={col.title} aria-label={col.title}>

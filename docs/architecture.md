@@ -1,7 +1,9 @@
 # Architecture
 
-Shopsitter is one Next.js 16 app (App Router, React 19, TypeScript) deployed on Vercel. Browsers do the camera
-work, the server owns every price and every PayPal call, and storage sits behind one interface with two back ends.
+Shopsitter is walk-out checkout for any shop, built to grow one shelf at a time: a store is shelves grouped by aisle,
+each with its own camera and product list. It is one Next.js 16 app (App Router, React 19, TypeScript) deployed on
+Vercel. Browsers do the camera work, the server owns every price and every PayPal call, and storage sits behind one
+interface with two back ends.
 
 ## Overview
 
@@ -143,11 +145,15 @@ shown only `productsForZone` for it. The owner's Store page shows taken, paid an
 
 ## Scaling notes
 
+- A store grows one shelf at a time: each shelf (zone) is its own camera and product list, so adding a shelf or an
+  aisle adds cameras and reads, not a bigger single problem. A larger store could start with one aisle on its
+  existing CCTV through the bridge. It has been proven on a small sample store only; a full supermarket (thousands
+  of products, crowds, staff restocking mid-visit) has not been tried, and neither has a real CCTV stream.
 - Zones keep the vision model's choice small: a camera is only ever shown its own shelf's products, so a store can
   hold many products while each read stays a choice among a few.
 - What slows down first as data grows: the owner overview and the hold suggestion read every visit of the shop; each
-  open basket polls every two seconds; shelf photos are kept as base64 in Postgres. All three are fine for a small
-  shop and would need paging, a push channel and object storage beyond that.
+  open basket polls every two seconds; shelf photos are kept as base64 in Postgres. All three are fine for the
+  small sample store it has been tried on, and a larger store would need paging, a push channel and object storage.
 - Several shoppers at once are handled without identifying anyone: a shelf change that cannot be tied to one
   checked-in shopper waits as a pending change until a shopper claims it on their phone.
 

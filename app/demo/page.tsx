@@ -13,7 +13,11 @@ import { getTrial } from "@/lib/trials";
 import "../landing.css";
 import "./demo.css";
 
-export const metadata = { title: "Run your own Shopsitter stand" };
+export const metadata = {
+  title: "Run your own Shopsitter stand",
+  description:
+    "Try walk-out checkout yourself: start a private trial shop with your own products and camera, or watch the vision model read sample shelves. Payments run in the PayPal sandbox.",
+};
 
 /** The trial stand this browser already has, so the button reads right from the first paint. */
 async function myTrial() {

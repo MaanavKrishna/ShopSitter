@@ -5,7 +5,11 @@ import { SiteNav } from "@/components/site/SiteNav";
 import "../../landing.css";
 import "./store.css";
 
-export const metadata = { title: "Watch a whole store run, live" };
+export const metadata = {
+  title: "Watch a whole store run, live",
+  description:
+    "A sample store with two shelf cameras: take things off the shelves and watch the vision model read them, the basket fill and the owner's ledger move, on the real system.",
+};
 
 export default function StoreSimulatorPage() {
   return (

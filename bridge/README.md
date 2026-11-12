@@ -6,6 +6,9 @@ camera's picture with the same change detector as the stand screen (`lib/frame-d
 a shelf changes and goes still it sends a before and an after photo of that rectangle to
 `/api/stand/change`, exactly as a phone on the stand would.
 
+The bridge is how a larger store would use the CCTV it already has: start with one aisle, with each camera
+watching the shelf rectangles it can see, rather than fitting new cameras.
+
 ```
 npx tsx bridge/index.ts shelf.json            # or: npm run bridge -- shelf.json
 npx tsx bridge/index.ts shelf.json --dry-run stills   # everything except sending; saves the stills

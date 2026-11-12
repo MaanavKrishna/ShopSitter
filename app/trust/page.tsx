@@ -126,7 +126,7 @@ export default async function Trust() {
               not people
             </h1>
             <p className="ds-lead">
-              Cameras in an unattended shop have to earn their place. These are the rules Shopsitter keeps, each one
+              Cameras watching a shop&rsquo;s shelves have to earn their place. These are the rules Shopsitter keeps, each one
               shown working as a small model, then exactly what it stores and who can see it.
             </p>
           </div>

@@ -100,11 +100,12 @@ export default async function Home() {
             <Reveal className="lp-how-head">
               <div>
                 <h2 id="how-h" className="ds-h1">
-                  A shop that runs itself
+                  Any shop, one shelf at a time
                 </h2>
                 <p className="ds-lead">
-                  Shelves grouped by aisle, each with its own camera and its own short list of products. Phones today;
-                  webcams and CCTV through a small bridge program that sends only the shelf&apos;s part of the picture.
+                  Shelves grouped by aisle, each with its own camera and its own short list of products. Start with one
+                  shelf and add shelves and aisles as you grow. Phones today; webcams and existing CCTV through a small
+                  bridge program that sends only the shelf&apos;s part of the picture.
                 </p>
               </div>
               <NextLink className="lp-more ds-focus" href="/how-it-works">
@@ -201,7 +202,7 @@ export default async function Home() {
           <div className="ds-container lp-go-in">
             <Reveal>
               <h2 id="go-h" className="ds-h1">
-                Sell without being there
+                Any shop can be a walk-out shop
               </h2>
             </Reveal>
             <Reveal delay={0.06} className="lp-go-actions">

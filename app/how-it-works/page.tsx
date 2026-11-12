@@ -11,7 +11,7 @@ import "../inner.css";
 export const metadata: Metadata = {
   title: "How it works",
   description:
-    "Walk-out checkout for a small shop: how each shelf's camera notices a change, how the item lands in the right basket, how a PayPal hold charges only for what was taken, and what the owner sees per shelf.",
+    "Walk-out checkout for any shop, one shelf at a time: how each shelf's camera notices a change, how the item lands in the right basket, how a PayPal hold charges only for what was taken, and what the owner sees per shelf.",
 };
 
 const PARTS = [
@@ -39,7 +39,7 @@ const PARTS = [
 
 const LIMITS = [
   ["It is a prototype", "Built for the PayPal AI Hackathon 2026. It is not a finished product."],
-  ["A small shop, not a supermarket", "Phones as cameras suit a shop of a few aisles, one camera per shelf."],
+  ["Proven on a small sample store", "The design scales shelf by shelf, and a larger store could start with one aisle, but a full supermarket (thousands of products, crowds, staff restocking mid-visit) has not been tried and would need work listed in the roadmap."],
   ["Products that look different", "Items on the same shelf should be easy to tell apart, and the light should be reasonable."],
   ["Measured on composed pictures", "15 of 15 reads were right on seven composed sample pairs. Composed pictures are easier than real photos, so this shows the reader works, not how often it is right in a real shop."],
   ["It can miscount", "Which is why the shopper can always fix the bill, and the owner sees that it was adjusted."],
@@ -61,8 +61,9 @@ export default async function HowItWorks() {
             <h1 className="in-h1">How a shop runs itself</h1>
             <div className="in-hero-foot">
               <p className="ds-lead">
-                Nobody is behind the counter. Each shelf has its own camera. This is everything between the owner
-                setting up a shelf and seeing, shelf by shelf, what was taken and what was paid.
+                No till and no queue. Each shelf has its own camera, from a market stall&rsquo;s one shelf to an aisle of
+                a bigger shop. This is everything between the owner setting up a shelf and seeing, shelf by shelf, what
+                was taken and what was paid.
               </p>
               <dl className="in-hero-facts">
                 <div>

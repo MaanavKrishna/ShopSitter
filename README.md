@@ -1,7 +1,8 @@
 # Shopsitter
 
-**Walk-out checkout for small shops.** Phones, webcams or existing CCTV cameras watch the shelves, a vision model
-says what left, the server prices it, PayPal takes the payment, and the owner sees every sale on a dashboard.
+**Walk-out checkout for any shop, from a market stall to a supermarket aisle, using the cameras it already has, and
+PayPal for the money.** Phones, webcams or existing CCTV cameras watch the shelves, a vision model says what left,
+the server prices it, PayPal takes the payment, and the owner sees every sale on a dashboard.
 
 [![Live demo](https://img.shields.io/badge/live%20demo-shopsitter.vercel.app-0a35c8)](https://shopsitter.vercel.app)
 [![Tests](https://img.shields.io/badge/tests-591%20passing-0a35c8)](#tested)
@@ -26,10 +27,11 @@ To pay a bill, use a sandbox buyer account from your own PayPal developer dashbo
 
 ## The problem
 
-Farm stands, honesty boxes, office markets and hotel pantries run on a cash tin and trust.
-Fewer people carry cash, and the owner never learns what actually sold or what went unpaid.
-Self-checkout kiosks and sensor-fitted stores cost more than these shops earn.
-Shopsitter needs a camera per shelf (a phone will do) and a PayPal account.
+Checkout is the problem at every size of shop: a queue at the supermarket, a cash tin and a sign at the farm stand.
+Walk-out stores exist, but they need hundreds of cameras and shelf sensors, which most shops cannot afford.
+Shopsitter needs one camera per shelf (a phone will do, or a CCTV camera already on the wall) and a PayPal account.
+Start with one shelf and add shelves and aisles as you grow; a bigger store can start with one aisle or a grab-and-go
+section. Any shop can be a walk-out shop.
 
 ## How it works
 
@@ -110,6 +112,8 @@ nothing has been measured on photos of a real shelf yet. Details: [docs/accuracy
 
 - **Cameras you already have.** A phone, a USB webcam, or an existing CCTV or IP camera through the
   [camera bridge](bridge/README.md). Only the shelf rectangle leaves the building.
+- **Built to grow shelf by shelf.** Each shelf has its own camera and product list, grouped by aisle, so a shop adds
+  one shelf at a time instead of fitting out the whole floor at once.
 - **The model only chooses among one shelf's products.** A store can stock many products while each read stays a
   small choice, and the model never sets a price.
 - **Nobody is identified or accused.** A visit nobody paid for is "unmatched". With several shoppers checked in, a
@@ -223,8 +227,10 @@ themes/       Component theme
 
 ## Limits
 
-- A prototype for a small shop of a few aisles. Products on a shelf should look different from each other, and
-  the light should be reasonable.
+- Proven on a small sample store. The design scales shelf by shelf, and a larger store could start with one aisle,
+  but a full supermarket (thousands of products, crowds, staff restocking mid-visit) has not been tried and would
+  need the work listed in the roadmap. Products on a shelf should look different from each other, and the light
+  should be reasonable.
 - Accuracy is measured only on composed sample pictures. The CCTV bridge has been proven with a video file, not
   yet with a real CCTV stream.
 - Several shoppers at once rely on people claiming their own items.
@@ -233,7 +239,11 @@ themes/       Component theme
 
 ## Roadmap
 
-- A rectangle editor for drawing shelves on a CCTV picture, instead of editing `shelf.json`.
+- Larger stores, one aisle first: try a single aisle or grab-and-go section of a bigger shop on its existing CCTV.
+- A rectangle editor for drawing shelves on a CCTV picture, so one CCTV camera can cover several shelves without
+  editing `shelf.json`.
+- Handling staff restocking, so a shelf being refilled is not read as a shopper's visit.
+- Product catalogues in the hundreds per aisle, with reads that stay accurate as each shelf's list grows.
 - Saved PayPal approvals for regulars, so they can walk in and out without a hold step.
 - Learning from bills shoppers corrected, to improve reads for each shop.
 - Several shops per owner.

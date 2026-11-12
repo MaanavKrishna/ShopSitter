@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: { siteName: "Shopsitter", type: "website" },
   twitter: { card: "summary_large_image" },
   description:
-    "Shopsitter minds an unattended stand. A phone camera counts what you take, your bill appears, and you pay with PayPal.",
+    "Walk-out checkout for any shop, from a market stall to a supermarket aisle, using the cameras it already has. A camera on each shelf counts what you take, your bill appears, and you pay with PayPal.",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0a35c8" };
