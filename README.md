@@ -23,7 +23,7 @@ Built for the PayPal AI Hackathon 2026. PayPal runs in sandbox mode: no real mon
 
 To pay a bill, use a sandbox buyer account from your own PayPal developer dashboard.
 
-**Demo video:** _link added at submission_
+**Demo video:** [watch on YouTube (2:44)](https://youtu.be/iL1XZy0ASIU)
 
 ## The problem
 
