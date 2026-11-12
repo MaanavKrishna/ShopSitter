@@ -3,6 +3,9 @@
 A small, honest measurement of the shelf reader (`lib/vision.ts`, `diffShelf`) on the seven sample
 picture pairs the public demo page uses. Measured on 11 November 2026.
 
+**Summary:** 15 of 15 reads exactly right across the seven pairs (six pairs read twice on 11 November, the
+`put-back` pair read three times on 12 November). The pairs are composed pictures, not photos of a real shelf.
+
 ## What was tested
 
 Each pair is one shelf before and after one visit. The reader gets the two pictures and the demo
@@ -45,7 +48,7 @@ Every pair was read twice.
 | `light-change` | nothing (match, 2048 ms) | nothing (match, 2297 ms) | 0.97 |
 | `gone-and-shifted` | 1 jam (match, 2081 ms) | 1 jam (match, 2234 ms) | 0.93 |
 
-- Exact matches: 12 of 12 reads. No read failed to return.
+- Exact matches: 12 of 12 reads on these six pairs. No read failed to return.
 - The two reads of each pair agreed with each other on all 6 pairs.
 - Time per read: mean 2157 ms, fastest 1538 ms, slowest 2417 ms (the model call only, from one laptop).
 
@@ -66,7 +69,7 @@ on 12 Nov to check that the reader reports a return as a negative count. Read th
 
 ## Limits
 
-- Six pairs and twelve reads is a tiny sample. It shows the reader works on these cases; it does
+- Seven pairs and fifteen reads is a tiny sample. It shows the reader works on these cases; it does
   not give an accuracy rate for anything else.
 - Composed pictures are easier than real photos. The items are sharp, evenly lit, fully visible,
   well separated, and seen straight on. There are no hands, reflections, motion blur, items hidden

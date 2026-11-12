@@ -5,27 +5,49 @@ work, the server owns every price and every PayPal call, and storage sits behind
 
 ## Overview
 
-```
- Stand device (browser)            Server (Next.js route handlers + lib/)                PayPal sandbox
- ┌──────────────────────┐          ┌───────────────────────────────────────┐            ┌──────────────┐
- │ camera + frame-diff   │ photos  │ /api/stand/change ─► lib/stand.ts      │            │ Orders v2    │
- │ hand/person detector  │───────► │   vision model ─► sanitise ─► visit    │            │ capture      │
- │ bill + pay QR         │◄─────── │ /api/stand/angle, /check, /presence    │            │ authorize    │
- └──────────────────────┘  visit   │                                       │            │ void, refund │
- Extra camera, CCTV bridge ─stills► │ /api/visits/[id]/* ─► lib/checkout.ts ─┼──────────► │              │
- Shopper phone                     │ /api/session/*     ─► lib/sessions.ts ─┼──────────► │              │
-   /pay/[visitId], /basket/[id] ──►│ /api/owner/*       ─► lib/owner.ts,    │            └──────────────┘
- Owner browser                     │                      catalogue, store, │            ┌──────────────┐
-   /owner/... ────────────────────►│                      ask.ts ───────────┼──────────► │ Vision and   │
-                                   │ lib/repo.ts ─► file (.data/) | Postgres│            │ language     │
-                                   └───────────────────────────────────────┘            │ models       │
-                                                                                         └──────────────┘
+```mermaid
+flowchart LR
+    subgraph Browsers
+        Stand["Shelf camera page /stand<br/>frame-diff, hand and person detector"]
+        Extra["Extra cameras /stand/camera/2 to 4"]
+        Bridge["CCTV bridge (bridge/)<br/>ffmpeg, same frame-diff"]
+        Shopper["Shopper phone<br/>/pay, /enter, /basket"]
+        Owner["Owner dashboard /owner"]
+        Sim["Store simulator /demo/store"]
+    end
+    subgraph Server["Next.js route handlers and lib/"]
+        StandApi["/api/stand/* to lib/stand.ts"]
+        Visits["/api/visits/* to lib/checkout.ts"]
+        Session["/api/session/* to lib/sessions.ts"]
+        OwnerApi["/api/owner/* to lib/owner.ts, store.ts, ask.ts"]
+        Repo["lib/repo.ts: file or Postgres"]
+    end
+    VM["Vision model"]
+    LM["Language model"]
+    PP["PayPal sandbox"]
+    Stand --> StandApi
+    Extra --> StandApi
+    Bridge --> StandApi
+    Sim --> StandApi
+    Sim --> Session
+    Shopper --> Visits
+    Shopper --> Session
+    Owner --> OwnerApi
+    StandApi --> VM
+    OwnerApi --> LM
+    Visits --> PP
+    Session --> PP
+    OwnerApi --> PP
+    StandApi --> Repo
+    Visits --> Repo
+    Session --> Repo
+    OwnerApi --> Repo
 ```
 
 Route handlers are thin: they validate input (zod), identify the caller (owner cookie, stand code or key, session
 id, door token) and rate-limit, then call one function in `lib/` with its dependencies passed in (storage, PayPal
 gateway, model, clock). `lib/` is unit-tested with a fake PayPal gateway and the file store; one storage contract
-test runs against both back ends.
+suite runs against the file back end always and against Postgres when `DATABASE_URL` is set.
 
 ## Shops
 
@@ -33,6 +55,27 @@ Every row and stored key belongs to one shop: `live` (the owner's stand: passcod
 `demo` (public passcode, read-only catalogue, resets itself hourly) or a trial `t-` plus ten base32 characters
 (anyone can start one from /demo; it is deleted after 24 hours). Stored keys start with the shop id and a dash;
 `lib/shops.ts` decides ownership from that prefix.
+
+## Zones (shelves)
+
+A store record holds zones: each has an id (`z` plus six base32 characters), a name, an aisle and an order. Live
+stores may have up to 24, trial stores 6. A product has a `zoneId` (or null for "any shelf"). A camera opened from a
+shelf's link sends `x-stand-zone`; `resolveStand` accepts only one of that store's own zones, and the vision model is
+shown only `productsForZone` for it. The owner's Store page shows taken, paid and unmatched value per shelf
+(`byZone` in `lib/store.ts`).
+
+## Cameras
+
+- **Main camera** (`/stand`): one per shelf. It runs the change detector, the hand and person detector, and shows
+  the bill and pay QR.
+- **Extra cameras** (`/stand/camera/2` to `/stand/camera/4`): the same shelf from other sides. Each posts its newest
+  still to `POST /api/stand/angle`; when the main camera reports a change, the newest still of each extra camera
+  active in the last minute is paired with the one used at the last read and sent to the vision model too
+  (`lib/angles.ts`).
+- **Camera bridge** (`bridge/`, `npm run bridge -- shelf.json`): runs on a computer in the shop. One ffmpeg process
+  per camera crops each shelf rectangle, `lib/frame-diff.ts` decides when to read, and it posts before and after
+  stills to `/api/stand/change` with the stand code or trial key and the shelf's zone. Only the rectangles are sent.
+  See [bridge/README.md](../bridge/README.md).
 
 ## Request flows
 
@@ -73,7 +116,18 @@ Every row and stored key belongs to one shop: `live` (the owner's stand: passcod
    `x-stand-token` header.
 3. Everything else works as on the live stand, with smaller limits (products, zones, reads, photo sizes).
 4. A trial past its expiry is deleted the next time it is touched; each new trial start also deletes up to three
-   expired ones. `DELETE /api/trial` ends it at once.
+   expired ones. `DELETE /api/trial` ends it at once. Ending a trial first tries to void holds still authorized on it (up to 20), then deletes it.
+
+### The store simulator (/demo/store)
+`components/simulator/StoreSimulator.tsx` drives the real routes from one browser, with the script and wording in
+`lib/simulator.ts`:
+1. It reuses this browser's trial or starts one (`POST /api/trial`), saves two shelves (`PUT /api/owner/store/zones`)
+   and places the six starter products on them (`PUT /api/owner/products`).
+2. It fetches the door link (`GET /api/owner/door-link`) and checks one shopper in (`POST /api/session`).
+3. Each step posts a pair of sample shelf pictures from `public/samples/` to `POST /api/stand/change` with the trial's
+   stand key and the shelf's zone, so the real vision model reads them and the change lands in the basket.
+4. It shows the basket (`GET /api/session/[id]`) and the owner's figures (`GET /api/owner/visits`) side by side.
+   Done calls `POST /api/session/[id]/done`; "Close the sample store" ends the trial.
 
 ## Data model
 
@@ -119,9 +173,12 @@ Every row and stored key belongs to one shop: `live` (the owner's stand: passcod
 | Sessions and holds | `lib/sessions.ts`, `lib/hold.ts`, `lib/door-token.ts`, `app/api/session/**`, `components/basket/` |
 | Store record and zones | `lib/store.ts`, `app/api/owner/store/**` |
 | Owner dashboard | `lib/owner.ts`, `lib/owner-view.ts`, `lib/catalogue.ts`, `components/owner/` |
-| Ask your stand | `lib/ask.ts`, `lib/ask-model.ts`, `lib/paypal-read.ts` |
+| Ask your shop | `lib/ask.ts`, `lib/ask-model.ts`, `lib/paypal-read.ts` |
 | Access and limits | `lib/auth.ts`, `lib/stand-access.ts`, `lib/stand-key.ts`, `lib/owner-http.ts`, `lib/trials.ts` |
 | Storage | `lib/repo.ts`, `lib/repo-file.ts`, `lib/repo-postgres.ts` |
+| Store simulator | `lib/simulator.ts`, `components/simulator/`, `app/demo/store/` |
+| Extra cameras | `lib/angles.ts`, `app/api/stand/angle/`, `app/stand/camera/[angle]/` |
+| Owner charts (AG Studio) | `components/owner/SalesStudio.tsx`, `lib/studio-report.ts` |
 | Camera bridge (CCTV, webcams, video files) | `bridge/` : one ffmpeg process per camera crops each shelf rectangle, the same detector as the browser decides when to read, and it posts to `/api/stand/change` |
 
 ## Operations

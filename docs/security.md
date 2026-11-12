@@ -46,13 +46,15 @@ Each kind of token is accepted only where it belongs. None of them can be exchan
   stays in the owner's figures as unmatched, marked as adjusted.
 - If PayPal moved money and the record could not be saved, the capture reference is still stored and the shopper is
   told to check PayPal rather than "nothing was charged".
-- The owner's "ask" box cannot invent money: an answer containing an amount that is not in the records is rejected.
+- The owner's "ask" box cannot invent money: an answer containing an amount that is not in the facts its tools
+  returned (or that accuses someone) is not shown; the facts themselves are shown instead. Its tools only read.
 
 ## Separation between stores
 
 Every stored row and photo belongs to one store. The store is taken from the verified cookie, code, key or token,
-never from a field the client sends. Tests on both storage back ends check that one store cannot read another's
-products, visits or photos, including trial stores against the real one.
+never from a field the client sends. The storage contract tests check that one store cannot read another's
+products, visits or photos, including trial stores against the real one. They run on the file back end every time
+and on Postgres when `DATABASE_URL` is set.
 
 One thing is shared: every store in this deployment uses the same PayPal sandbox merchant account. The question
 box therefore gives PayPal lookups carefully: trial stores get none, the demo store may look up only its own
@@ -76,8 +78,9 @@ Sign-in, stand codes, demo reads, trial creation, shelf reads per trial, session
 creation and the ask box are all rate limited. The demo and trial stores also have caps across all callers on
 paid model reads; the real store's cameras are limited by its stand code only. Callers are told apart by the
 hosting platform's own address header, not one the caller can set. Product photos are checked by their bytes;
-shelf photos from cameras are size limited. Cookie-authenticated writes must be JSON, so a form on another site
-cannot make them. Every response carries headers against framing and content sniffing, and private answers are
+shelf photos from cameras are size limited. Cookie-authenticated writes must be JSON (the product photo upload
+also takes a multipart form), and the owner cookie is same-site lax, so it is not sent with a form posted from
+another site. Every response carries headers against framing and content sniffing, and private answers are
 never cached.
 
 ## Known limits of this prototype

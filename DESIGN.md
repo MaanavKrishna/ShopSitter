@@ -56,13 +56,15 @@ Floating chrome (navigation, docks, pay bar, tab bar) is translucent: `--materia
 
 ## Structure
 
-| Area | Shell |
-| --- | --- |
-| Public pages (`/`, `/how-it-works`, `/owners`, `/trust`, `/demo`) | Floating translucent navigation, full-viewport chapters, shared footer |
-| Stand (`/stand`) | Full-bleed stage on cobalt with a floating status dock |
-| Pay (`/pay/[visitId]`) | Bill sheet over a cobalt header, pay bar pinned to the bottom |
-| Basket (`/enter`, `/basket/[sessionId]`) | The same sheet as a live basket: hold step, claim cards, Done |
-| Owner (`/owner/...`) | App shell: sidebar on desktop, tab bar on phone; Overview, Store, Visits, Shelf, Products, Sales, Setup |
+| Area | Routes | Shell |
+| --- | --- | --- |
+| Public pages | `/`, `/how-it-works`, `/owners`, `/trust`, `/demo` | Floating translucent navigation, full-viewport chapters, shared footer |
+| Store simulator | `/demo/store` | Cobalt page: shelf cameras, the shopper's phone and the owner's ledger side by side |
+| Stand | `/stand` | Full-bleed stage on cobalt with a floating status dock |
+| Extra cameras | `/stand/camera/[n]` (n = 2 to 4) | The same stage, camera only, for a second view of a shelf |
+| Pay | `/pay/[visitId]` | Bill sheet over a cobalt header, pay bar pinned to the bottom |
+| Basket | `/enter`, `/basket/[sessionId]` | The same sheet as a live basket: hold step, claim cards, Done |
+| Owner | `/owner/login`, `/owner/...` | App shell: sidebar on desktop, tab bar on phone; Overview, Store, Visits, Shelf, Products, Sales, Setup |
 
 ## Words
 

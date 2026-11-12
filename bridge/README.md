@@ -69,3 +69,5 @@ leaves the computer the bridge runs on: draw each `rect` tight around the shelf.
 - There is no hand detector here (the stand screen has one): the bridge waits for the shelf to go
   still before reading, and reads anyway after 8 seconds of unbroken movement.
 - No close-up photos are sent; draw the rectangle around the shelf instead.
+- Proven end to end with a recorded video file (unit tests in `tests/bridge.test.ts` cover the config and the
+  ffmpeg arguments); no real CCTV stream has been tried yet.
