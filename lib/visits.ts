@@ -36,7 +36,42 @@ export type Visit = {
   openedAt: number;
   lastSettledAt: number;
   closedAt: number | null;
+  /** Zones whose cameras added lines to this visit. */
+  zoneIds?: string[];
+  /** Present when a shopper checked in at the door: the visit's id is that shopper's session id. */
+  session?: { checkedInAt: number; closedAt: number | null; /** The visit holding what did not fit under the hold. */ restId?: string };
+  /** A PayPal order with intent AUTHORIZE made at check-in, waiting for the shopper to approve it. */
+  holdOrder?: { orderId: string; cents: number };
+  /** Money PayPal has set aside for this visit. */
+  hold?: VisitHold;
+  /** A shelf change waiting for a checked-in shopper to say it is theirs. */
+  pending?: { zoneId: string | null; claimedBy: string | null };
+  /** Everything PayPal did for this visit through a hold, oldest first. */
+  money?: MoneyEvent[];
 };
+
+export type HoldStatus = "authorized" | "captured" | "voided";
+export type VisitHold = {
+  orderId: string;
+  authorizationId: string;
+  cents: number;
+  status: HoldStatus;
+  /**
+   * The charge decided when the shopper finished, saved before PayPal is asked, so a retry charges
+   * the same amount under the same key whatever the basket did meanwhile.
+   */
+  closing?: { cents: number; keep: Line[]; rest: Line[] };
+};
+export type MoneyEvent = { at: number; kind: "authorized" | "captured" | "voided" | "refunded"; cents: number; ref: string };
+
+const ID_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
+export const VISIT_ID = /^[a-z2-7]{20}$/;
+
+/** A new visit id: 100 random bits as twenty base32 characters. Visits made before this have 8 hex characters. */
+export function newVisitId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(20));
+  return Array.from(bytes, (b) => ID_ALPHABET[b & 31]).join("");
+}
 
 export type ChangeResult = {
   /** The previous visit, now closed as unmatched, when this change started a new one. */
@@ -120,9 +155,34 @@ export function applyReturns(v: Visit, delta: Line[], now: number): Visit | null
   return detected.length === 0 ? { ...v, detected, status: "empty" } : { ...v, detected };
 }
 
+/**
+ * Closes a visit whose bill the shopper brought to nothing. It is "empty" only when the camera saw
+ * nothing; otherwise it stays in the owner's figures as unmatched, marked adjusted, with the
+ * shopper's own (empty) lines kept beside what the camera saw.
+ */
+export function closeZeroBill(v: Visit, now: number): Visit {
+  if (v.detected.length === 0) return { ...v, status: "empty", closedAt: now };
+  return { ...v, status: "unmatched", adjusted: true, paid: v.paid ?? [], closedAt: now };
+}
+
 export function expireIfStale(v: Visit, now: number): Visit {
   if (v.status !== "open" || now - v.lastSettledAt <= OPEN_TIMEOUT_MS) return v;
-  return { ...v, status: "unmatched", closedAt: v.lastSettledAt + OPEN_TIMEOUT_MS };
+  // A visit with money held is closed by charging the hold (lib/sessions.ts), never by timing out.
+  if (v.hold?.status === "authorized") return v;
+  const closedAt = v.lastSettledAt + OPEN_TIMEOUT_MS;
+  if (v.session) {
+    const session = { ...v.session, closedAt: v.session.closedAt ?? closedAt };
+    // A shopper who checked in and took nothing owes nothing.
+    const nothing = v.detected.length === 0 && (v.paid ?? []).length === 0 && !v.needsManual;
+    return { ...v, session, status: nothing ? "empty" : "unmatched", closedAt };
+  }
+  if (v.pending) {
+    // Nobody claimed it: from here on it is an ordinary unmatched visit.
+    const rest: Visit = { ...v, status: "unmatched", closedAt };
+    delete rest.pending;
+    return rest;
+  }
+  return { ...v, status: "unmatched", closedAt };
 }
 
 function sameLines(a: Line[], b: Line[]): boolean {

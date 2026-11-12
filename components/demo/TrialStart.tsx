@@ -89,7 +89,7 @@ export function TrialStart({ initial }: { initial: Mine | null }) {
     setStarting(true);
     setProblem(null);
     setEnded(false);
-    const res = await fetch("/api/trial", { method: "POST" }).catch(() => null);
+    const res = await fetch("/api/trial", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }).catch(() => null);
     if (res?.ok) {
       // A full page load, so the dashboard is drawn for the stand that was just made.
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
@@ -161,7 +161,8 @@ export function TrialStart({ initial }: { initial: Mine | null }) {
 
         <p className="dm-private">
           <IconLock size={16} stroke={1.75} aria-hidden="true" />
-          Private to this browser. Everything in it is deleted after 24 hours.
+          Private to this browser. Everything in it is deleted after 24 hours. A stand can have several shelves,
+          each with its own camera, and a door QR that starts a basket on a shopper&apos;s phone.
         </p>
       </div>
 

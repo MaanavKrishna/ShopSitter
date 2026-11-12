@@ -3,6 +3,7 @@ import { isOwnRefPhoto, MAX_PHOTO_BYTES, refPhotoKey, refPhotoProblem, SKU_PATTE
 import { getRepo } from "@/lib/repo";
 import type { Product, Shop } from "@/lib/types";
 import { EditError, editRoute } from "../../edit";
+import { refuseNonJson } from "@/lib/http";
 
 async function findProduct(shop: Shop, sku: string): Promise<Product> {
   if (!SKU_PATTERN.test(sku)) throw new EditError("bad_request", 400);
@@ -13,6 +14,8 @@ async function findProduct(shop: Shop, sku: string): Promise<Product> {
 
 /** Stores a reference photo for a product: what the vision model is shown so it can tell products apart. */
 export async function POST(req: Request, ctx: RouteContext<"/api/owner/products/[sku]/photo">) {
+  const notJson = refuseNonJson(req, true);
+  if (notJson) return notJson;
   const { sku } = await ctx.params;
   return editRoute(async (shop) => {
     const product = await findProduct(shop, sku);

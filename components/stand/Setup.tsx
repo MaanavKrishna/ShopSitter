@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Wordmark } from "@/components/Wordmark";
 import { spring } from "@/lib/motion";
 import { CodeField } from "./CodeField";
-import { checkStand, type StandKind } from "./useStandToken";
+import { checkStand, type StandKind, ZONE_GONE } from "./useStandToken";
 
 const CODE_LENGTH = 6;
 // Long enough for the button to show that the code was taken before the stand takes over.
@@ -17,6 +17,7 @@ const REFUSALS = {
   ended: "That trial stand has ended. Start a new one from the demo page.",
   limited: "Too many tries. Try again in a few minutes.",
   unreachable: "Couldn't check the code. Check the connection and try again.",
+  no_zone: ZONE_GONE,
 } as const;
 
 /**
@@ -134,6 +135,30 @@ export function TrialEndedSheet() {
         </div>
         <Link href="/demo" className="sd-primary ds-press">
           Go to the demo page
+        </Link>
+      </motion.div>
+    </main>
+  );
+}
+
+/** Shown in place of the stand when the shelf this device was set up for was removed from the store. */
+export function ZoneGoneSheet() {
+  return (
+    <main className="void sd sd-setup">
+      <motion.div
+        className="sd-sheet sd-sheet-ended"
+        role="alert"
+        initial={{ opacity: 0, scale: 0.96, y: 14, filter: "blur(12px)" }}
+        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ ...spring, duration: 0.6 }}
+      >
+        <Wordmark />
+        <div className="sd-sheet-copy">
+          <h1>This shelf is no longer part of the store</h1>
+          <p>Open the camera link again from the Store page.</p>
+        </div>
+        <Link href="/owner/store" className="sd-primary ds-press">
+          Go to the Store page
         </Link>
       </motion.div>
     </main>

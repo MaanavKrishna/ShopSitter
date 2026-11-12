@@ -2477,6 +2477,18 @@ tr[data-flash] > td {
   margin-left: auto;
 }
 
+.ow-zone-remove {
+  display: grid;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--ow-coral-tint, #ffe2da);
+  color: var(--ow-coral-text, #b02f17);
+  font-size: var(--t-sm);
+  line-height: 1.45;
+}
+
 .ow-photo-field {
   display: grid;
   gap: var(--s-1);
@@ -3642,3 +3654,444 @@ li[data-state="later"] .ow-go-step h3 {
   }
 }
 /* ==================== end of trial ==================== */
+
+/* ==================== Store: shelves, door code, how shoppers pay ==================== */
+
+.ow-store {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.ow-store .ow-panel-head .ow-panel-meta {
+  margin-right: auto;
+}
+
+.ow-store-add {
+  height: 36px;
+}
+
+.ow-store-empty p {
+  max-width: 60ch;
+}
+
+/* The map: one column per aisle, shelves stacked in walking order. */
+.ow-store-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 312px), 1fr));
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-top: var(--hairline);
+}
+
+.ow-aisle {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.ow-aisle-name {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.ow-aisle ul {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ow-zone {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+  padding: var(--s-3);
+  border: var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--paper);
+}
+
+.ow-zone-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--s-3);
+}
+
+.ow-zone-top b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ow-zone-top span {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-zone-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border: var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--tint);
+}
+
+.ow-zone-figures div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-2);
+}
+
+.ow-zone-figures div + div {
+  border-left: var(--hairline);
+}
+
+.ow-zone-figures dt {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.ow-zone-figures dd {
+  margin: 0;
+  font-size: var(--t-ui);
+  font-weight: 600;
+}
+
+.ow-zone-figures [data-look] {
+  background: var(--ow-coral-tint);
+}
+
+.ow-zone-figures [data-look] dt,
+.ow-zone-figures [data-look] dd {
+  color: var(--ow-coral-text);
+}
+
+.ow-zone-figures div:last-child {
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+.ow-zone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.ow-zone-move {
+  display: inline-flex;
+  margin-left: auto;
+}
+
+.ow-zone-move .ow-icon-btn:disabled {
+  opacity: 0.35;
+}
+
+/* Door code and pay settings sit side by side when there is room. */
+.ow-store-pair {
+  display: grid;
+  gap: var(--s-4);
+  align-items: start;
+}
+
+.ow-door-body {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-top: var(--hairline);
+}
+
+.ow-door-body .ow-qr {
+  width: 148px;
+  background: var(--paper);
+}
+
+.ow-door-body p {
+  max-width: 52ch;
+  color: var(--ink-soft);
+}
+
+.ow-door-body p + p {
+  margin-top: var(--s-2);
+}
+
+.ow-door-body .ow-setup-note,
+.ow-camlink .ow-setup-note,
+.ow-zone-products .ow-setup-note,
+.ow-payset-note {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-door-body .ow-go-actions {
+  margin-top: var(--s-4);
+}
+
+.ow-payset-body {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-top: var(--hairline);
+}
+
+.ow-hold {
+  display: grid;
+  gap: 2px;
+  padding: var(--s-4);
+  border: var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--tint);
+}
+
+.ow-hold[data-off] .ow-hold-figure {
+  color: var(--ink-soft);
+}
+
+.ow-hold-label {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.ow-hold-figure {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: var(--track-display);
+  line-height: 1.15;
+  color: var(--blue);
+}
+
+.ow-hold-basis {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-payset-fields {
+  display: grid;
+  gap: var(--s-3);
+  align-items: start;
+}
+
+.ow-payset-note {
+  max-width: 62ch;
+}
+
+.ow-payset-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-3);
+}
+
+.ow-payset-foot [role="status"] {
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-camlink {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-3);
+}
+
+.ow-camlink .ow-qr {
+  width: 176px;
+  background: var(--paper);
+}
+
+.ow-zone-products {
+  display: grid;
+  gap: var(--s-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ow-zone-products legend {
+  padding: 0;
+  font-size: var(--t-ui);
+  font-weight: 600;
+}
+
+.ow-zone-products ul {
+  display: grid;
+  gap: var(--s-1);
+  max-height: 240px;
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  overflow-y: auto;
+  border: var(--hairline);
+  border-radius: var(--r-md);
+  list-style: none;
+}
+
+/* Overview: unmatched value by shelf. The tint grows with the amount. */
+.ow-shrink-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr));
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0 var(--s-4) var(--s-4);
+  list-style: none;
+}
+
+.ow-shrink-tile {
+  position: relative;
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+  padding: var(--s-3);
+  border: var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    transform var(--dur-press) ease-out,
+    border-color var(--dur-fast);
+}
+
+.ow-shrink-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--ow-coral-tint);
+  opacity: var(--shrink, 0);
+}
+
+.ow-shrink-tile b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ow-shrink-figure {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+  line-height: 1.2;
+}
+
+.ow-shrink-tile[data-look] .ow-shrink-figure,
+.ow-shrink-tile[data-look] .ow-shrink-what {
+  color: var(--ow-coral-text);
+}
+
+.ow-shrink-what,
+.ow-shrink-rest {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
+.ow-shrink-rest {
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .ow-shrink-tile:hover {
+    border-color: #b9c4e6;
+  }
+}
+
+@media (min-width: 900px) {
+  .ow-zone-move .ow-icon-btn {
+    width: 30px;
+    min-width: 0;
+    height: 30px;
+    min-height: 0;
+    padding: 0;
+  }
+}
+
+@media (min-width: 720px) {
+  .ow-door-body {
+    grid-template-columns: 148px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .ow-payset-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .ow-store-pair {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+
+  .ow-store-pair .ow-door-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 899px) {
+  /* Seven sections: each tab is 50px wide on a 360px phone and 48px tall. */
+  .ow-tabs {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .ow-tab {
+    font-size: 0.625rem;
+  }
+
+  .ow-tab .ow-tab-pill {
+    inset: 0 1px;
+  }
+
+  .ow-zone-actions .ow-rowbtn,
+  .ow-store-add {
+    height: 44px;
+  }
+
+  .ow-zone-move .ow-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media print {
+  .ow-side,
+  .ow-top,
+  .ow-tabs,
+  .ow-store > :not(.ow-store-pair),
+  .ow-payset,
+  .ow-door .ow-go-actions {
+    display: none !important;
+  }
+}
+
+/* Get going: the optional step under the list. */
+.ow-go-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-top: var(--hairline);
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+
+.ow-go-extra b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.ow-go-extra-tag {
+  padding: 2px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+}

@@ -1,8 +1,8 @@
 # Shopsitter
 
-**The stand that rings you up.** Shopsitter minds an unattended stand: a phone camera reads the shelf, works out
-what was taken, shows the bill with a PayPal QR code, takes the payment, and tells the owner what sold, what was
-paid and what is still unmatched.
+**Walk-out checkout for small shops, with phones for cameras.** Shopsitter minds an unattended shop: phone cameras
+read the shelves, a vision model works out what was taken, the shopper sees the bill and pays with PayPal, and the
+owner sees what sold, what was paid and what is still unmatched.
 
 Live: https://shopsitter.vercel.app (PayPal sandbox: no real money moves)
 
@@ -10,95 +10,91 @@ Built for the PayPal AI Hackathon 2026.
 
 ## The problem
 
-Honesty boxes, farm stands, office snack shelves and church bake tables run on a cash tin and trust. Fewer people
-carry cash, the owner never learns what actually sold, and a self-checkout kiosk costs more than the stand earns.
-Shopsitter needs one phone propped beside the shelf.
-
-## How a visit goes
-
-1. A shopper takes what they like. No app, no barcode, no till.
-2. The phone at the shelf notices the shelf changed and waits for it to go still. This runs on the device.
-3. A before photo, an after photo and a close-up of the changed area go to a vision model. It returns product ids
-   and counts, nothing else.
-4. The server prices the items from the owner's catalogue and opens a visit.
-5. The stand screen shows the bill and a PayPal QR code.
-6. The shopper scans, can correct the bill on their own phone, and pays with PayPal.
-7. A visit with nothing paid after ten minutes becomes "unmatched". It can still be paid for a day, and the owner
-   can mark it settled another way.
-8. The owner's dashboard shows what left the shelf, what PayPal captured, what is unmatched and what is running low.
+Honesty boxes, farm shops, office markets and hotel pantries run on a cash tin and trust. Fewer people carry cash,
+the owner never learns what actually sold, and a self-checkout kiosk or a sensor-fitted store costs more than the
+shop earns. Shopsitter needs a phone per shelf and a PayPal account.
 
 ## Try it
 
 | What | Where | Notes |
 | --- | --- | --- |
-| Run your own stand | [/demo](https://shopsitter.vercel.app/demo) | Starts a private trial stand, no passcode: add your own products with photos, open the stand screen from its link or QR code, take something, pay in the sandbox, see it in your dashboard. Deleted after 24 hours |
-| Demo without a camera | [/demo](https://shopsitter.vercel.app/demo) | Lower on the same page: sample shelf pictures read by the real vision model |
-| Example dashboard | [/owner/login](https://shopsitter.vercel.app/owner/login) | Passcode `demo` (an example week, read-only products) |
-| How it works | [/how-it-works](https://shopsitter.vercel.app/how-it-works) | The whole flow, step by step |
-| What it stores | [/trust](https://shopsitter.vercel.app/trust) | Rules the stand keeps, and its limits |
-| Stand screen | [/stand](https://shopsitter.vercel.app/stand) | Needs a camera, and either the stand code or a trial stand's link |
+| Run your own shop | [/demo](https://shopsitter.vercel.app/demo), "Start my stand" | A private trial: add your own products with photos, point a phone or laptop camera at them, take one, pay. No account. Deleted after 24 hours. |
+| Watch it read sample shelves | [/demo](https://shopsitter.vercel.app/demo), lower on the page | Seven sample shelf pictures read by the real vision model |
+| An example week | [/owner/login](https://shopsitter.vercel.app/owner/login), passcode `demo` | Example data, read-only |
+| How it works | [/how-it-works](https://shopsitter.vercel.app/how-it-works) | The flow, step by step |
+| What it stores | [/trust](https://shopsitter.vercel.app/trust) | Rules the shop keeps, and its limits |
 
-Payments use the PayPal sandbox. To pay a demo or trial bill, use a sandbox buyer account from your own PayPal developer
-dashboard.
+Payments use the PayPal sandbox. To pay a bill, use a sandbox buyer account from your own PayPal developer dashboard.
+
+## How it works
+
+**Shelves.** A shop is made of shelves grouped by aisle. Each shelf has its own camera (a phone opened from that
+shelf's link) and its own list of products, so the vision model only ever chooses among the few products on that
+shelf. The phone notices on its own when the shelf changed and went still, then sends a before photo, an after
+photo and a close-up of the changed area.
+
+**Two ways to shop.** The owner picks one, or lets the shopper choose:
+
+1. **Pay after.** Take what you like. The shelf's screen shows the bill and a PayPal QR code. Scan, fix the bill if
+   the camera got it wrong, pay.
+2. **Hold first.** Scan the QR at the door. PayPal holds an amount sized from what shoppers at this shop really
+   spend (it covers nine in ten baskets of the last 30 days, within the owner's minimum and maximum). Your basket
+   fills on your phone as the shelves are read. Tap Done, or just leave: you are charged for what you took and the
+   rest of the hold is released.
+
+**Several shoppers at once.** Nobody is identified. If one shopper is checked in, shelf changes go to their
+basket. If several are, a change shows on their phones as "Shelf 3 saw 1 x Honey leave. Yours?" and the first to
+claim it gets it.
+
+**Putting things back.** A returned item comes off the bill, or off the visit it belonged to.
+
+**Unmatched, never accused.** A visit with nothing paid after ten minutes is "unmatched". It can still be paid for
+a day, and the owner can mark it settled another way. The owner sees unmatched value per shelf.
+
+**The owner's side.** Money taken through PayPal, a ledger of where the shelf value went, visits with before and
+after photos, refunds, shelf levels and restocking, a product editor with reference photos, the store map with a
+QR per shelf and for the door, charts they can rearrange, and a question box ("what sold best this week?").
 
 ## Where PayPal is used
 
-- **Orders v2** (`@paypal/paypal-server-sdk`): every bill becomes an itemised order; the amount is computed on the
-  server from the catalogue, in cents. Create and capture carry a `PayPal-Request-Id`, so a retry never charges twice.
-- **Capture**: checked against the order the server created for that visit before any money is taken.
-- **Refunds**: the owner can refund all or part of a captured payment from the dashboard.
-- **JavaScript SDK v6** (`@paypal/react-paypal-js`): the pay button on the shopper's phone.
-- **Agent Toolkit** (`@paypal/agent-toolkit`, read-only): lets the owner's "Ask your stand" box look up PayPal-side
-  facts.
+- **Orders v2** (`@paypal/paypal-server-sdk`): every bill becomes an itemised order whose amount the server
+  computed from the catalogue, in cents.
+- **Capture**, checked against the order the server created for that bill.
+- **Authorize, capture and void** for holds: the server authorises the hold, captures only the basket total (never
+  more than was held) and releases the rest.
+- **Refunds** from the owner's dashboard.
+- **Idempotency keys and timeouts** on every write.
+- **JavaScript SDK v6** (`@paypal/react-paypal-js`): the pay and hold buttons on the shopper's phone.
+- **Agent Toolkit** (`@paypal/agent-toolkit`, read-only): lets the owner's question box look up the shop's own
+  PayPal orders.
 
 ## Where AI is used
 
-- **Reading the shelf**: a vision model compares the before and after photos (plus a close-up of the changed area,
-  each product's reference photo, and extra camera angles when present) and returns `{ sku, qty }` pairs. Its output
-  is sanitised: only catalogue products, whole numbers, bounded quantities.
-- **Ask your stand**: a language model answers the owner's questions by calling tools that return server-computed
-  facts. It never does the arithmetic.
-- **On the device**: a hand and person detector runs in the browser on the stand's phone. It holds the shelf read
-  while a hand is in view and counts how many people stopped by. Nothing about a person is stored or sent; only a
-  daily number.
+- **Reading the shelf.** A vision model compares the before and after photos, with each product's reference photo,
+  a close-up of the changed area and extra camera angles when present, and returns product ids and counts. Its
+  output is sanitised: only that shelf's products, whole numbers, bounded quantities. It never sets a price.
+- **Ask your shop.** A language model answers the owner's questions by calling tools that return server-computed
+  facts. An answer containing an amount that is not in the records is rejected.
+- **On the device.** A hand and person detector runs in the camera phone's browser. It holds the shelf read while a
+  hand is in view and counts how many people stopped by. Nothing about a person is stored or sent.
 
-The model never sets a price. Prices and totals are always computed by the server.
+Measured accuracy and its limits: [docs/accuracy.md](docs/accuracy.md) (15 of 15 reads correct on seven composed
+sample pairs; composed pictures are easier than real photos).
 
-## Rules the product keeps
+## Documents
 
-- It never accuses anyone. A visit with no payment is "unmatched", and nothing more.
-- It counts items, not people.
-- The shopper has the last word on the bill before paying.
-- Photos of the shelf are visible only to the signed-in owner.
+| Document | What is in it |
+| --- | --- |
+| [docs/architecture.md](docs/architecture.md) | System overview, request flows, data model, visit states, where things live |
+| [docs/security.md](docs/security.md) | Who can do what, every token, money rules, privacy, known limits |
+| [docs/accuracy.md](docs/accuracy.md) | How the shelf reader was measured and what the numbers do not show |
+| [DESIGN.md](DESIGN.md) | The design system: colour, type, materials, motion |
 
-Accuracy and limits: see [docs/accuracy.md](docs/accuracy.md) and the [trust page](https://shopsitter.vercel.app/trust).
-This is a prototype: one shelf, a handful of visually distinct products, good light.
+## Stack
 
-## Architecture
-
-```
-Stand phone (browser)                Server (Next.js on Vercel)              PayPal sandbox
-  camera frames                        /api/stand/change
-  change detector  ── photos ───────▶    vision model ─▶ sanitise ─▶ price
-  hand/person detector                   visit state machine ──────────────▶ Orders v2
-  bill + QR  ◀──────── visit ────────                                        Capture / Refund
-Shopper phone
-  /pay/[visitId]  ── edit lines, pay ─▶ /api/visits/[id]/order|capture ───▶
-Owner
-  /owner/...      ── dashboard, ask ──▶ /api/owner/*  (Postgres or local files)
-```
-
-- `lib/frame-diff.ts`: decides when the shelf has changed and settled (block grid, exposure-proof).
-- `lib/vision.ts`: the model call and the sanitiser.
-- `lib/visits.ts`: the visit state machine (open, paid, adjusted, paid late, unmatched, settled another way).
-- `lib/checkout.ts`, `lib/paypal.ts`: orders, capture, refunds, idempotency.
-- `lib/angles.ts`: extra cameras on other sides of the shelf.
-- `lib/presence.ts`, `lib/footfall.ts`: the on-device presence signal and the daily count.
-- `lib/repo.ts`: storage behind one interface (local files for development, Postgres when hosted).
-- `app/system.css`, `DESIGN.md`: the design system.
-
-Stack: Next.js 16, React 19, TypeScript, Vercel AI SDK, PayPal Server SDK and JS SDK v6, PayPal Agent Toolkit,
-AG Studio (the owner's charts, running on its trial licence, which prints a notice in the browser console), Astryx components, Motion, MediaPipe (on-device detection), Neon Postgres, Vitest.
+Next.js 16, React 19, TypeScript, Vercel AI SDK, PayPal Server SDK, PayPal JS SDK v6, PayPal Agent Toolkit,
+AG Studio (the owner's charts, on its trial licence, which prints a notice in the browser console), Astryx
+components, Motion, MediaPipe (on-device detection), Neon Postgres, Vitest.
 
 ## Run it yourself
 
@@ -119,21 +115,29 @@ npm run dev                  # http://localhost:3210
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | Your own PayPal sandbox app |
 | `ANTHROPIC_API_KEY` | Key for the vision and language models |
 | `VISION_MODEL`, `ASK_MODEL` | Model ids (defaults are in `.env.example`) |
-| `OWNER_PASSCODE` | Passcode for your stand's dashboard |
-| `DEMO_PASSCODE` | Passcode for the demo stand (`demo`) |
-| `STAND_TOKEN` | 6-digit code the stand screen asks for |
-| `SESSION_SECRET` | A long random string |
+| `OWNER_PASSCODE` | Passcode for your shop's dashboard |
+| `DEMO_PASSCODE` | Passcode for the demo shop (`demo`) |
+| `STAND_TOKEN` | 6-digit code your shelf cameras ask for |
+| `SESSION_SECRET` | A long random string; signs cookies, camera keys and door codes |
 | `REPO` | `file` (local `.data/` folder) or `postgres` (also set `DATABASE_URL`) |
 
 Then:
 
 ```bash
-npx tsx --env-file=.env.local scripts/seed.ts   # example data for the demo stand
-npm test                                        # unit tests
+npx tsx --env-file=.env.local scripts/seed.ts demo --examples   # example week for the demo shop
+npm test                                                        # unit tests
 ```
 
-Open `/stand` on a phone or laptop with a camera, enter the stand code, and point it at a shelf. Phone cameras need
-https: deploy it, or run `npx next dev --experimental-https`. Add your products at `/owner/products`.
+Sign in at `/owner/login`, add products at `/owner/products`, add shelves and print the QR codes at `/owner/store`,
+and open each shelf's camera link on a phone. Phone cameras need https: deploy it, or run
+`npx next dev --experimental-https`.
+
+## Limits
+
+A prototype. Phones as cameras suit a small shop of a few aisles, not a supermarket: products on a shelf should
+look different from each other, the light should be reasonable, and several shoppers at once rely on people
+claiming their own items. Rate limits are counted per server instance. PayPal runs in sandbox mode only. The full
+list is in [docs/security.md](docs/security.md).
 
 ## Licence
 

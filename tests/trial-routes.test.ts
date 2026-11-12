@@ -42,7 +42,9 @@ import { POST as changeRoute } from "@/app/api/stand/change/route";
 import { GET as checkRoute } from "@/app/api/stand/check/route";
 import { POST as presenceRoute } from "@/app/api/stand/presence/route";
 import { DELETE as endTrialRoute, GET as trialRoute, POST as startTrialRoute } from "@/app/api/trial/route";
-import { POST as starterRoute } from "@/app/api/trial/starter/route";
+import { POST as starterPost } from "@/app/api/trial/starter/route";
+import { POST as loginRoute } from "@/app/api/owner/login/route";
+import { PUT as zonesRoute } from "@/app/api/owner/store/zones/route";
 import { GET as billRoute } from "@/app/api/visits/[id]/route";
 import { OWNER_COOKIE, ownerCookieValue } from "@/lib/auth";
 import { FileRepo } from "@/lib/repo-file";
@@ -60,7 +62,7 @@ const freshIp = () => `10.1.${Math.floor(++ipCount / 250)}.${ipCount % 250}`;
 const json = (url: string, method: string, body?: unknown, ip = freshIp()) =>
   new Request(`http://localhost${url}`, {
     method,
-    headers: { "x-forwarded-for": ip, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+    headers: { "x-forwarded-for": ip, ...(method === "GET" ? {} : { "content-type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 const form = (url: string, token: string, fields: Record<string, string | Uint8Array>, ip = freshIp()) => {
@@ -71,6 +73,7 @@ const form = (url: string, token: string, fields: Record<string, string | Uint8A
   return new Request(`http://localhost${url}`, { method: "POST", headers: { "x-forwarded-for": ip, "x-stand-token": token }, body: data });
 };
 const params = <T extends Record<string, string>>(p: T) => ({ params: Promise.resolve(p) }) as never;
+const starterRoute = () => starterPost(json("/api/trial/starter", "POST"));
 const signIn = (shop: Shop) => state.jar.set(OWNER_COOKIE, ownerCookieValue(shop));
 const signOut = () => state.jar.clear();
 
@@ -448,9 +451,10 @@ describe("stand devices", () => {
 
   it("caps a trial at sixty shelf reads a day and leaves the live stand uncapped", async () => {
     const trial = await startTrial();
-    const at = Date.now();
+    // Stand times must sit near the server's clock, so the reads are spread over the last few minutes.
+    const at = Date.now() - 150_000;
     for (let i = 0; i < 60; i++) expect((await change(trial.standKey, at + i * 2000)).status).toBe(200);
-    const capped = await change(trial.standKey, at + 200_000);
+    const capped = await change(trial.standKey, at + 140_000);
     expect(capped.status).toBe(429);
     expect(await capped.json()).toEqual({ error: "trial_read_limit" });
     expect(state.reads).toBe(60);
@@ -495,3 +499,39 @@ describe("stand devices", () => {
     expect(await repo.getPhoto("live-angle-2-latest.jpg")).toEqual(JPEG);
   });
 });
+
+describe("JSON-only writes", () => {
+  const plain = (url: string, method: string, body: string) =>
+    new Request(`http://localhost${url}`, { method, headers: { "x-forwarded-for": freshIp(), "content-type": "text/plain" }, body });
+
+  it("refuses a sign-in sent as a plain-text form body, so another site cannot sign a browser in", async () => {
+    const res = await loginRoute(plain("/api/owner/login", "POST", JSON.stringify({ passcode: "demo" })));
+    expect(res.status).toBe(415);
+    expect(await res.json()).toEqual({ error: "unsupported_media_type" });
+    expect(state.jar.has(OWNER_COOKIE)).toBe(false);
+    expect((await loginRoute(json("/api/owner/login", "POST", { passcode: "demo" }))).status).toBe(200);
+  });
+
+  it("refuses owner writes and a trial start that are not JSON", async () => {
+    signIn("live");
+    expect((await zonesRoute(plain("/api/owner/store/zones", "PUT", JSON.stringify({ zones: [] })))).status).toBe(415);
+    expect((await visitActionRoute(plain("/api/owner/visits/x", "POST", JSON.stringify({ action: "settle" })), params({ id: "x" }))).status).toBe(415);
+    signOut();
+    expect((await startTrialRoute(plain("/api/trial", "POST", ""))).status).toBe(415);
+  });
+});
+
+describe("stand times", () => {
+  it("refuses a change dated in the future or held back for too long", async () => {
+    const now = Date.now();
+    expect((await change(LIVE_CODE, now + 5 * 60_000)).status).toBe(400);
+    expect((await change(LIVE_CODE, now - 20 * 60_000)).status).toBe(400);
+    expect((await change(LIVE_CODE, now - 5_000)).status).toBe(200);
+    // A change carried forward after a failed send keeps its old start but has a fresh end.
+    const carried = await changeRoute(
+      form("/api/stand/change", LIVE_CODE, { before: JPEG, after: JPEG, changeStartedAt: String(now - 30 * 60_000), settledAt: String(now) }),
+    );
+    expect(carried.status).toBe(200);
+  });
+});
+

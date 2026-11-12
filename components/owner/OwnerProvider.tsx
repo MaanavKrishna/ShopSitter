@@ -17,6 +17,7 @@ import type { VisitFilter } from "@/lib/owner-view";
 import { type ShopKind, shopKind } from "@/lib/shops";
 import { trialOver } from "@/lib/trial-view";
 import type { Product, Shop } from "@/lib/types";
+import type { Zone, ZoneFigures } from "./storeApi";
 
 export type Overview = {
   visits: VisitRow[];
@@ -25,6 +26,10 @@ export type Overview = {
   products: Product[];
   visitors?: number;
   shopKind?: ShopKind;
+  /** The stand's shelves, when it has any. */
+  zones?: Zone[];
+  /** What was taken, paid and left unmatched on each shelf in the period; null gathers products kept anywhere. */
+  byZone?: ZoneFigures[];
 };
 
 /** How a trial stand's devices are let in: the key, and the link that carries it to the stand screen. */
@@ -40,6 +45,8 @@ export type Period = (typeof PERIODS)[number];
 
 const PROBLEMS: Record<string, string> = {
   bad_amount: "That refund is more than what's left of the payment.",
+  demo_read_only: "The demo stand can't send refunds. Start a trial stand to try it.",
+  hold_open: "The shopper's PayPal hold couldn't be released, so nothing was changed. Try again.",
   not_allowed: "That can't be done for this visit.",
   not_found: "That visit no longer exists.",
   paypal_refused: "PayPal didn't accept the refund. Nothing was sent.",

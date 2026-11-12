@@ -3,6 +3,7 @@
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Selector } from "@astryxdesign/core/Selector";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -24,6 +25,10 @@ import type { Product } from "@/lib/types";
 import { ownerSignedOut, useOwner } from "./OwnerProvider";
 import { type PhotoChoice, ProductPhotoField } from "./ProductPhotoField";
 import { photoHref, useRestock } from "./parts";
+import { zoneOf } from "./storeApi";
+
+/** The shelf picker's value for a product kept anywhere. */
+const ANYWHERE = "anywhere";
 
 type Draft = {
   /** Sku of the product being edited, or null for a new one. */
@@ -32,6 +37,8 @@ type Draft = {
   /** The owner typed their own id, so the name no longer rewrites it. */
   skuTouched: boolean;
   photo: PhotoChoice;
+  /** The shelf the product is on, or null for anywhere. */
+  zoneId: string | null;
   errors: ProductFormErrors;
   /** Something the server refused that does not belong to one field. */
   problem: string | null;
@@ -71,6 +78,7 @@ const emptyDraft = (): Draft => ({
   form: { sku: "", name: "", description: "", price: "", stock: "" },
   skuTouched: false,
   photo: { kind: "keep" },
+  zoneId: null,
   errors: {},
   problem: null,
 });
@@ -80,6 +88,7 @@ const draftFor = (p: Product): Draft => ({
   form: { sku: p.sku, name: p.name, description: p.description, price: formatCents(p.priceCents), stock: String(p.stock) },
   skuTouched: true,
   photo: { kind: "keep" },
+  zoneId: zoneOf(p),
   errors: {},
   problem: null,
 });
@@ -129,6 +138,7 @@ export function ProductsView() {
     return () => window.removeEventListener("hashchange", openIfAsked);
   }, []);
 
+  const zones = data.zones ?? [];
   const restock = useRestock();
   // What is on the shelf now: the stored count less what visits have taken.
   const leftBySku = new Map(data.stock.map((s) => [s.sku, s.left]));
@@ -171,7 +181,12 @@ export function ProductsView() {
 
     const before = products.find((p) => p.sku === checked.value.sku);
     const fields = { ...checked.value, stock: draft.editing && before ? before.stock : checked.value.stock };
-    const optimistic: Product = { ...fields, shop, refImageUrl: before?.refImageUrl ?? null };
+    const optimistic: Product = {
+      ...fields,
+      shop,
+      refImageUrl: before?.refImageUrl ?? null,
+      ...(zones.length > 0 ? { zoneId: draft.zoneId } : {}),
+    };
     const base = data.products;
     const listWith = (p: Product) => (before ? products.map((x) => (x.sku === p.sku ? p : x)) : [...products, p]);
 
@@ -210,6 +225,8 @@ export function ProductsView() {
           name: fields.name,
           description: fields.description,
           price: draft.form.price.trim(),
+          // Sent only when the stand has shelves, so a stand without them is saved exactly as before.
+          ...(zones.length > 0 ? { zoneId: draft.zoneId } : {}),
           ...(draft.editing ? {} : { stock: fields.stock }),
           create: !draft.editing,
         }),
@@ -509,6 +526,16 @@ export function ProductsView() {
                 />
               )}
             </div>
+            {zones.length > 0 && (
+              <Selector
+                label="Shelf"
+                description="The camera on this shelf looks for it. Kept anywhere, every camera does."
+                width="100%"
+                value={draft.zoneId ?? ANYWHERE}
+                onChange={(value) => setDraft((d) => (d ? { ...d, zoneId: value === ANYWHERE ? null : value, problem: null } : d))}
+                options={[{ value: ANYWHERE, label: "Anywhere" }, ...zones.map((z) => ({ value: z.id, label: z.aisle ? `${z.name} · ${z.aisle}` : z.name }))]}
+              />
+            )}
             <ProductPhotoField
               current={editingProduct?.refImageUrl ? photoHref(editingProduct.refImageUrl) : null}
               choice={draft.photo}

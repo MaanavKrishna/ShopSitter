@@ -92,11 +92,17 @@ describe("checkout", () => {
     expect(visit.detected).toEqual([{ sku: "honey", qty: 2 }, { sku: "bread", qty: 1 }]);
   });
 
-  it("creates no PayPal order for an empty bill and closes the visit as empty", async () => {
+  it("creates no PayPal order when the shopper cleared the bill, and keeps the visit for the owner as unmatched and adjusted", async () => {
     await editLines(repo, "v1", [], NOW);
     expect(await errorCode(startOrder(repo, paypal, "v1", NOW + 10))).toBe("empty_bill");
     expect(paypal.orders).toEqual([]);
-    expect((await repo.getVisit("v1"))!.status).toBe("empty");
+    expect(await repo.getVisit("v1")).toMatchObject({ status: "unmatched", adjusted: true, paid: [], closedAt: NOW + 10 });
+  });
+
+  it("closes a visit as empty only when the camera saw nothing", async () => {
+    await repo.saveVisit(newVisit("v0", "demo", [], NOW));
+    expect(await errorCode(startOrder(repo, paypal, "v0", NOW + 10))).toBe("empty_bill");
+    expect((await repo.getVisit("v0"))!.status).toBe("empty");
   });
 
   it("ignores edited lines that are not in the catalogue or have silly quantities", async () => {
@@ -186,3 +192,33 @@ describe("checkout", () => {
     expect(visit.paid).toEqual([{ sku: "honey", qty: 1 }]);
   });
 });
+
+describe("a checked-in shopper's visit on the pay-page routes", () => {
+  const session = (closedAt: number | null, extra = {}) => ({
+    ...newVisit("s1", "demo", [{ sku: "honey", qty: 1 }], 1_000),
+    session: { checkedInAt: 1_000, closedAt },
+    ...extra,
+  });
+
+  it("is refused with use_basket while the session is open, and PayPal is asked nothing", async () => {
+    await repo.saveVisit(session(null, { holdOrder: { orderId: "HOLD1", cents: 2000 } }));
+    expect(await errorCode(editLines(repo, "s1", [{ sku: "honey", qty: 2 }], NOW))).toBe("use_basket");
+    expect(await errorCode(startOrder(repo, paypal, "s1", NOW))).toBe("use_basket");
+    expect(await errorCode(captureVisit(repo, paypal, "s1", "HOLD1", NOW))).toBe("use_basket");
+    expect(paypal.orders).toEqual([]);
+    expect((await repo.getVisit("s1"))!.detected).toEqual([{ sku: "honey", qty: 1 }]);
+  });
+
+  it("is refused while money is held on it, even when the session reads as closed", async () => {
+    await repo.saveVisit(session(NOW - 10, { hold: { orderId: "HOLD1", authorizationId: "A1", cents: 2000, status: "authorized" } }));
+    expect(await errorCode(startOrder(repo, paypal, "s1", NOW))).toBe("use_basket");
+  });
+
+  it("works as an ordinary bill once Done handed it to the pay page", async () => {
+    await repo.saveVisit(session(NOW - 10));
+    const { orderId } = await startOrder(repo, paypal, "s1", NOW);
+    const { visit } = await captureVisit(repo, paypal, "s1", orderId, NOW + 10);
+    expect(visit.status).toBe("paid");
+  });
+});
+

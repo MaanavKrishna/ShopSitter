@@ -54,6 +54,15 @@ export function repoContract(name: string, fresh: () => Promise<Repo>, reopen: (
     expect(await repo.listProducts("demo", { includeArchived: true })).toHaveLength(1);
   });
 
+  it("keeps the zone a product is on, and stores a product kept anywhere without one", async () => {
+    await repo.upsertProduct({ ...honey("demo"), zoneId: "zabcdef" });
+    expect(await reopen().listProducts("demo")).toEqual([{ ...honey("demo"), zoneId: "zabcdef" }]);
+    await repo.upsertProduct({ ...honey("demo"), zoneId: null });
+    const [kept] = await reopen().listProducts("demo");
+    expect(kept).toEqual(honey("demo"));
+    expect("zoneId" in kept).toBe(false);
+  });
+
   it("clears archived products too when a shop is reset", async () => {
     await repo.upsertProduct({ ...honey("demo"), sku: "old", archived: true });
     await repo.resetShop("demo", [honey("demo")]);
@@ -72,6 +81,42 @@ export function repoContract(name: string, fresh: () => Promise<Repo>, reopen: (
     await repo.saveVisit(newVisit("v2", "demo", [{ sku: "honey", qty: 1 }], 2_000));
     await repo.saveVisit(newVisit("v3", "live", [{ sku: "honey", qty: 1 }], 3_000));
     expect((await repo.getOpenVisit("demo"))!.id).toBe("v2");
+  });
+
+  it("lists every open visit of one shop, newest first", async () => {
+    await repo.saveVisit({ ...newVisit("v1", "demo", [{ sku: "honey", qty: 1 }], 1_000), status: "paid" });
+    await repo.saveVisit(newVisit("v2", "demo", [{ sku: "honey", qty: 1 }], 2_000));
+    await repo.saveVisit(newVisit("v3", "demo", [], 3_000));
+    await repo.saveVisit(newVisit("v4", "live", [{ sku: "honey", qty: 1 }], 4_000));
+    expect((await repo.listOpenVisits("demo")).map((v) => v.id)).toEqual(["v3", "v2"]);
+  });
+
+  it("gives a pending visit to the first session that claims it, and to no other", async () => {
+    const pending = { ...newVisit("p1", "demo", [{ sku: "honey", qty: 1 }], 1_000), pending: { zoneId: null, claimedBy: null } };
+    await repo.saveVisit(pending);
+    const answers = await Promise.all([repo.claimVisit("p1", "sessiona"), reopen().claimVisit("p1", "sessionb")]);
+    expect(answers.filter(Boolean)).toHaveLength(1);
+    const winner = answers[0] ? "sessiona" : "sessionb";
+    const stored = (await reopen().getVisit("p1"))!;
+    expect(stored.status).toBe("empty");
+    expect(stored.pending).toEqual({ zoneId: null, claimedBy: winner });
+    expect(stored.detected).toEqual([{ sku: "honey", qty: 1 }]);
+    expect(await repo.claimVisit("p1", "sessionc")).toBe(false);
+    expect(await repo.listOpenVisits("demo")).toEqual([]);
+  });
+
+  it("refuses to claim a visit that is not pending, not open, or not there", async () => {
+    await repo.saveVisit(newVisit("plain", "demo", [{ sku: "honey", qty: 1 }], 1_000));
+    await repo.saveVisit({
+      ...newVisit("gone", "demo", [{ sku: "honey", qty: 1 }], 2_000),
+      status: "unmatched",
+      pending: { zoneId: "zabc234", claimedBy: null },
+    });
+    expect(await repo.claimVisit("plain", "s")).toBe(false);
+    expect(await repo.claimVisit("gone", "s")).toBe(false);
+    expect(await repo.claimVisit("nope", "s")).toBe(false);
+    expect((await repo.getVisit("plain"))!.status).toBe("open");
+    expect((await repo.getVisit("gone"))!.status).toBe("unmatched");
   });
 
   it("lists visits newest first and filters by time", async () => {

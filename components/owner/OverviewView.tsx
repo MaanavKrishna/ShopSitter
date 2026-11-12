@@ -5,9 +5,10 @@ import { IconArrowRight } from "@tabler/icons-react";
 import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { PointerEvent } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 import { formatCents } from "@/lib/money";
 import { easeOut, spring } from "@/lib/motion";
+import { tintStrength } from "@/lib/basket-view";
 import { isLow } from "@/lib/owner-view";
 import { AskPanel } from "./AskPanel";
 import { CountUp } from "./CountUp";
@@ -38,6 +39,17 @@ export function OverviewView() {
   const standName = trial ? "Your trial stand" : shop === "demo" ? "Demo stand" : "Your stand";
   // A trial with nothing sold has no chart or ledger worth drawing: the band says so in one line.
   const nothingYet = trial && shown.length === 0;
+
+  // One tile per shelf, and one for products kept anywhere when those saw any movement.
+  const zones = data.zones ?? [];
+  const figures = new Map((data.byZone ?? []).map((f) => [f.zoneId, f]));
+  const none = { takenCents: 0, paidCents: 0, unmatchedCents: 0 };
+  const loose = figures.get(null);
+  const shelfTiles = [
+    ...zones.map((z) => ({ id: z.id as string | null, name: z.name, ...(figures.get(z.id) ?? none) })),
+    ...(loose && loose.takenCents > 0 ? [{ id: null, name: "Kept anywhere", ...loose }] : []),
+  ];
+  const mostUnmatched = Math.max(0, ...shelfTiles.map((t) => t.unmatchedCents));
 
   // A soft light that follows a mouse across the band. Touch and reduced motion get none (see the stylesheet).
   const x = useSpring(useMotionValue(0), follow);
@@ -105,6 +117,39 @@ export function OverviewView() {
       </section>
 
       <AskPanel />
+
+      {zones.length > 0 && (
+        <section className="ow-panel" aria-labelledby="shrink-h">
+          <div className="ow-panel-head">
+            <h2 id="shrink-h">Unmatched by shelf</h2>
+            <p className="ow-panel-meta">{period.subtitle}</p>
+          </div>
+          <ul className="ow-shrink-tiles">
+            {shelfTiles.map((t) => (
+              <li key={t.id ?? "anywhere"}>
+                <Link
+                  href="/owner/store"
+                  className="ow-shrink-tile ds-press"
+                  data-look={t.unmatchedCents > 0 || undefined}
+                  style={{ "--shrink": tintStrength(t.unmatchedCents, mostUnmatched) } as CSSProperties}
+                >
+                  <b>{t.name}</b>
+                  <span className="ow-shrink-figure num">${formatCents(t.unmatchedCents)}</span>
+                  <span className="ow-shrink-what">unmatched</span>
+                  <span className="ow-shrink-rest">
+                    <span className="num">${formatCents(t.takenCents)}</span> taken ·{" "}
+                    <span className="num">${formatCents(t.paidCents)}</span> paid
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Link href="/owner/store" className="ow-panel-foot">
+            Open the store map
+            <IconArrowRight size={15} aria-hidden="true" />
+          </Link>
+        </section>
+      )}
 
       <AnimatePresence mode="wait" initial={false}>
         <motion.div

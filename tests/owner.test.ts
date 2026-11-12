@@ -2,7 +2,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { OwnerError, ownerAction, ownerOverview } from "@/lib/owner";
+import { OwnerError, ownerAction, ownerOverview, visitRow } from "@/lib/owner";
+import { FakeHoldPayPal } from "./fake-hold-paypal";
 import { PayPalRefused, refusalFrom, type PayPalGateway } from "@/lib/paypal";
 import { FileRepo } from "@/lib/repo-file";
 import { DEMO_PRODUCTS, productsFor } from "@/lib/seed";
@@ -204,5 +205,65 @@ describe("ownerAction", () => {
 
   it("hides another shop's visit", async () => {
     expect(await code(ownerAction(repo, paypal, "demo", "other-shop", { action: "settle" }))).toBe("not_found");
+  });
+});
+
+describe("settling a visit with money held", () => {
+  const held = (): Visit =>
+    visit("held", {
+      session: { checkedInAt: NOW - 3_600_000, closedAt: null },
+      hold: { orderId: "ORDER1", authorizationId: "AUTH-ORDER1", cents: 2000, status: "authorized" },
+      money: [{ at: NOW - 3_600_000, kind: "authorized", cents: 2000, ref: "AUTH-ORDER1" }],
+    });
+
+  it("releases the shopper's hold first and records it in the money trail", async () => {
+    const hold = new FakeHoldPayPal();
+    await repo.saveVisit(held());
+    const v = await ownerAction(repo, hold, "demo", "held", { action: "settle" });
+    expect(hold.voids).toEqual(["AUTH-ORDER1"]);
+    expect(v.status).toBe("settled_other");
+    expect(v.hold!.status).toBe("voided");
+    expect(v.money!.at(-1)).toMatchObject({ kind: "voided", cents: 2000, ref: "AUTH-ORDER1" });
+    expect((await repo.getVisit("held"))!.hold!.status).toBe("voided");
+  });
+
+  it("refuses with hold_open and changes nothing when PayPal cannot release the hold", async () => {
+    const hold = new FakeHoldPayPal();
+    hold.fail.void = true;
+    await repo.saveVisit(held());
+    expect(await code(ownerAction(repo, hold, "demo", "held", { action: "settle" }))).toBe("hold_open");
+    expect(await repo.getVisit("held")).toEqual(held());
+  });
+
+  it("refuses with hold_open when the gateway cannot release holds at all", async () => {
+    await repo.saveVisit(held());
+    expect(await code(ownerAction(repo, paypal, "demo", "held", { action: "settle" }))).toBe("hold_open");
+    expect((await repo.getVisit("held"))!.status).toBe("open");
+  });
+});
+
+describe("refund money trail and the action's answer", () => {
+  it("appends a refunded event to the visit's money trail", async () => {
+    await ownerAction(repo, paypal, "demo", "paid", { action: "refund", cents: 500 });
+    await ownerAction(repo, paypal, "demo", "paid", { action: "refund", cents: 200 });
+    expect((await repo.getVisit("paid"))!.money).toEqual([
+      { at: expect.any(Number), kind: "refunded", cents: 500, ref: "R1" },
+      { at: expect.any(Number), kind: "refunded", cents: 200, ref: "R2" },
+    ]);
+  });
+
+  it("shapes a visit as the overview does, without PayPal's hold ids", async () => {
+    const v = visit("h", {
+      hold: { orderId: "ORDER1", authorizationId: "AUTH1", cents: 2000, status: "authorized" },
+      holdOrder: { orderId: "ORDER1", cents: 2000 },
+    });
+    const row = visitRow(v, DEMO_PRODUCTS);
+    expect(row.hold).toEqual({ cents: 2000, status: "authorized" });
+    expect(JSON.stringify(row)).not.toContain("ORDER1");
+    expect(JSON.stringify(row)).not.toContain("AUTH1");
+    expect(row.detectedCents).toBe(1400);
+    const overview = await ownerOverview(repo, "demo", 7, NOW);
+    const paidRow = overview.visits.find((r) => r.id === "paid")!;
+    expect(visitRow((await repo.getVisit("paid"))!, overview.products)).toEqual(paidRow);
   });
 });

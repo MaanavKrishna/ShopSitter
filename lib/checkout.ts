@@ -1,8 +1,9 @@
+import { createHash } from "node:crypto";
 import { priceLines } from "./money";
 import { buildOrderBody, type PayPalGateway } from "./paypal";
 import type { Repo } from "./repo";
 import type { Line, PricedBill, Product } from "./types";
-import { LATE_PAY_MS, expireIfStale, settlePayment, type Visit } from "./visits";
+import { LATE_PAY_MS, closeZeroBill, expireIfStale, settlePayment, type Visit } from "./visits";
 
 export type CheckoutErrorCode =
   | "not_found"
@@ -11,6 +12,8 @@ export type CheckoutErrorCode =
   | "already_paid"
   | "too_late"
   | "amount_mismatch"
+  /** A checked-in shopper's basket, still open or with money held: it is changed and paid from the basket page. */
+  | "use_basket"
   /** PayPal took the payment but it could not be recorded here: money may have moved. */
   | "captured_but_unrecorded";
 
@@ -38,6 +41,15 @@ async function load(repo: Repo, visitId: string, now: number): Promise<{ visit: 
   const visit = expireIfStale(stored, now);
   if (visit !== stored) await repo.saveVisit(visit);
   return { visit, products: await repo.listProducts(visit.shop, { includeArchived: true }) };
+}
+
+/**
+ * A checked-in shopper's visit follows the basket's rules (holds, claims) until Done hands it to
+ * the pay page. While the session is open, or money is held on it, the pay-page writes refuse it.
+ */
+function refuseOpenSession(visit: Visit) {
+  if (!visit.session) return;
+  if (visit.session.closedAt === null || visit.hold?.status === "authorized") throw new CheckoutError("use_basket");
 }
 
 /** The bill for a visit, and the products on sale now that could be added to it. */
@@ -71,8 +83,16 @@ export function publicBill(data: { visit: Visit; products: Product[]; bill: Pric
 }
 
 /** Customer correction of the bill. Only catalogue products with whole quantities 1..20 are kept. */
-export async function editLines(repo: Repo, visitId: string, lines: Line[], now: number) {
+export async function editLines(
+  repo: Repo,
+  visitId: string,
+  lines: Line[],
+  now: number,
+  /** True when the basket's own route calls, having checked the session's rules itself. */
+  fromBasket = false,
+) {
   const { visit, products } = await load(repo, visitId, now);
+  if (!fromBasket) refuseOpenSession(visit);
   if (visit.status !== "open" && visit.status !== "unmatched") throw new CheckoutError("not_editable");
 
   // Products on sale, plus any removed since that are already on this bill.
@@ -89,6 +109,7 @@ export async function editLines(repo: Repo, visitId: string, lines: Line[], now:
 
 export async function startOrder(repo: Repo, paypal: PayPalGateway, visitId: string, now: number) {
   const { visit, products } = await load(repo, visitId, now);
+  refuseOpenSession(visit);
   if (isPaid(visit)) throw new CheckoutError("already_paid");
   if (visit.status === "unmatched" && now - (visit.closedAt ?? visit.lastSettledAt) > LATE_PAY_MS) {
     throw new CheckoutError("too_late");
@@ -97,7 +118,7 @@ export async function startOrder(repo: Repo, paypal: PayPalGateway, visitId: str
 
   const bill = priceLines(payableLines(visit), products);
   if (bill.totalCents === 0) {
-    if (visit.status === "open") await repo.saveVisit({ ...visit, status: "empty", closedAt: now });
+    if (visit.status === "open") await repo.saveVisit(closeZeroBill(visit, now));
     throw new CheckoutError("empty_bill");
   }
 
@@ -114,6 +135,9 @@ const receiptFor = (visit: Visit, products: Product[]): Receipt => ({
   status: visit.status,
 });
 
+/** A short, one-way stand-in for a visit id in the server's logs: a checked-in shopper's visit id is their session id. */
+const logRef = (visitId: string) => createHash("sha256").update(`log:${visitId}`).digest("hex").slice(0, 8);
+
 // One capture at a time per visit, so a double tap cannot reach PayPal twice.
 const inFlight = new Map<string, Promise<{ visit: Visit; receipt: Receipt }>>();
 
@@ -128,6 +152,7 @@ export function captureVisit(repo: Repo, paypal: PayPalGateway, visitId: string,
 async function capture(repo: Repo, paypal: PayPalGateway, visitId: string, orderId: string, now: number) {
   const { visit, products } = await load(repo, visitId, now);
   if (isPaid(visit)) return { visit, receipt: receiptFor(visit, products) };
+  refuseOpenSession(visit);
   // An earlier try was captured but could not be recorded as paid. PayPal is not asked again.
   if (visit.captureId) throw new CheckoutError("captured_but_unrecorded");
   // Checked before capturing: no money is taken for a visit that can no longer be paid.
@@ -151,14 +176,16 @@ async function capture(repo: Repo, paypal: PayPalGateway, visitId: string, order
     await repo.saveVisit(settled);
     return { visit: settled, receipt: receiptFor(settled, products) };
   } catch (e) {
-    console.error(`visit ${visit.id}: payment captured but not recorded`, e);
+    console.error(`visit ${logRef(visit.id)}: payment captured but not recorded`, e instanceof Error ? e.message : e);
     const fallback: Visit = settled ?? {
       ...visit,
       paid: payableLines(visit),
       paidCents: result.amountCents,
       captureId: result.captureId,
     };
-    await repo.saveVisit(fallback).catch((again) => console.error(`visit ${visit.id}: capture could not be stored`, again));
+    await repo
+      .saveVisit(fallback)
+      .catch((again) => console.error(`visit ${logRef(visit.id)}: capture could not be stored`, again instanceof Error ? again.message : again));
     throw new CheckoutError("captured_but_unrecorded");
   }
 }

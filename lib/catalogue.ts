@@ -13,7 +13,7 @@ export const activeProduct = (repo: Repo, shop: Shop, sku: string) => find(repo,
 /**
  * Adds or edits a product. Adding with a sku that is in use is refused ("sku_taken"), unless that
  * product was removed: then it comes back with the new details. An edit keeps the photo, and the
- * stock when none is sent.
+ * stock and the zone when none is sent.
  */
 export async function saveProduct(
   repo: Repo,
@@ -24,11 +24,15 @@ export async function saveProduct(
   const existing = await find(repo, shop, fields.sku, true);
   const current = existing && !existing.archived ? existing : null;
   if (create && current) return "sku_taken";
+  // The zone stays as it is when an edit does not mention it; null clears it. It is only stored when set.
+  const { zoneId: sentZone, ...rest } = fields;
+  const zoneId = sentZone === undefined ? (current?.zoneId ?? null) : sentZone;
   const product: Product = {
-    ...fields,
+    ...rest,
     stock: fields.stock ?? current?.stock ?? 0,
     shop,
     refImageUrl: current?.refImageUrl ?? null,
+    ...(zoneId ? { zoneId } : {}),
   };
   await repo.upsertProduct(product);
   return product;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AskData, Clock } from "@/lib/ask";
-import { ENABLED_ACTIONS, type PayPalReader, paypalTools, shapeOrder, shapeTransactions } from "@/lib/paypal-read";
+import { ENABLED_ACTIONS, type PayPalReader, ordersOf, paypalTools, shapeOrder, shapeTransactions } from "@/lib/paypal-read";
 import { priceLines } from "@/lib/money";
 import { DEMO_PRODUCTS } from "@/lib/seed";
 import { newVisit } from "@/lib/visits";
@@ -110,14 +110,42 @@ describe("paypalTools", () => {
     getOrder: async (id) => (calls.push(["order", id]), ORDER),
     listTransactions: async (start, end) => (calls.push(["transactions", start, end]), { transaction_details: [] }),
   });
-  const pick = (calls: unknown[][], name: string) => {
-    const tool = paypalTools(data, clock, reader(calls)).find((t) => t.name === name);
+  const own = new Set(["8SG55728XT9868238"]);
+  const live = { shop: "live" as const, ownsOrder: async (id: string) => own.has(id) };
+  const pick = (calls: unknown[][], name: string, access: Parameters<typeof paypalTools>[3] = live) => {
+    const tool = paypalTools(data, clock, reader(calls), access).find((t) => t.name === name);
     if (!tool) throw new Error(`no ${name}`);
     return tool as unknown as { run: (args: unknown) => Promise<{ facts: unknown; sources: unknown[]; lines: string[] }> };
   };
 
-  it("offers two lookups", () => {
-    expect(paypalTools(data, clock, reader([])).map((t) => t.name)).toEqual(["paypal_order", "paypal_transactions"]);
+  it("offers both lookups to the owner's stand, only the order lookup to the demo, and none to a trial", () => {
+    const names = (shop: "live" | "demo" | "t-abcdefghij") =>
+      paypalTools(data, clock, reader([]), { shop, ownsOrder: async () => true }).map((t) => t.name);
+    expect(names("live")).toEqual(["paypal_order", "paypal_transactions"]);
+    expect(names("demo")).toEqual(["paypal_order"]);
+    expect(names("t-abcdefghij")).toEqual([]);
+  });
+
+  it("refuses an order id that is not one of this stand's own, and asks PayPal nothing", async () => {
+    const calls: unknown[][] = [];
+    const out = await pick(calls, "paypal_order").run({ order_id: "9AB12345CD6789012" });
+    expect(calls).toEqual([]);
+    expect(out.facts).toMatchObject({ found: false });
+    const demo = { shop: "demo" as const, ownsOrder: async () => false };
+    await pick(calls, "paypal_order", demo).run({ visit_id: "with-order" });
+    expect(calls).toEqual([]);
+  });
+
+  it("knows a stand's own order ids: pay-page orders and hold orders", () => {
+    const v = (id: string, patch: object) => ({ ...newVisit(id, "live", [], 0), ...patch });
+    expect(
+      ordersOf([
+        v("a", { paypalOrderId: "ORDERA" }),
+        v("b", { holdOrder: { orderId: "ORDERB", cents: 100 } }),
+        v("c", { hold: { orderId: "ORDERC", authorizationId: "X", cents: 1, status: "voided" } }),
+        v("d", {}),
+      ]),
+    ).toEqual(new Set(["ORDERA", "ORDERB", "ORDERC"]));
   });
 
   it("looks up the order a visit has on record", async () => {

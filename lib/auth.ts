@@ -58,20 +58,56 @@ export function shopFromCookie(value: string | undefined): Shop | null {
 }
 
 // Small in-memory limiter. Good enough to stop a casual loop on one server instance.
-const hits = new Map<string, number[]>();
+/** Each key's recent hits and the window they count in. */
+const hits = new Map<string, { times: number[]; windowMs: number }>();
+/** Past this many keys, keys whose window has passed are dropped when the next hit comes in. */
+const PRUNE_ABOVE = 5_000;
 export function allow(key: string, max: number, windowMs: number, now = Date.now()): boolean {
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+  if (hits.size > PRUNE_ABOVE) {
+    for (const [k, h] of hits) if (h.times.length === 0 || now - h.times[h.times.length - 1] >= h.windowMs) hits.delete(k);
+  }
+  const recent = (hits.get(key)?.times ?? []).filter((t) => now - t < windowMs);
   if (recent.length >= max) {
-    hits.set(key, recent);
+    hits.set(key, { times: recent, windowMs });
     return false;
   }
   recent.push(now);
-  hits.set(key, recent);
+  hits.set(key, { times: recent, windowMs });
   return true;
 }
 
-/** The caller a limit is counted against: the first forwarded address, as set by the host's proxy. */
-export const callerOf = (req: Request) => req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+/** How many keys the limiter is tracking, for tests. */
+export const limiterSize = () => hits.size;
+
+/**
+ * The caller a limit is counted against. The host's own headers come first (on Vercel
+ * `x-vercel-forwarded-for`, then `x-real-ip`), which a client cannot set; otherwise the last hop
+ * of `x-forwarded-for`, the one the nearest proxy added, since anything before it is the client's
+ * own say. "local" when there is no address at all.
+ */
+export function callerOf(req: Request): string {
+  const first = (name: string) => req.headers.get(name)?.split(",")[0]?.trim();
+  const platform = first("x-vercel-forwarded-for") || first("x-real-ip");
+  if (platform) return platform;
+  const hops = (req.headers.get("x-forwarded-for") ?? "").split(",").map((h) => h.trim()).filter(Boolean);
+  return hops.at(-1) ?? "local";
+}
+
+/** Wrong owner passcodes from all callers together, in the window, before sign-in is refused for everyone. */
+export const LOGIN_FAILS_ALL = 60;
+const LOGIN_FAIL_WINDOW_MS = 10 * 60_000;
+let loginFails: number[] = [];
+
+/** True while sign-in is refused for every caller, after too many wrong passcodes across all of them. */
+export function loginLocked(now = Date.now()): boolean {
+  loginFails = loginFails.filter((t) => now - t < LOGIN_FAIL_WINDOW_MS);
+  return loginFails.length >= LOGIN_FAILS_ALL;
+}
+
+export function noteLoginFail(now = Date.now()): void {
+  loginFails.push(now);
+  if (loginFails.length > LOGIN_FAILS_ALL * 4) loginFails = loginFails.slice(-LOGIN_FAILS_ALL * 2);
+}
 
 /** Wrong stand codes one caller may send in the window before it is refused outright. */
 export const STAND_CALLER_FAILS = 5;

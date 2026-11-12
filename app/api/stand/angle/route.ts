@@ -21,11 +21,14 @@ export async function POST(req: Request) {
   if (!(EXTRA_ANGLES as readonly number[]).includes(angle) || !Number.isFinite(takenAt)) return bad("bad_request");
   // A still every few seconds is plenty; anything faster is a fault.
   // Each stand has its own allowance for each camera; the live stand's is counted as it always was.
-  const limitKey = stand.kind === "live" ? `angle:${angle}` : `angle:${stand.shop}:${angle}`;
+  // A shelf's cameras are counted apart from the stand's other shelves.
+  const zoneId = stand.zone?.id ?? null;
+  const shelf = zoneId ? `:${zoneId}` : "";
+  const limitKey = stand.kind === "live" ? `angle${shelf}:${angle}` : `angle:${stand.shop}${shelf}:${angle}`;
   if (!allow(limitKey, 60, 60_000)) return bad("slow_down", 429);
   // A trial lasts a day: this is one still every ten seconds from each of three cameras for all of it.
-  if (stand.kind === "trial" && !allow(`angle-day:${stand.shop}`, TRIAL_STILLS_PER_DAY, DAY_MS)) return bad("trial_still_limit", 429);
+  if (stand.kind === "trial" && !allow(`angle-day:${stand.shop}${shelf}`, TRIAL_STILLS_PER_DAY, DAY_MS)) return bad("trial_still_limit", 429);
 
-  await saveAngleShot(getRepo(), stand.shop, angle, new Uint8Array(await photo.arrayBuffer()), takenAt);
+  await saveAngleShot(getRepo(), stand.shop, angle, new Uint8Array(await photo.arrayBuffer()), takenAt, zoneId);
   return Response.json({ ok: true });
 }

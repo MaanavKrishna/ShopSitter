@@ -3,6 +3,9 @@
 
 import { z } from "zod";
 import { type AskData, type AskTool, type Clock, type Source, type ToolResult, parseAmount, usd } from "./ask";
+import { isTrial } from "./shops";
+import type { Shop } from "./types";
+import type { Visit } from "./visits";
 
 /** The toolkit actions in use. Nothing here creates, captures, refunds, sends or changes anything. */
 export const ENABLED_ACTIONS = { orders: { get: true }, transactions: { list: true } };
@@ -78,11 +81,30 @@ export function shapeTransactions(raw: unknown): Record<string, unknown> {
 
 const iso = (ms: number) => `${new Date(ms).toISOString().slice(0, 19)}Z`;
 
+/** Every PayPal order id a shop's own visits hold: pay-page orders and hold orders. */
+export function ordersOf(visits: Visit[]): Set<string> {
+  const ids = new Set<string>();
+  for (const v of visits) {
+    if (v.paypalOrderId) ids.add(v.paypalOrderId);
+    if (v.holdOrder) ids.add(v.holdOrder.orderId);
+    if (v.hold) ids.add(v.hold.orderId);
+  }
+  return ids;
+}
+
+/**
+ * Who is asking. Every stand shares one merchant account, so the account-wide transaction list
+ * is for the owner's stand only, an order is read only when it is one of this shop's own, and a
+ * visitor's trial gets no PayPal lookups at all.
+ */
+export type PayPalAccess = { shop: Shop; ownsOrder: (orderId: string) => Promise<boolean> };
+
 /** The PayPal lookups the model may use. Both only read. */
-export function paypalTools(data: AskData, clock: Clock, reader: PayPalReader): AskTool[] {
+export function paypalTools(data: AskData, clock: Clock, reader: PayPalReader, access: PayPalAccess): AskTool[] {
+  if (isTrial(access.shop)) return [];
   const none = (reason: string): ToolResult => ({ facts: { found: false, reason }, lines: [reason], sources: [] });
 
-  return [
+  const tools: AskTool[] = [
     {
       name: "paypal_order",
       description:
@@ -97,6 +119,7 @@ export function paypalTools(data: AskData, clock: Clock, reader: PayPalReader): 
           orderId = visit.paypalOrderId;
         }
         if (!orderId || !ORDER_ID.test(orderId)) return none("That does not look like a PayPal order id.");
+        if (!(await access.ownsOrder(orderId))) return none("That order is not one of this stand's.");
         const facts = shapeOrder(await reader.getOrder(orderId));
         const line = facts.found
           ? `PayPal shows order ${String(facts.order_id)} as ${String(facts.status)} for ${String(facts.amount)}.`
@@ -116,6 +139,7 @@ export function paypalTools(data: AskData, clock: Clock, reader: PayPalReader): 
       },
     },
   ];
+  return access.shop === "live" ? tools : tools.filter((t) => t.name !== "paypal_transactions");
 }
 
 type ToolkitTool = { execute?: (args: unknown, options: { toolCallId: string; messages: never[] }) => Promise<unknown> };

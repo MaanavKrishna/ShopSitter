@@ -53,6 +53,7 @@ const MESSAGES: Record<string, string> = {
   too_late: "This bill is more than a day old and can't be paid here any more.",
   amount_mismatch: "The bill changed while you were paying. Nothing was charged. Check the new total and pay again.",
   not_editable: "This bill can't be changed any more.",
+  use_basket: "This bill belongs to a basket started at the door. Change and pay it from that basket.",
   order_failed: "Couldn't start the payment. Nothing was charged. Check your connection and try again.",
   paypal_error: "PayPal couldn't finish the payment. Try again.",
   slow_down: "The stand is busy right now. Wait a moment and try again.",

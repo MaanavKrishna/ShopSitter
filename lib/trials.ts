@@ -1,5 +1,6 @@
 // A visitor's own private stand. Anyone can start one without a passcode; it holds only what that
 // visitor adds, and everything in it is deleted a day later.
+import { getGateway } from "./paypal";
 import type { Repo } from "./repo";
 import { isTrial, newTrialId, parseShop } from "./shops";
 import type { Product, Shop, TrialShop } from "./types";
@@ -35,9 +36,24 @@ export async function createTrial(repo: Repo, now: number, newId: () => TrialSho
   return trial;
 }
 
-/** Deletes a trial and everything in it. Refuses anything that is not a trial id, so it can never touch the live or demo stand. */
+/** Holds released when a trial ends; past this many the rest are left to PayPal's own expiry. */
+const MAX_RELEASES_PER_END = 20;
+
+/**
+ * Deletes a trial and everything in it. Refuses anything that is not a trial id, so it can never
+ * touch the live or demo stand. Money still held for its shoppers is released first, as far as
+ * PayPal allows: a hold that cannot be released is logged and the trial is ended anyway.
+ */
 export async function endTrial(repo: Repo, shop: string): Promise<void> {
   if (!isTrial(shop)) throw new Error("only a trial stand can be ended");
+  const held = (await repo.listVisits(shop)).filter((v) => v.hold?.status === "authorized").slice(0, MAX_RELEASES_PER_END);
+  for (const v of held) {
+    try {
+      await getGateway().voidAuthorization(v.hold!.authorizationId);
+    } catch (e) {
+      console.error("hold could not be released as a trial ended", e instanceof Error ? e.message : e);
+    }
+  }
   await repo.deleteShop(shop);
 }
 

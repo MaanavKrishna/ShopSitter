@@ -29,8 +29,9 @@ export class FileRepo implements Repo {
     const all = this.read<Product>("products.json");
     const at = all.findIndex((x) => x.shop === p.shop && x.sku === p.sku);
     // The flag is only stored when set, so products saved before it existed read the same as new ones.
-    const { archived, ...rest } = p;
-    const row: Product = archived ? { ...rest, archived: true } : rest;
+    // The same goes for the zone: a product kept anywhere has no `zoneId` at all.
+    const { archived, zoneId, ...rest } = p;
+    const row: Product = { ...rest, ...(archived ? { archived: true } : {}), ...(zoneId ? { zoneId } : {}) };
     this.write("products.json", at === -1 ? [...all, row] : all.map((x, i) => (i === at ? row : x)));
   }
 
@@ -46,6 +47,20 @@ export class FileRepo implements Repo {
   async getOpenVisit(shop: Shop): Promise<Visit | null> {
     const open = (await this.listVisits(shop)).filter((v) => v.status === "open");
     return open[0] ?? null;
+  }
+
+  async listOpenVisits(shop: Shop): Promise<Visit[]> {
+    return (await this.listVisits(shop)).filter((v) => v.status === "open");
+  }
+
+  async claimVisit(pendingId: string, sessionId: string): Promise<boolean> {
+    // Read, check and write with no await in between, so two claims cannot both win.
+    const all = this.read<Visit>("visits.json");
+    const v = all.find((x) => x.id === pendingId);
+    if (!v || v.status !== "open" || !v.pending || v.pending.claimedBy !== null) return false;
+    const claimed: Visit = { ...v, status: "empty", pending: { ...v.pending, claimedBy: sessionId } };
+    this.write("visits.json", all.map((x) => (x.id === pendingId ? claimed : x)));
+    return true;
   }
 
   async listVisits(shop: Shop, sinceMs = 0): Promise<Visit[]> {

@@ -5,6 +5,7 @@ import { Tooltip } from "@astryxdesign/core/Tooltip";
 import {
   IconChartBar,
   IconDeviceTablet,
+  IconBuildingStore,
   IconLayoutDashboard,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
@@ -29,6 +30,7 @@ import "@/app/owner/owner.css";
 
 const SECTIONS = [
   { href: "/owner", label: "Overview", key: "o", icon: IconLayoutDashboard },
+  { href: "/owner/store", label: "Store", key: "e", icon: IconBuildingStore },
   { href: "/owner/visits", label: "Visits", key: "v", icon: IconReceipt },
   { href: "/owner/shelf", label: "Shelf", key: "s", icon: IconPackage },
   { href: "/owner/products", label: "Products", key: "p", icon: IconTag },
@@ -38,6 +40,10 @@ const SECTIONS = [
 
 /** Sections whose content does not follow the period, so the period switch and "Updated" are left out there. */
 const NO_PERIOD = new Set<string>(["/owner/products", "/owner/setup"]);
+
+/** Setup stays at the foot of the sidebar, apart from the sections above it. */
+const SETUP = SECTIONS[SECTIONS.length - 1];
+const MAIN = SECTIONS.slice(0, -1);
 
 const COLLAPSED_KEY = "shopsitter-owner-sidebar";
 
@@ -194,7 +200,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
           </div>
 
           <nav className="ow-nav" aria-label="Sections">
-            {SECTIONS.slice(0, 5).map((s) => (
+            {MAIN.map((s) => (
               <SideLink key={s.href} item={s} active={section.href === s.href} collapsed={collapsed}>
                 {s.href === "/owner/visits" && unmatched.length > 0 && (
                   <span className="ow-nav-count" aria-label={`${unmatched.length} unmatched`}>
@@ -206,7 +212,7 @@ export function OwnerShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ow-nav ow-nav-end">
-            <SideLink item={SECTIONS[5]} active={section.href === SECTIONS[5].href} collapsed={collapsed} />
+            <SideLink item={SETUP} active={section.href === SETUP.href} collapsed={collapsed} />
             <Tooltip content="Open stand screen" placement="end" isEnabled={collapsed}>
               <a href={standHref} target={trial && !trialStand ? undefined : "_blank"} rel="noreferrer" className="ow-nav-item">
                 <IconDeviceTablet size={18} stroke={1.75} aria-hidden="true" />

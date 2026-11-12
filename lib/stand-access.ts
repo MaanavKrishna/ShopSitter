@@ -3,10 +3,12 @@
 import { type StandGate, refuseStand } from "./auth";
 import { getRepo, type Repo } from "./repo";
 import { verifyStandKey } from "./stand-key";
+import { findZone, type Zone } from "./store";
 import { getTrial } from "./trials";
 import type { Shop } from "./types";
 
-export type StandAccess = { shop: Shop; kind: "live" | "trial"; expiresAt?: number };
+/** `zone` is there only when the request named one of the stand's own shelves in `x-stand-zone`. */
+export type StandAccess = { shop: Shop; kind: "live" | "trial"; expiresAt?: number; zone?: Zone };
 
 /**
  * For the stand's routes: the stand the request's `x-stand-token` header stands for, or the refusal to send.
@@ -17,6 +19,8 @@ export type StandAccess = { shop: Shop; kind: "live" | "trial"; expiresAt?: numb
  *  - A signed key whose trial has ended is refused as "trial_ended" and not counted as a guess.
  *  - Everything else goes through the stand gate exactly as before: the live code resolves to
  *    the live stand, and anything wrong (a tampered key included) counts as a wrong code.
+ *  - A request may name one of the stand's shelves in `x-stand-zone`. One the stand does not have
+ *    is refused as 400 "unknown_zone". Without the header nothing changes.
  */
 export async function resolveStand(
   req: Request,
@@ -25,13 +29,23 @@ export async function resolveStand(
   const token = req.headers.get("x-stand-token")?.trim() ?? null;
   const now = opts.now ?? Date.now();
   const key = verifyStandKey(token, now);
+  let stand: StandAccess;
   if (key) {
     const trial = key.expired ? null : await getTrial(opts.repo ?? getRepo(), key.shop, now);
     if (!trial) return Response.json({ error: "trial_ended" }, { status: 401 });
-    return { shop: trial.shop, kind: "trial", expiresAt: trial.expiresAt };
+    stand = { shop: trial.shop, kind: "trial", expiresAt: trial.expiresAt };
+  } else {
+    const refusal = refuseStand(req, opts.gate);
+    if (refusal) return refusal;
+    stand = { shop: "live", kind: "live" };
   }
-  const refusal = refuseStand(req, opts.gate);
-  return refusal ?? { shop: "live", kind: "live" };
+  // The zone is looked up only after the code or key has passed, and only among this stand's own
+  // zones: another shop's zone id is unknown here.
+  const zoneId = req.headers.get("x-stand-zone")?.trim();
+  if (!zoneId) return stand;
+  const zone = await findZone(opts.repo ?? getRepo(), stand.shop, zoneId);
+  if (!zone) return Response.json({ error: "unknown_zone" }, { status: 400 });
+  return { ...stand, zone };
 }
 
 /** The largest still a trial stand may send. The stand screen's 1024-pixel JPEGs are a fraction of this. */

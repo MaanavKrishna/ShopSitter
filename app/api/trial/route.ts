@@ -5,8 +5,9 @@ import { getRepo } from "@/lib/repo";
 import { isTrial } from "@/lib/shops";
 import { createTrial, endTrial, getTrial, sweepExpiredTrials, trialStartGate } from "@/lib/trials";
 import { trialBody } from "./shared";
+import { privateJson, refuseNonJson } from "@/lib/http";
 
-const refuse = (error: string, status: number) => Response.json({ error }, { status });
+const refuse = (error: string, status: number) => privateJson({ error }, status);
 
 /** The trial this browser is signed in to, if it still exists. */
 async function currentTrial(now: number) {
@@ -19,12 +20,14 @@ async function currentTrial(now: number) {
  * needed. A browser that already has a trial gets that one back.
  */
 export async function POST(req: Request) {
+  const notJson = refuseNonJson(req);
+  if (notJson) return notJson;
   const now = Date.now();
   try {
     // Starting a trial replaces the sign-in, so the owner of the live stand is never switched out of it.
     if ((await cookieShop()) === "live") return refuse("owner_signed_in", 409);
     const existing = await currentTrial(now);
-    if (existing) return Response.json(trialBody(existing));
+    if (existing) return privateJson(trialBody(existing));
 
     // Checked before anything is stored: without it neither the cookie nor the stand key can be signed.
     if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET must be set");
@@ -41,7 +44,7 @@ export async function POST(req: Request) {
       ownerCookieValue(trial.shop),
       ownerCookieOptions(Math.floor((trial.expiresAt - Date.now()) / 1000)),
     );
-    return Response.json(body);
+    return privateJson(body);
   } catch (e) {
     console.error(e);
     return refuse("server_error", 500);
@@ -52,7 +55,7 @@ export async function POST(req: Request) {
 export async function GET() {
   try {
     const trial = await currentTrial(Date.now());
-    return trial ? Response.json(trialBody(trial)) : refuse("no_trial", 404);
+    return trial ? privateJson(trialBody(trial)) : refuse("no_trial", 404);
   } catch (e) {
     console.error(e);
     return refuse("server_error", 500);
@@ -66,7 +69,7 @@ export async function DELETE() {
     if (!shop || !isTrial(shop)) return refuse("no_trial", 404);
     await endTrial(getRepo(), shop);
     (await cookies()).delete(OWNER_COOKIE);
-    return Response.json({ ok: true });
+    return privateJson({ ok: true });
   } catch (e) {
     console.error(e);
     return refuse("server_error", 500);

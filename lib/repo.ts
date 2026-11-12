@@ -15,6 +15,14 @@ export interface Repo {
   getVisit(id: string): Promise<Visit | null>;
   saveVisit(v: Visit): Promise<void>;
   getOpenVisit(shop: Shop): Promise<Visit | null>;
+  /** Every open visit of the shop, newest first. */
+  listOpenVisits(shop: Shop): Promise<Visit[]>;
+  /**
+   * Gives a pending shelf change to a shopper's session, once: true for the first caller, false
+   * for everyone after and for a visit that is not open and pending. The claimed visit is marked
+   * "empty" and remembers who claimed it; its lines are for the caller to move.
+   */
+  claimVisit(pendingId: string, sessionId: string): Promise<boolean>;
   /** Newest first. `sinceMs` filters on the time the visit opened. */
   listVisits(shop: Shop, sinceMs?: number): Promise<Visit[]>;
   /** Deletes the shop's visits and replaces its products. */

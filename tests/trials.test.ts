@@ -1,7 +1,18 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const released = vi.hoisted(() => ({ ids: [] as string[], fail: false }));
+vi.mock("@/lib/paypal", async (original) => ({
+  ...(await original<typeof import("@/lib/paypal")>()),
+  getGateway: () => ({
+    voidAuthorization: async (id: string) => {
+      if (released.fail) throw new Error("PayPal is down");
+      released.ids.push(id);
+    },
+  }),
+}));
 import { saveProduct } from "@/lib/catalogue";
 import { getBill, startOrder } from "@/lib/checkout";
 import { OwnerError, ownerAction, ownerOverview } from "@/lib/owner";
@@ -299,3 +310,40 @@ describe("a trial stand end to end, beside the live stand", () => {
     expect((await repo.getVisit("vl"))!.status).toBe("unmatched");
   });
 });
+
+describe("ending a trial with money held", () => {
+  const held = (id: string, shop: string, status: "authorized" | "captured") => ({
+    ...newVisit(id, shop as never, [{ sku: "honey", qty: 1 }], NOW),
+    hold: { orderId: `O-${id}`, authorizationId: `A-${id}`, cents: 2000, status },
+  });
+
+  beforeEach(() => {
+    released.ids = [];
+    released.fail = false;
+  });
+
+  it("releases every authorized hold before deleting, when ended and when it runs out", async () => {
+    const a = await createTrial(repo, NOW);
+    await repo.saveVisit(held("h1", a.shop, "authorized"));
+    await repo.saveVisit(held("h2", a.shop, "captured"));
+    await endTrial(repo, a.shop);
+    expect(released.ids).toEqual(["A-h1"]);
+    expect(await repo.listVisits(a.shop)).toEqual([]);
+
+    const b = await createTrial(repo, NOW);
+    await repo.saveVisit(held("h3", b.shop, "authorized"));
+    expect(await getTrial(repo, b.shop, NOW + TRIAL_LIFETIME_MS)).toBeNull();
+    expect(released.ids).toEqual(["A-h1", "A-h3"]);
+  });
+
+  it("still ends the trial when PayPal cannot release a hold", async () => {
+    const a = await createTrial(repo, NOW);
+    await repo.saveVisit(held("h1", a.shop, "authorized"));
+    released.fail = true;
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    await endTrial(repo, a.shop);
+    quiet.mockRestore();
+    expect(await getTrial(repo, a.shop, NOW)).toBeNull();
+  });
+});
+

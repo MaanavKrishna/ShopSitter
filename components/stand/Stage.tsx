@@ -87,6 +87,7 @@ export function Stage({
   note,
   trouble = null,
   cameraProblem = null,
+  doorHint = false,
   qr,
 }: {
   view: StageView;
@@ -100,6 +101,8 @@ export function Stage({
   trouble?: string | null;
   /** Why the camera could not start. The stand then says it is not watching instead of inviting anyone. */
   cameraProblem?: string | null;
+  /** Shoppers here check in at the door: the ready screen points them to the door code. */
+  doorHint?: boolean;
   qr: string | null;
 }) {
   const step = trouble ?? (reading ? "Reading the shelf" : moving ? "Noticed a change" : null);
@@ -233,6 +236,7 @@ export function Stage({
                 )}
               </AnimatePresence>
             </div>
+            {doorHint && <p className="sd-door-hint">Scan the door QR to start a basket on your phone</p>}
           </motion.div>
         )}
       </AnimatePresence>

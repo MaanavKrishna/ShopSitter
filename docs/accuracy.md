@@ -1,6 +1,6 @@
 # How accurate is the shelf reading?
 
-A small, honest measurement of the shelf reader (`lib/vision.ts`, `diffShelf`) on the six sample
+A small, honest measurement of the shelf reader (`lib/vision.ts`, `diffShelf`) on the seven sample
 picture pairs the public demo page uses. Measured on 11 November 2026.
 
 ## What was tested

@@ -1,0 +1,344 @@
+/* Shopper's live basket: the pay page's sheet and pinned bar (app/pay/pay.css), plus the few
+   parts only a basket has. Sizes and colours come from app/system.css. */
+
+/* ---------- Live line under the heading ---------- */
+
+.bk-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--ink-soft);
+  font-size: var(--t-ui);
+  line-height: 1.45;
+}
+
+.bk-live i {
+  position: relative;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+
+.bk-live i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--blue);
+  animation: bk-pulse 2s var(--ease-out) infinite;
+}
+
+.bk-live i[data-off] {
+  background: var(--coral);
+}
+
+.bk-live i[data-off]::after {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes bk-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+/* ---------- Hold ---------- */
+
+.bk-hold-lede {
+  max-width: 36ch;
+  color: var(--ink);
+}
+
+.bk-holdline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s-1) var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.bk-holdline > span:first-child {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.bk-steps {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: bk-step;
+  border-top: var(--hairline);
+}
+
+.bk-steps li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: var(--s-3) 0 var(--s-3) calc(28px + var(--s-3));
+  border-bottom: var(--hairline);
+  counter-increment: bk-step;
+}
+
+.bk-steps li::before {
+  content: counter(bk-step);
+  position: absolute;
+  left: 0;
+  top: var(--s-3);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--blue);
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: var(--t-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-steps b {
+  font-weight: 600;
+}
+
+.bk-steps span {
+  color: var(--ink-soft);
+  font-size: var(--t-ui);
+  line-height: 1.45;
+}
+
+/* ---------- Empty basket ---------- */
+
+.payx-empty.bk-empty {
+  display: grid;
+  gap: var(--s-1);
+  padding: var(--s-6) 0;
+}
+
+.bk-empty b {
+  color: var(--ink);
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+}
+
+/* ---------- Claim cards: a shelf change waiting for its shopper ---------- */
+
+.bk-claims {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bk-claim {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-2) var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--chip);
+}
+
+.bk-claim-q {
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.bk-claim-sum {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bk-claim-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+}
+
+.bk-claim-yes,
+.bk-claim-no {
+  min-height: var(--pay-target, 44px);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  font-size: var(--t-ui);
+  font-weight: 600;
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast),
+    opacity var(--dur-fast);
+}
+
+.bk-claim-yes {
+  border: 0;
+  background: var(--blue);
+  color: var(--on-blue, #fff);
+}
+
+.bk-claim-no {
+  border: var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.bk-claim-yes:disabled,
+.bk-claim-no:disabled {
+  opacity: 0.6;
+}
+
+/* ---------- Done ---------- */
+
+.bk-done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--s-5);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--blue);
+  color: var(--on-blue, #fff);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 1px 2px rgb(0 36 166 / 0.4);
+  cursor: pointer;
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast),
+    opacity var(--dur);
+}
+
+.bk-done:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.bk-done-hint {
+  text-align: center;
+}
+
+.bk-rest {
+  align-self: stretch;
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+}
+
+.bk-rest p {
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+/* ---------- Check-in ---------- */
+
+.bk-choices {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.bk-choice {
+  display: grid;
+  gap: var(--s-1);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--s-4);
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--chip);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--dur-press) ease-out,
+    background-color var(--dur-fast);
+}
+
+.bk-choice strong {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.bk-choice span {
+  color: var(--ink-soft);
+  font-size: var(--t-ui);
+  line-height: 1.45;
+}
+
+.bk-choice-hold {
+  background: var(--blue);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 1px 2px rgb(0 36 166 / 0.4);
+  color: var(--on-blue, #fff);
+}
+
+.bk-choice-hold span {
+  color: var(--on-blue-soft);
+}
+
+.bk-again {
+  min-height: 44px;
+  margin-top: var(--s-4);
+  padding: 0 var(--s-5);
+  border: var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .bk-done:hover:not(:disabled) {
+    background: var(--blue-deep);
+  }
+
+  .bk-claim-yes:hover:not(:disabled),
+  .bk-choice-hold:hover {
+    background: var(--blue-deep);
+  }
+
+  .bk-choice:not(.bk-choice-hold):hover {
+    background: var(--chip);
+  }
+
+  .bk-claim-no:hover:not(:disabled),
+  .bk-again:hover {
+    background: var(--tint);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bk-live i::after {
+    animation: none;
+    opacity: 0;
+  }
+}

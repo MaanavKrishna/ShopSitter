@@ -1,8 +1,10 @@
 import { visitorsSince } from "./footfall";
 import { priceLines } from "./money";
-import { PayPalRefused, type PayPalGateway } from "./paypal";
+import { PayPalRefused, getGateway, type HoldGateway, type PayPalGateway } from "./paypal";
 import type { Repo } from "./repo";
+import { sweepVisit } from "./sessions";
 import { shopKind } from "./shops";
+import { byZone, getStore } from "./store";
 import type { Line, PricedBill, Product, Shop } from "./types";
 import { expireIfStale, isAdjusted, type Visit } from "./visits";
 
@@ -11,15 +13,22 @@ export class OwnerError extends Error {
     /**
      * "paypal_refused": PayPal turned the refund down, so nothing was sent and nothing changed.
      * "demo_no_stand": the demo stand has no camera, so there is nothing to link a device to.
+     * "hold_open": a shopper's PayPal hold could not be released, so the visit was left as it was.
+     * "demo_read_only": the demo stand's passcode is public, so it may not send money back.
      */
-    public code: "not_found" | "not_allowed" | "bad_amount" | "paypal_refused" | "demo_no_stand",
+    public code: "not_found" | "not_allowed" | "bad_amount" | "paypal_refused" | "demo_no_stand" | "hold_open" | "demo_read_only",
     public status: number,
   ) {
     super(code);
   }
 }
 
-export type VisitRow = Visit & {
+/**
+ * A visit as the dashboard gets it: of a hold only the amount and its state, never PayPal's ids.
+ * `session`, `zoneIds` and `pending` come through as stored.
+ */
+export type VisitRow = Omit<Visit, "hold" | "holdOrder"> & {
+  hold?: { cents: number; status: NonNullable<Visit["hold"]>["status"] };
   /** What the camera saw, priced. */
   detectedBill: PricedBill;
   detectedCents: number;
@@ -47,29 +56,32 @@ const DAY_MS = 86_400_000;
 const isPaid = (v: Visit) => v.status === "paid" || v.status === "paid_adjusted" || v.status === "paid_late";
 
 /** Everything the dashboard shows for one shop. Stale open visits are closed as unmatched first. */
-export async function ownerOverview(repo: Repo, shop: Shop, days: number, now: number) {
+export async function ownerOverview(
+  repo: Repo,
+  shop: Shop,
+  days: number,
+  now: number,
+  /** Only used to close a checked-in session left idle with money held. */
+  paypal: () => HoldGateway = getGateway,
+) {
   // Visits are priced from the whole catalogue, so a product removed since still has its name and price.
   const catalogue = await repo.listProducts(shop, { includeArchived: true });
   const products = catalogue.filter((p) => !p.archived);
   const all: Visit[] = [];
   for (const stored of await repo.listVisits(shop)) {
+    if (stored.status === "open" && stored.hold?.status === "authorized") {
+      // A shopper who walked out with money held is charged for what they took.
+      await sweepVisit({ repo, paypal }, stored, now);
+      all.push((await repo.getVisit(stored.id)) ?? stored);
+      continue;
+    }
     const v = expireIfStale(stored, now);
     if (v !== stored) await repo.saveVisit(v);
     all.push(v);
   }
 
-  const rows: VisitRow[] = all
-    .filter((v) => v.openedAt >= now - days * DAY_MS)
-    .map((v) => {
-      const detectedBill = priceLines(v.detected, catalogue);
-      return {
-        ...v,
-        detectedBill,
-        detectedCents: detectedBill.totalCents,
-        paidBill: v.paid ? priceLines(v.paid, catalogue) : null,
-        adjusted: isAdjusted(v),
-      };
-    });
+  const windowed = all.filter((v) => v.openedAt >= now - days * DAY_MS);
+  const rows: VisitRow[] = windowed.map((stored) => visitRow(stored, catalogue));
 
   const totals: Totals = { soldCents: 0, paidCents: 0, refundedCents: 0, unmatchedCents: 0, adjustedCents: 0 };
   for (const r of rows) {
@@ -78,13 +90,32 @@ export async function ownerOverview(repo: Repo, shop: Shop, days: number, now: n
     totals.paidCents += r.paidCents ?? 0;
     totals.refundedCents += r.refundedCents;
     if (r.status === "unmatched") totals.unmatchedCents += r.detectedCents;
-    if (r.adjusted) totals.adjustedCents += Math.max(0, r.detectedCents - (r.paidCents ?? 0));
+    // A bill the shopper cleared and never paid counts once, as unmatched.
+    if (r.adjusted && r.status !== "unmatched") totals.adjustedCents += Math.max(0, r.detectedCents - (r.paidCents ?? 0));
   }
 
   // People the stand's own detector saw stop by. Zero when it is not in use.
   const visitors = await visitorsSince(repo, shop, days, now);
   // `shopKind` lets the screens tell the owner's stand, the demo stand and a visitor's trial apart.
-  return { visits: rows, totals, stock: stockLeft(products, all), products, visitors, shopKind: shopKind(shop) };
+  // The shop's shelves, and the window's value split by shelf.
+  const { zones } = await getStore(repo, shop);
+  return { visits: rows, totals, stock: stockLeft(products, all), products, visitors, shopKind: shopKind(shop), zones, byZone: byZone(windowed, catalogue, zones) };
+}
+
+/** One visit as the dashboard gets it, priced from `catalogue` (archived products included). */
+export function visitRow(stored: Visit, catalogue: Product[]): VisitRow {
+  const { hold, ...v } = stored;
+  delete v.holdOrder;
+  const detectedBill = priceLines(v.detected, catalogue);
+  return {
+    ...v,
+    ...(hold ? { hold: { cents: hold.cents, status: hold.status } } : {}),
+    detectedBill,
+    detectedCents: detectedBill.totalCents,
+    paidBill: v.paid ? priceLines(v.paid, catalogue) : null,
+    // Paid for less than the camera saw, or a bill the shopper cleared and left unpaid.
+    adjusted: isAdjusted(v) || (v.status === "unmatched" && v.adjusted === true),
+  };
 }
 
 /** Units of each product the camera has seen leave the shelf, over every visit given. */
@@ -117,7 +148,8 @@ const sameLines = (a: Line[], b: Line[]) => {
 
 export async function ownerAction(
   repo: Repo,
-  paypal: PayPalGateway,
+  /** Releasing a shopper's hold needs `voidAuthorization`; without it a visit with money held cannot be settled. */
+  paypal: PayPalGateway & Partial<Pick<HoldGateway, "voidAuthorization">>,
   shop: Shop,
   visitId: string,
   input: OwnerActionInput,
@@ -129,7 +161,25 @@ export async function ownerAction(
   if (input.action === "settle") {
     // "They paid me in cash" or similar: stops the visit counting as unmatched.
     if (visit.status !== "unmatched" && visit.status !== "open") throw new OwnerError("not_allowed", 409);
-    updated = { ...visit, status: "settled_other", closedAt: visit.closedAt ?? Date.now() };
+    const now = Date.now();
+    updated = { ...visit, status: "settled_other", closedAt: visit.closedAt ?? now };
+    if (visit.hold?.status === "authorized") {
+      // Paid outside PayPal: the shopper's hold is let go first, or nothing changes.
+      const hold = visit.hold;
+      try {
+        if (!paypal.voidAuthorization) throw new Error("this gateway cannot release holds");
+        await paypal.voidAuthorization(hold.authorizationId);
+      } catch (e) {
+        console.error("hold could not be released for a settled visit", e instanceof Error ? e.message : e);
+        throw new OwnerError("hold_open", 409);
+      }
+      updated = {
+        ...updated,
+        hold: { ...hold, status: "voided" },
+        money: [...(visit.money ?? []), { at: now, kind: "voided", cents: hold.cents, ref: hold.authorizationId }],
+        ...(visit.session ? { session: { ...visit.session, closedAt: visit.session.closedAt ?? now } } : {}),
+      };
+    }
   } else if (input.action === "correct") {
     // Products on sale, plus any removed since that this visit already lists.
     const known = new Set([...(await repo.listProducts(shop)).map((p) => p.sku), ...visit.detected.map((l) => l.sku)]);
@@ -148,13 +198,18 @@ export async function ownerAction(
       throw new OwnerError("bad_amount", 400);
     }
     // Keyed on how much was already refunded, so two equal refunds are two requests but a retry is one.
+    let refundId: string;
     try {
-      await paypal.refundCapture(visit.captureId, input.cents, `refund-${visit.captureId}-${visit.refundedCents}-${input.cents}`);
+      ({ refundId } = await paypal.refundCapture(visit.captureId, input.cents, `refund-${visit.captureId}-${visit.refundedCents}-${input.cents}`));
     } catch (e) {
       if (e instanceof PayPalRefused) throw new OwnerError("paypal_refused", 422);
       throw e;
     }
-    updated = { ...visit, refundedCents: visit.refundedCents + input.cents };
+    updated = {
+      ...visit,
+      refundedCents: visit.refundedCents + input.cents,
+      money: [...(visit.money ?? []), { at: Date.now(), kind: "refunded", cents: input.cents, ref: refundId }],
+    };
   }
 
   await repo.saveVisit(updated);

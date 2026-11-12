@@ -103,6 +103,14 @@
   color: var(--on-blue-soft);
 }
 
+.sd-door-hint {
+  margin-top: var(--s-3);
+  font-size: var(--t-sm, 0.875rem);
+  line-height: 1.4;
+  color: var(--on-blue-soft);
+  opacity: 0.85;
+}
+
 .sd-reading {
   display: inline-flex;
   align-items: center;
@@ -1338,4 +1346,16 @@
 
 .sd-sheet-ended .sd-primary {
   text-decoration: none;
+}
+
+/* The shelf this device watches, when its camera link named one. */
+.sd-chip-zone {
+  display: inline-block;
+  max-width: 18ch;
+  border-radius: var(--r-pill);
+  background: var(--on-blue);
+  color: var(--blue-deep);
+  line-height: 26px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

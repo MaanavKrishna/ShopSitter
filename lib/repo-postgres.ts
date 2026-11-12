@@ -13,6 +13,7 @@ type ProductRow = {
   stock: number;
   ref_image_url: string | null;
   archived: boolean;
+  zone_id: string | null;
 };
 
 const toProduct = (r: ProductRow): Product => ({
@@ -24,6 +25,7 @@ const toProduct = (r: ProductRow): Product => ({
   stock: r.stock,
   refImageUrl: r.ref_image_url,
   ...(r.archived ? { archived: true } : {}),
+  ...(r.zone_id ? { zoneId: r.zone_id } : {}),
 });
 
 /**
@@ -59,6 +61,8 @@ export class PostgresRepo implements Repo {
       await this.sql.query(
         `alter table ${this.products} add column if not exists archived boolean not null default false`,
       );
+      // The shelf a product is kept on. Existing rows gain the column empty: kept anywhere.
+      await this.sql.query(`alter table ${this.products} add column if not exists zone_id text`);
       await this.sql.query(`create table if not exists ${this.visits} (
         id text primary key, shop text not null, status text not null,
         opened_at bigint not null, data jsonb not null)`);
@@ -86,12 +90,12 @@ export class PostgresRepo implements Repo {
 
   async upsertProduct(p: Product): Promise<void> {
     await this.run(
-      `insert into ${this.products} (shop, sku, name, description, price_cents, stock, ref_image_url, archived)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+      `insert into ${this.products} (shop, sku, name, description, price_cents, stock, ref_image_url, archived, zone_id)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        on conflict (shop, sku) do update set name = excluded.name, description = excluded.description,
          price_cents = excluded.price_cents, stock = excluded.stock, ref_image_url = excluded.ref_image_url,
-         archived = excluded.archived`,
-      [p.shop, p.sku, p.name, p.description, p.priceCents, p.stock, p.refImageUrl, p.archived === true],
+         archived = excluded.archived, zone_id = excluded.zone_id`,
+      [p.shop, p.sku, p.name, p.description, p.priceCents, p.stock, p.refImageUrl, p.archived === true, p.zoneId || null],
     );
   }
 
@@ -115,6 +119,27 @@ export class PostgresRepo implements Repo {
       [shop],
     );
     return rows[0]?.data ?? null;
+  }
+
+  async listOpenVisits(shop: Shop): Promise<Visit[]> {
+    const rows = await this.run<{ data: Visit }>(
+      `select data from ${this.visits} where shop = $1 and status = 'open' order by opened_at desc`,
+      [shop],
+    );
+    return rows.map((r) => r.data);
+  }
+
+  async claimVisit(pendingId: string, sessionId: string): Promise<boolean> {
+    // One conditional update: the database lets exactly one claim change the row.
+    const rows = await this.run(
+      `update ${this.visits}
+         set status = 'empty',
+             data = jsonb_set(jsonb_set(data, '{status}', '"empty"'), '{pending,claimedBy}', to_jsonb($2::text))
+       where id = $1 and status = 'open' and data->'pending' is not null and data->'pending'->>'claimedBy' is null
+       returning id`,
+      [pendingId, sessionId],
+    );
+    return rows.length === 1;
   }
 
   async listVisits(shop: Shop, sinceMs = 0): Promise<Visit[]> {

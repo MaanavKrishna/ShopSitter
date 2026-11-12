@@ -5,9 +5,9 @@ import { useCallback, useState } from "react";
 import { StandCamera, type CameraPhase } from "@/components/StandCamera";
 import { Wordmark } from "@/components/Wordmark";
 import { easeOut, spring } from "@/lib/motion";
-import { Setup, TrialEndedSheet } from "./Setup";
+import { Setup, TrialEndedSheet, ZoneGoneSheet } from "./Setup";
 import { Swap } from "./Swap";
-import { SAVED_CODE_REFUSED, saysTrialEnded, useStandToken } from "./useStandToken";
+import { SAVED_CODE_REFUSED, saysTrialEnded, saysZoneGone, standHeaders, useStandToken } from "./useStandToken";
 
 // True as written: the camera takes a fresh still every few seconds and sends that one.
 const UNSENT = "This camera couldn't reach the server. It sends a new photo every few seconds.";
@@ -17,7 +17,7 @@ const UNSENT = "This camera couldn't reach the server. It sends a new photo ever
  * stand; the main stand screen decides when to read and shows the bill.
  */
 export function ExtraCamera({ angle }: { angle: number }) {
-  const { token, booted, refused, ended, kind, save, forget, end } = useStandToken();
+  const { token, booted, refused, ended, kind, zone, zoneName, zoneGone, loseZone, save, forget, end } = useStandToken();
   const [phase, setPhase] = useState<CameraPhase>("starting");
   const [sentAt, setSentAt] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -30,9 +30,10 @@ export function ExtraCamera({ angle }: { angle: number }) {
       form.set("photo", photo, "angle.jpg");
       form.set("angle", String(angle));
       form.set("takenAt", String(takenAt));
-      fetch("/api/stand/angle", { method: "POST", headers: { "x-stand-token": token ?? "" }, body: form }).then(
+      fetch("/api/stand/angle", { method: "POST", headers: standHeaders(token, zone), body: form }).then(
         async (res) => {
           if (await saysTrialEnded(res)) end();
+          else if (await saysZoneGone(res)) loseZone();
           else if (res.status === 401) {
             forget();
             setProblem("That stand code isn't right. Enter it again.");
@@ -44,12 +45,14 @@ export function ExtraCamera({ angle }: { angle: number }) {
         () => setProblem(UNSENT),
       );
     },
-    [angle, token, forget, end],
+    [angle, token, zone, forget, end, loseZone],
   );
 
   if (!booted) return <main className="void sd" />;
 
   if (ended) return <TrialEndedSheet />;
+
+  if (zoneGone) return <ZoneGoneSheet />;
 
   if (!token) {
     return (
@@ -129,9 +132,10 @@ export function ExtraCamera({ angle }: { angle: number }) {
               <p className="sd-privacy">
                 <Wordmark href="/stand" /> A camera counts items on this shelf. It does not record people.
               </p>
-              {kind === "trial" && (
+              {(kind === "trial" || zoneName) && (
                 <ul className="sd-chips">
-                  <li className="sd-chip sd-chip-trial">Trial stand</li>
+                  {zoneName && <li className="sd-chip sd-chip-zone">{zoneName}</li>}
+                  {kind === "trial" && <li className="sd-chip sd-chip-trial">Trial stand</li>}
                 </ul>
               )}
             </div>

@@ -20,6 +20,8 @@ export type Product = {
    * and price, but it is no longer sold: not listed, not offered on bills, not shown to the vision model.
    */
   archived?: boolean;
+  /** The shelf (zone) this product is kept on. Null or absent means anywhere: every zone's camera is offered it. */
+  zoneId?: string | null;
 };
 
 export type BillLine = { sku: string; name: string; qty: number; unitCents: number; lineCents: number };

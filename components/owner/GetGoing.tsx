@@ -92,7 +92,7 @@ export function GetGoing() {
   const useSuggestions = useCallback(async () => {
     setAdding(true);
     setProblem(null);
-    const res = await fetch("/api/trial/starter", { method: "POST" }).catch(() => null);
+    const res = await fetch("/api/trial/starter", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }).catch(() => null);
     if (res?.ok) await reloadQuietly();
     else if (res?.status === 401) await reloadQuietly();
     else setProblem(res ? "The suggestions couldn't be added. Try again." : "The stand couldn't be reached. Check the connection and try again.");
@@ -324,6 +324,15 @@ export function GetGoing() {
           );
         })}
       </ol>
+      <p className="ow-go-extra">
+        <span className="ow-go-extra-tag">Optional</span>
+        <span>
+          <b>Add a second shelf.</b> A stand can have several shelves, each with its own camera, and a door QR for shoppers. Set them up in Store.
+        </span>
+        <Link href="/owner/store" className="ow-go-link">
+          Open Store
+        </Link>
+      </p>
     </section>
   );
 }

@@ -15,6 +15,9 @@ async function main() {
   const repo = getRepo();
 
   // Start the live stand from empty, then add each product with its photo.
+  // WARNING: on Postgres this reset also removes the stand's stored records and photos: shelves and pay
+  // settings, visitor counts and every shelf photo. Use the product editor (/owner/products) to change a
+  // running stand; use this script only to set one up from scratch.
   await repo.resetShop("live", []);
   for (const { photo, ...row } of rows) {
     let refImageUrl: string | null = null;

@@ -6,10 +6,10 @@ import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StandCamera, type CameraPhase, type ShelfChange } from "@/components/StandCamera";
 import { Wordmark } from "@/components/Wordmark";
-import { Setup, TrialEndedSheet } from "@/components/stand/Setup";
+import { Setup, TrialEndedSheet, ZoneGoneSheet } from "@/components/stand/Setup";
 import { Stage } from "@/components/stand/Stage";
 import { Swap } from "@/components/stand/Swap";
-import { SAVED_CODE_REFUSED, useStandToken } from "@/components/stand/useStandToken";
+import { SAVED_CODE_REFUSED, standHeaders, useStandToken } from "@/components/stand/useStandToken";
 import { standChangeProblem } from "@/lib/trial-view";
 import { readJson, sendWithRetry } from "@/lib/client-retry";
 import { spring } from "@/lib/motion";
@@ -42,12 +42,14 @@ function changeForm(change: ShelfChange): FormData {
 
 export default function StandPage() {
   const router = useRouter();
-  const { token, booted, refused, ended, kind, save, forget, end } = useStandToken();
+  const { token, booted, refused, ended, kind, zone, zoneName, zoneGone, loseZone, save, forget, end } = useStandToken();
   const [current, setCurrent] = useState<Current | null>(null);
   const [justPaid, setJustPaid] = useState<number | null>(null);
   const [reading, setReading] = useState(false);
   const [phase, setPhase] = useState<CameraPhase>("starting");
   const [note, setNote] = useState<string | null>(null);
+  /** Set once any change in this page session went to a checked-in shopper. */
+  const [doorInUse, setDoorInUse] = useState(false);
   const [stats, setStats] = useState<{ moving: number; differs: number } | null>(null);
   const [readNow, setReadNow] = useState(0);
   const [cameras, setCameras] = useState(1);
@@ -143,7 +145,7 @@ export default function StandPage() {
           let refusal: string | undefined;
           const sent = await sendWithRetry(
             async () => {
-              const res = await fetch("/api/stand/change", { method: "POST", headers: { "x-stand-token": token ?? "" }, body: form });
+              const res = await fetch("/api/stand/change", { method: "POST", headers: standHeaders(token, zone), body: form });
               refusal = res.ok ? undefined : (await readJson<{ error?: string }>(res.clone()))?.error;
               return res;
             },
@@ -151,7 +153,8 @@ export default function StandPage() {
           );
           if (!sent.ok) {
             unsent.current = sending;
-            if (sent.reason === "wrong_code" && refusal === "trial_ended") end();
+            if (refusal === "unknown_zone") loseZone();
+            else if (sent.reason === "wrong_code" && refusal === "trial_ended") end();
             else if (sent.reason === "wrong_code") {
               forget();
               setProblem("That stand code isn't right. Enter it again.");
@@ -160,12 +163,25 @@ export default function StandPage() {
           }
           unsent.current = null;
           setProblem(null);
-          const data = await readJson<{ visit: Visit | null; bill: PricedBill | null; cameras?: number; returned?: unknown }>(sent.response);
+          const data = await readJson<{ visit: Visit | null; bill: PricedBill | null; cameras?: number; returned?: unknown; assigned?: string }>(sent.response);
           setCameras(data?.cameras ?? 1);
+          // A change that went to a shopper means this store checks shoppers in at the door.
+          if (data?.assigned) setDoorInUse(true);
           const open = data?.visit && data.bill && data.visit.status === "open";
           setCurrent(open ? { visit: data.visit!, bill: data.bill! } : null);
           // Say so when a change was seen but nothing is owed, so the stand never looks stuck.
-          setNote(open ? null : data?.returned ? "Thanks. That's back on the shelf." : "Nothing was taken.");
+          // A change that went to a shopper's phone has no bill here: say where it went.
+          setNote(
+            open
+              ? null
+              : data?.assigned === "session"
+                ? "Added to a basket."
+                : data?.assigned === "pending"
+                  ? "Check your phone to claim it."
+                  : data?.returned
+                    ? "Thanks. That's back on the shelf."
+                    : "Nothing was taken.",
+          );
           if (!open) setTimeout(() => setNote(null), 6000);
         } catch (e) {
           // Whatever went wrong, the queue carries on and the change is kept for the next read.
@@ -178,13 +194,13 @@ export default function StandPage() {
         }
       });
     },
-    [token, forget, end],
+    [token, zone, forget, end, loseZone],
   );
 
   // Someone stopped by and has gone: only the count is reported.
   const onVisitorLeft = useCallback(() => {
-    void fetch("/api/stand/presence", { method: "POST", headers: { "x-stand-token": token ?? "" } }).catch(() => {});
-  }, [token]);
+    void fetch("/api/stand/presence", { method: "POST", headers: standHeaders(token, zone) }).catch(() => {});
+  }, [token, zone]);
 
   const toggleDock = () => {
     const next = !collapsed;
@@ -195,6 +211,8 @@ export default function StandPage() {
   if (!booted) return <main className="void sd" />;
 
   if (ended) return <TrialEndedSheet />;
+
+  if (zoneGone) return <ZoneGoneSheet />;
 
   if (!token) {
     return (
@@ -241,6 +259,7 @@ export default function StandPage() {
           note={note}
           trouble={retrying}
           cameraProblem={cameraProblem}
+          doorHint={doorInUse}
           qr={qr && qr.visitId === visitId ? qr.url : null}
         />
 
@@ -293,8 +312,13 @@ export default function StandPage() {
 
             {!collapsed && (
               <motion.div layout="position" className="sd-side" transition={spring} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                {(stats || kind === "trial") && (
+                {(stats || kind === "trial" || zoneName) && (
                   <ul className="sd-chips">
+                    {zoneName && (
+                      <li className="sd-chip sd-chip-zone" title="The shelf this camera watches.">
+                        {zoneName}
+                      </li>
+                    )}
                     {kind === "trial" && (
                       <li className="sd-chip sd-chip-trial" title="A private trial stand. It is deleted a day after it was started.">
                         Trial stand
