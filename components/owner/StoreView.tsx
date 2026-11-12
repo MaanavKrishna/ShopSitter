@@ -3,12 +3,14 @@
 import { Button } from "@astryxdesign/core/Button";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useAnnounce } from "@astryxdesign/core/hooks";
 import { IconArrowDown, IconArrowUp, IconArrowUpRight, IconCamera, IconCopy, IconPencil, IconPlus } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
+import { shelfConfigText } from "@/bridge/core";
 import { byAisle, cameraPath, moveZone } from "@/lib/basket-view";
 import { formatCents } from "@/lib/money";
 import { spring } from "@/lib/motion";
@@ -47,7 +49,7 @@ type Editing = {
 const money = (cents: number) => `$${formatCents(cents)}`;
 
 /** A copy button that says "Copied" for a moment. */
-function CopyLink({ path, label = "Copy link" }: { path: string | null; label?: string }) {
+function CopyLink({ path, label = "Copy link", text }: { path: string | null; label?: string; text?: string }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -62,7 +64,7 @@ function CopyLink({ path, label = "Copy link" }: { path: string | null; label?: 
       onClick={() => {
         if (!path) return;
         void navigator.clipboard
-          .writeText(`${window.location.origin}${path}`)
+          .writeText(text ?? `${window.location.origin}${path}`)
           .then(() => setCopied(true))
           .catch(() => {});
       }}
@@ -89,6 +91,7 @@ export function StoreView() {
   const [doorNote, setDoorNote] = useState<string | null>(null);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [cameraFor, setCameraFor] = useState<Zone | null>(null);
+  const [cameraKind, setCameraKind] = useState<"phone" | "cctv">("phone");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -439,7 +442,18 @@ export function StoreView() {
 
       <Dialog isOpen={cameraFor !== null} onOpenChange={(open) => !open && setCameraFor(null)} purpose="form" width={440} maxHeight="88dvh">
         <DialogHeader title="Camera link" subtitle={cameraFor?.name} onOpenChange={() => setCameraFor(null)} />
-        {cameraFor && (
+        {cameraFor && !readOnly && (
+          <div className="ow-dialog-body ow-cctv-tabs">
+            <SegmentedControl label="Kind of camera" value={cameraKind} onChange={(v) => setCameraKind(v === "cctv" ? "cctv" : "phone")} size="sm">
+              <SegmentedControlItem value="phone" label="Phone" />
+              <SegmentedControlItem value="cctv" label="CCTV or webcam" />
+            </SegmentedControl>
+          </div>
+        )}
+        {cameraFor && !readOnly && cameraKind === "cctv" && (
+          <CctvSetup zone={cameraFor} standKey={trial ? standKey : null} trial={trial} />
+        )}
+        {cameraFor && (readOnly || cameraKind === "phone") && (
           <div className="ow-dialog-body ow-camlink">
             {camera ? <PageCode path={camera} label={`QR code that opens the camera for ${cameraFor.name}`} /> : <span className="ow-qr" aria-hidden="true" />}
             <p>
@@ -570,6 +584,43 @@ export function StoreView() {
           </form>
         )}
       </Dialog>
+    </div>
+  );
+}
+
+/* cctv: the bridge config for one shelf, for a CCTV camera, an IP camera or a USB webcam. */
+function CctvSetup({ zone, standKey, trial }: { zone: Zone; standKey: string | null; trial: boolean }) {
+  // A trial's key is already in the owner's hands; the live stand's code is never written here.
+  const token = trial ? (standKey ?? "<loading>") : "<your 6-digit stand code>";
+  const config = shelfConfigText({
+    server: typeof window === "undefined" ? "" : window.location.origin,
+    zoneId: zone.id,
+    shelfName: zone.name,
+    token,
+  });
+  const command = "npx tsx bridge/index.ts shelf.json";
+  return (
+    <div className="ow-dialog-body ow-camlink ow-cctv">
+      <p>
+        Run the camera bridge on a computer in the shop that can see the camera. It watches <b>{zone.name}</b> and sends only
+        the shelf, never the whole picture.
+      </p>
+      <p className="ow-setup-note">
+        Save this as <code>shelf.json</code>, put your camera&apos;s address in <code>source</code> (rtsp://, an MJPEG http address,
+        avfoundation:0 for a Mac webcam, /dev/video0 on Linux, or a video file), and narrow <code>rect</code> to the shelf.
+      </p>
+      <pre className="ow-cctv-code" tabIndex={0} aria-label="Bridge config for this shelf">{config}</pre>
+      <p className="ow-setup-note">
+        {trial
+          ? "The config holds this trial's key. Keep it to yourself."
+          : "Replace the token with the stand's 6-digit code, or leave it out and set SHOPSITTER_TOKEN instead."}{" "}
+        Then run, from the Shopsitter folder (ffmpeg must be installed):
+      </p>
+      <pre className="ow-cctv-code">{command}</pre>
+      <div className="ow-go-actions">
+        <CopyLink path="" text={config} label="Copy config" />
+        <CopyLink path="" text={command} label="Copy command" />
+      </div>
     </div>
   );
 }

@@ -1359,3 +1359,39 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Webcam picker: shown under the camera picture when this device has more than one camera. */
+.sd-cam-pick {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--s-1, 4px);
+  color: var(--on-blue);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.sd-cam-pick select {
+  width: 100%;
+  min-height: 28px;
+  padding: 0 var(--s-1, 4px);
+  border: var(--hairline-on-blue);
+  border-radius: var(--r-sm, 6px);
+  background: rgb(255 255 255 / 0.1);
+  color: var(--on-blue);
+  font: inherit;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.sd-cam-pick option {
+  color: var(--ink);
+}
+
+.sd-cam:has(.sd-cam-pick):not([data-hidden="true"]) button {
+  inset: 0 0 auto;
+  aspect-ratio: 4 / 3;
+}
+
+.sd-cam-pick select {
+  position: relative;
+}

@@ -21,7 +21,7 @@ export function TrustTeaser({ unmatched, priced }: { unmatched: BillLine; priced
           <h3>It never accuses anyone</h3>
           <p>
             Ten minutes with nothing paid and a visit is called unmatched, and nothing more. It can still be paid for
-            a day, and you can mark it settled if someone left cash.
+            a day, and you can mark it settled if someone left cash. You see unmatched value shelf by shelf.
           </p>
         </div>
         <UnmatchedDemo line={unmatched} />
@@ -30,10 +30,10 @@ export function TrustTeaser({ unmatched, priced }: { unmatched: BillLine; priced
       <GlowCard className="lp-cell">
         <CountDemo />
         <div className="lp-cell-text">
-          <h3>It counts items, not people</h3>
+          <h3>Nobody is identified</h3>
           <p>
-            The vision model is told to ignore hands and people. A separate check on the stand device notices when
-            someone is there and keeps only a daily count: no pictures, no identities.
+            The cameras count items, not people. When several shoppers are in at once, each one claims their own items
+            on their phone. A check on the camera keeps only a daily count of visitors.
           </p>
         </div>
       </GlowCard>
@@ -43,8 +43,8 @@ export function TrustTeaser({ unmatched, priced }: { unmatched: BillLine; priced
         <div className="lp-cell-text">
           <h3>The server sets every price</h3>
           <p>
-            The vision model returns product ids and counts, and is never asked for a price. Totals are worked out in
-            code, to the cent.
+            The vision model returns product ids and counts, never a price. Totals are worked out in code, to the cent,
+            and an item put back comes off the bill.
           </p>
         </div>
       </GlowCard>

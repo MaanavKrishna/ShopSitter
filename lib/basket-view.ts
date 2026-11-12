@@ -124,5 +124,5 @@ export function tintStrength(unmatchedCents: number, maxCents: number): number {
 export function holdBasisText(visits: number, days: number): string {
   return visits >= ENOUGH_VISITS
     ? `Covers 9 in 10 baskets from the last ${days} days`
-    : "Not enough visits yet: using your minimum";
+    : "Not enough visits yet: using twice your minimum";
 }

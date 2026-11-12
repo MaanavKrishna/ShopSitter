@@ -1,13 +1,13 @@
 import NextLink from "next/link";
 import { EXTRA_ANGLES } from "@/lib/angles";
 import { GRID_COLS, GRID_ROWS, MOVING_BLOCKS } from "@/lib/frame-diff";
-import { JOIN_WINDOW_MS, LATE_PAY_MS, OPEN_TIMEOUT_MS } from "@/lib/visits";
+import { LATE_PAY_MS, OPEN_TIMEOUT_MS } from "@/lib/visits";
 import { Beam } from "./Beam";
 import type { Item } from "./bits";
-import { GridVis, OwnerVis, PairVis, PayVis, type PeekRow, ShelfVis, StandVis, StatusVis, VisitVis } from "./HowVisuals";
+import { GridVis, OwnerVis, PairVis, PayVis, type PeekRow, StatusVis } from "./HowVisuals";
+import { ClaimVis, DoorVis, HoldVis, ReturnVis, StoreSetupVis } from "./HowStore";
 import { Step } from "./Step";
 
-const JOIN_SECONDS = JOIN_WINDOW_MS / 1000;
 const OPEN_MINUTES = OPEN_TIMEOUT_MS / 60_000;
 const LATE_HOURS = LATE_PAY_MS / 3_600_000;
 
@@ -32,24 +32,57 @@ function Copy({ title, children, facts }: { title: string; children: React.React
   );
 }
 
-/** The whole visit, in the order it happens, down one traced line. */
+/** The whole store visit, in the order it happens, down one traced line. */
 export function HowTimeline({ items, rows }: { items: Item[]; rows: PeekRow[] }) {
   return (
     <Beam>
       <ol className="in-steps">
         <Step n={1}>
-          <Copy title="Someone takes what they want">
+          <Copy
+            title="The owner sets up shelves and cameras"
+            facts={[
+              ["A store is", "Shelves, grouped by aisle"],
+              ["Each shelf has", "Its own camera and product list"],
+              ["Cameras", "Phones today"],
+            ]}
+          >
             <p>
-              No app to open, no barcode to scan, nothing to type. They lift a jar off the shelf, the way they would at
-              any stand with an honesty box.
+              Each shelf gets a name, an aisle, the products that sit on it, and a camera link. Open the link on a phone
+              propped facing the shelf and that phone is the shelf&rsquo;s camera.
+            </p>
+            <p>
+              Phones today; webcams and CCTV through a small bridge program that sends only the shelf&rsquo;s part of
+              the picture.
             </p>
           </Copy>
-          <ShelfVis />
+          <StoreSetupVis />
         </Step>
 
         <Step n={2}>
           <Copy
-            title="The stand notices the shelf changed"
+            title="A shopper walks in"
+            facts={[
+              ["Door code", "Optional"],
+              ["Hold", "Optional, set by the owner"],
+              ["Who they are", "Nobody asks"],
+            ]}
+          >
+            <p>
+              They can simply take what they like and pay at the shelf. Or they scan the code at the door and a basket
+              opens on their phone, with no app and no account.
+            </p>
+            <p>
+              If the owner asks for a hold, PayPal sets an amount aside first. It is sized from what shoppers at this
+              shop really spend: enough to cover nine in ten baskets of the last 30 days, within the owner&rsquo;s
+              minimum and maximum.
+            </p>
+          </Copy>
+          <DoorVis />
+        </Step>
+
+        <Step n={3}>
+          <Copy
+            title="A shelf changes, and its camera notices"
             facts={[
               ["Compared as", `${GRID_COLS} × ${GRID_ROWS} blocks`],
               ["Counts as movement", `${MOVING_BLOCKS} blocks or more`],
@@ -57,100 +90,121 @@ export function HowTimeline({ items, rows }: { items: Item[]; rows: PeekRow[] })
             ]}
           >
             <p>
-              A phone propped at the shelf keeps comparing small greyscale frames, block by block. It takes out any
-              overall change in brightness first, so a cloud passing or the camera adjusting does not count. Then it
-              waits for everything to go still.
+              The shelf&rsquo;s camera keeps comparing small greyscale frames, block by block. It takes out any overall
+              change in brightness first, so a cloud passing does not count. Then it waits for the shelf to go still and
+              sends a before photo, an after photo and a close-up of the area that changed.
             </p>
             <p>A hand that comes and goes without changing anything sets nothing off.</p>
           </Copy>
           <GridVis />
         </Step>
 
-        <Step n={3}>
+        <Step n={4}>
           <Copy
-            title="Two photos go to a vision model"
+            title="The vision model sees only that shelf’s products"
             facts={[
-              ["Sent", "Before, after, and a close-up of what changed"],
+              ["Chooses among", "This shelf’s products"],
               ["Extra cameras", `Up to ${EXTRA_ANGLES.length}, from other sides`],
               ["Comes back", "Product ids and counts"],
             ]}
           >
             <p>
-              The model gets the shelf as it was and as it is now, and one question: which products changed in count,
-              and by how many. It is told to ignore hands, people, shadows and lighting, and that an item moved along
-              the shelf has not been taken.
+              Because every shelf has its own short list, the model picks from a few products, not the whole shop. It is
+              asked which changed in count and by how many, and told that an item slid along the shelf has not been
+              taken.
+            </p>
+            <p>
+              Its answer is checked before anything is billed: only that shelf&rsquo;s products, only whole numbers.
+              Prices come from the owner&rsquo;s catalogue, added up on the server in whole cents.
             </p>
           </Copy>
           <PairVis />
         </Step>
 
-        <Step n={4}>
+        <Step n={5}>
           <Copy
-            title="The server prices it and opens a visit"
+            title="The item lands in the right basket"
             facts={[
-              ["Prices from", "The owner’s catalogue"],
-              ["Joins the same visit", `Within ${JOIN_SECONDS} seconds`],
-              ["Most of one item", "20"],
+              ["One shopper checked in", "It goes to them"],
+              ["Several", "The first to claim it gets it"],
+              ["Nobody checked in", "A visit at the shelf"],
             ]}
           >
             <p>
-              The answer is checked before anything is billed: only products in the catalogue, only whole numbers. The
-              total is added up in code, in whole cents. Take something else within the minute and it joins the same
-              visit; put something back and it comes off.
+              With one shopper in the shop, the change goes straight into their basket. With several, it shows on each
+              of their phones as a question, and whoever says it is theirs gets it. Nobody is identified; the camera
+              counts items, not people.
             </p>
           </Copy>
-          <VisitVis items={items} joinSeconds={JOIN_SECONDS} />
-        </Step>
-
-        <Step n={5}>
-          <Copy title="The bill and a PayPal code appear">
-            <p>
-              The stand screen shows what was taken, the total, and a code that opens this visit’s pay page. It keeps
-              checking, so a correction or a payment made on the phone shows up on the stand a couple of seconds later.
-            </p>
-            <p>If the shelf could not be read, the visit still opens and the shopper enters what they took by hand.</p>
-          </Copy>
-          <StandVis items={items} />
+          <ClaimVis items={items} />
         </Step>
 
         <Step n={6}>
-          <Copy title="They fix the bill if it is wrong, then pay">
+          <Copy title="Put it back, and it comes off the bill">
             <p>
-              The camera can miscount, so the bill is theirs to correct: change a quantity, remove a line, add
-              something it missed. Each bill becomes an itemised PayPal order. If the bill changes, the old order is
-              dropped, so money is only ever taken for the bill on screen.
+              Changed your mind? A jar returned to the shelf is read the same way, and it comes off the basket or visit
+              it belonged to. The shopper can also correct a line by hand if the camera got it wrong.
+            </p>
+          </Copy>
+          <ReturnVis items={items} />
+        </Step>
+
+        <Step n={7}>
+          <Copy
+            title="With a hold: tap Done, or just leave"
+            facts={[
+              ["Charged", "What you took"],
+              ["Released", "The rest of the hold"],
+              ["Basket larger than the hold", "The rest is paid on the next screen"],
+            ]}
+          >
+            <p>
+              The server captures the basket total, never more than was held, and PayPal releases the rest. A basket
+              left alone for {OPEN_MINUTES} minutes is closed the same way.
+            </p>
+          </Copy>
+          <HoldVis items={items} />
+        </Step>
+
+        <Step n={8}>
+          <Copy title="Without a hold: pay on the phone, or at the shelf">
+            <p>
+              A checked-in shopper pays from their basket with PayPal. Anyone else scans the code on the shelf&rsquo;s
+              screen, which opens the bill for that visit. The bill is theirs to correct first, and each bill becomes an
+              itemised PayPal order, so money is only ever taken for the bill on screen.
             </p>
             <p>Try it: the steppers on this one work.</p>
           </Copy>
           <PayVis items={items} />
         </Step>
 
-        <Step n={7}>
+        <Step n={9}>
           <Copy
             title={`Nothing paid after ${OPEN_MINUTES} minutes is called unmatched`}
             facts={[
               ["Open for", `${OPEN_MINUTES} minutes`],
               ["Can still be paid for", `${LATE_HOURS} hours`],
+              ["Owner can", "Mark it settled another way"],
             ]}
           >
             <p>
-              Unmatched is the whole of what it says: something left the shelf and no payment has arrived yet. Nobody
-              is named, nobody is accused. The link keeps working for a day, and a payment that arrives then shows as
-              paid late.
+              Unmatched is the whole of what it says: something left a shelf and no payment has arrived yet. Nobody is
+              named, nobody is accused. The link keeps working for a day, and a payment that arrives then shows as paid
+              late.
             </p>
           </Copy>
           <StatusVis items={items} minutes={OPEN_MINUTES} hours={LATE_HOURS} />
         </Step>
 
-        <Step n={8}>
-          <Copy title="The owner sees all of it">
+        <Step n={10}>
+          <Copy title="The owner sees it, shelf by shelf">
             <p>
-              Every visit lands in the dashboard with what was taken, what was paid and where it stands. The paid
-              figure is the amount PayPal captured.
+              Every visit lands in the dashboard with what was taken, what was paid and where it stands, and the store
+              map shows sales and unmatched value for each shelf. The paid figure is the amount PayPal captured.
             </p>
             <p>
               <NextLink href="/owners" className="in-link ds-focus">
-                See the owner’s side
+                See the owner&rsquo;s side
               </NextLink>
             </p>
           </Copy>

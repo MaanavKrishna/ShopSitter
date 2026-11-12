@@ -923,3 +923,94 @@
     animation-duration: 1.6s;
   }
 }
+
+/* ---------- Store simulator card: leads the page, floating over the cobalt head ---------- */
+
+.dm-store {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--s-5);
+  margin-top: calc(-1 * (var(--s-8) + var(--s-9)));
+  padding: var(--s-6) var(--s-5);
+  border-radius: var(--r-xl);
+  border: var(--hairline-on-blue-strong);
+  box-shadow: var(--e-blue), var(--e-3);
+  overflow: hidden;
+}
+
+.dm-store + .dm-trial {
+  margin-top: 0;
+}
+
+.dm-store-text {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-4);
+}
+
+.dm-store-text h2 {
+  font-family: var(--font-display), sans-serif;
+  font-size: var(--t-h3);
+  font-weight: 800;
+  letter-spacing: var(--track-heading);
+  line-height: 1.15;
+}
+
+.dm-store-text p {
+  max-width: 58ch;
+  font-size: var(--t-ui);
+  line-height: 1.55;
+  color: var(--on-blue-soft);
+}
+
+.dm-store-go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 44px;
+  padding: 0 var(--s-5);
+  border-radius: var(--r-md);
+  background: var(--coral);
+  color: var(--coral-ink);
+  font-size: var(--t-ui);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dm-store-panes {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dm-store-panes li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--s-3);
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--glass-on-blue);
+  border: var(--hairline-on-blue);
+  font-size: var(--t-sm);
+}
+
+.dm-store-panes li svg {
+  grid-row: span 2;
+}
+
+.dm-store-panes li span {
+  color: var(--on-blue-soft);
+}
+
+@media (min-width: 960px) {
+  .dm-store {
+    grid-template-columns: minmax(0, 11fr) minmax(0, 9fr);
+    align-items: center;
+    gap: var(--s-7);
+    padding: var(--s-7);
+  }
+}

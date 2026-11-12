@@ -1,0 +1,779 @@
+/* Store simulator: three floating panels in the cobalt studio. Built from the tokens in system.css. */
+
+.sim-page {
+  min-height: 100dvh;
+  padding-bottom: var(--s-8);
+  overflow-x: clip;
+}
+
+.sim-wrap {
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3vw, 40px);
+}
+
+.sim-intro {
+  display: grid;
+  gap: var(--s-3);
+  padding-block: var(--s-6) var(--s-5);
+  max-width: 62ch;
+}
+
+.sim-intro h1 {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(2rem, 3vw + 1rem, 3.25rem);
+  font-weight: 800;
+  letter-spacing: var(--track-display);
+  line-height: var(--lead-heading);
+}
+
+.sim-intro p {
+  color: var(--on-blue-soft);
+  font-size: var(--t-lead);
+  line-height: var(--lead-body);
+}
+
+.sim {
+  display: grid;
+  gap: var(--s-4);
+}
+
+/* ---------- Step rail ---------- */
+
+.sim-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--t-sm);
+}
+
+.sim-rail li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: rgb(255 255 255 / 0.78);
+  transition: color var(--dur) ease-out;
+}
+
+.sim-rail li[data-state="now"],
+.sim-rail li[data-state="done"] {
+  color: var(--on-blue);
+}
+
+.sim-rail-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: var(--hairline-on-blue-strong);
+  font-size: var(--t-xs);
+  transition: background-color var(--dur) ease-out, color var(--dur) ease-out;
+}
+
+.sim-rail li[data-state="now"] .sim-rail-mark {
+  background: var(--on-blue);
+  color: var(--blue);
+}
+
+.sim-rail li[data-state="done"] .sim-rail-mark {
+  background: rgb(255 255 255 / 0.2);
+  border-color: transparent;
+}
+
+/* ---------- Action bar ---------- */
+
+.sim-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-3) var(--s-3) var(--s-5);
+  border-radius: var(--r-lg);
+}
+
+.sim-bar-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sim-bar-text b {
+  font-family: var(--font-display), sans-serif;
+  font-size: var(--t-body);
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+}
+
+.sim-bar-text span {
+  font-size: var(--t-sm);
+  color: var(--on-blue-soft);
+}
+
+.sim-go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 var(--s-5);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--coral);
+  color: var(--coral-ink);
+  font: 600 var(--t-ui) / 1 var(--font-body), sans-serif;
+  cursor: pointer;
+}
+
+.sim-go:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.sim-spin {
+  animation: sim-spin 0.7s linear infinite;
+}
+
+@keyframes sim-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sim-problem,
+.sim-note {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  font-size: var(--t-ui);
+  line-height: 1.45;
+}
+
+.sim-problem {
+  background: var(--coral-tint);
+  color: var(--coral-text);
+}
+
+.sim-problem a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.sim-note {
+  background: var(--glass-on-blue);
+  border: var(--hairline-on-blue);
+  color: var(--on-blue);
+}
+
+/* ---------- Stage ---------- */
+
+.sim-tabs {
+  display: none;
+}
+
+.sim-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr) minmax(0, 1fr);
+  gap: var(--s-5);
+  align-items: start;
+}
+
+.sim-panel {
+  min-width: 0;
+}
+
+.sim-shelves,
+.sim-owner {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-xl);
+  background: var(--material-light);
+  -webkit-backdrop-filter: var(--material-filter);
+  backdrop-filter: var(--material-filter);
+  box-shadow: var(--material-edge), var(--e-blue);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  color: var(--ink);
+}
+
+.sim-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-inline: var(--s-1);
+}
+
+.sim-panel-head h2 {
+  font-family: var(--font-display), sans-serif;
+  font-size: var(--t-body);
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+}
+
+.sim-panel-head span {
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+/* Shelf cameras */
+
+.sim-cam {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.sim-cam-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--r-md);
+  background: var(--chip);
+  box-shadow: var(--e-1);
+}
+
+.sim-cam-frame img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sim-cam[data-busy] .sim-cam-frame {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.sim-scan {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgb(33 82 242 / 0.28) 70%, rgb(255 255 255 / 0.85) 98%, transparent);
+  animation: sim-scan 1.6s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes sim-scan {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(360%);
+  }
+}
+
+.sim-cam-tag,
+.sim-cam-reading {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-xs);
+  font-weight: 600;
+}
+
+.sim-cam-tag {
+  left: 10px;
+  top: 10px;
+  background: var(--material-ink);
+  -webkit-backdrop-filter: var(--material-filter);
+  backdrop-filter: var(--material-filter);
+  color: var(--on-blue);
+}
+
+.sim-cam-tag i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.5);
+}
+
+.sim-cam-tag i[data-live] {
+  background: var(--coral);
+}
+
+.sim-cam-reading {
+  right: 10px;
+  bottom: 10px;
+  background: var(--blue);
+  color: var(--on-blue);
+}
+
+.sim-cam-alt {
+  padding-inline: var(--s-1);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.sim-honest {
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--tint);
+  font-size: var(--t-sm);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* Phone */
+
+.sim-phone-col {
+  display: grid;
+  gap: var(--s-4);
+  justify-items: center;
+}
+
+.sim-phone {
+  position: relative;
+  width: 100%;
+  max-width: 330px;
+  padding: 10px;
+  border-radius: 44px;
+  background: #0a1024;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18), var(--e-blue), 0 40px 80px -30px rgb(0 10 60 / 0.8);
+}
+
+.sim-phone-notch {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 90px;
+  height: 24px;
+  border-radius: var(--r-pill);
+  background: #0a1024;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.sim-phone-screen {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 520px;
+  border-radius: 34px;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.sim-basket-head {
+  display: grid;
+  gap: var(--s-1);
+  padding: 56px var(--s-5) var(--s-5);
+  background: radial-gradient(120% 90% at 50% 0%, var(--blue-lit), var(--blue) 60%, var(--blue-deep));
+  color: var(--on-blue);
+}
+
+.sim-basket-head > span:first-child {
+  font-size: var(--t-sm);
+  color: var(--on-blue-soft);
+}
+
+.sim-basket-total {
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.sim-lines {
+  list-style: none;
+  margin: 0;
+  padding: var(--s-2) var(--s-4);
+  align-content: start;
+  display: grid;
+}
+
+.sim-lines li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--s-3);
+  align-items: baseline;
+  padding: var(--s-3) var(--s-1);
+  border-bottom: var(--hairline);
+  font-size: var(--t-ui);
+}
+
+.sim-qty {
+  color: var(--blue);
+}
+
+.sim-line-name {
+  font-weight: 500;
+}
+
+.sim-lines li.sim-empty,
+.sim-visits li.sim-empty {
+  display: block;
+  border: 0;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+  line-height: 1.45;
+}
+
+.sim-phone-foot {
+  padding: var(--s-4);
+}
+
+.sim-done {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--blue);
+  color: var(--on-blue);
+  font: 600 var(--t-body) / 1 var(--font-body), sans-serif;
+  cursor: pointer;
+}
+
+.sim-done:disabled {
+  background: var(--chip);
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+.sim-result {
+  display: grid;
+  gap: var(--s-2);
+  font-size: var(--t-sm);
+  line-height: 1.45;
+}
+
+.sim-result p {
+  font-weight: 600;
+}
+
+.sim-result small {
+  color: var(--ink-soft);
+}
+
+.sim-paypal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  height: 48px;
+  border-radius: var(--r-md);
+  background: var(--paypal);
+  color: var(--yellow-text);
+  font-weight: 700;
+  font-size: var(--t-body);
+  text-decoration: none;
+}
+
+.sim-explain {
+  width: 100%;
+  max-width: 330px;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--glass-on-blue);
+  border: var(--hairline-on-blue);
+  -webkit-backdrop-filter: var(--material-filter);
+  backdrop-filter: var(--material-filter);
+}
+
+.sim-explain h3 {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--on-blue-soft);
+  margin-bottom: var(--s-1);
+}
+
+.sim-explain p {
+  font-size: var(--t-ui);
+  line-height: 1.5;
+}
+
+/* Owner */
+
+.sim-ledger {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  border: var(--hairline);
+}
+
+.sim-ledger-bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--chip);
+}
+
+.sim-ledger-bar span {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+[data-part="paid"] > dt i,
+.sim-ledger-bar [data-part="paid"] {
+  background: var(--blue);
+}
+
+[data-part="open"] > dt i,
+.sim-ledger-bar [data-part="open"] {
+  background: rgb(33 82 242 / 0.4);
+}
+
+[data-part="unmatched"] > dt i,
+.sim-ledger-bar [data-part="unmatched"] {
+  background: var(--coral);
+}
+
+.sim-figs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.sim-figs dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-xs);
+  color: var(--ink-soft);
+}
+
+.sim-figs dt i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.sim-figs dd {
+  margin: 2px 0 0;
+  font-size: 1.25rem;
+}
+
+.sim-sub {
+  padding-inline: var(--s-1);
+  margin-top: var(--s-1);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.sim-zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+}
+
+.sim-zone {
+  display: grid;
+  gap: 2px;
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  border: var(--hairline);
+  font-size: var(--t-sm);
+}
+
+.sim-zone .num {
+  font-size: 1.25rem;
+}
+
+.sim-zone small {
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
+}
+
+.sim-visits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  border: var(--hairline);
+}
+
+.sim-visits li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--s-3);
+  align-items: center;
+  padding: var(--s-3);
+  font-size: var(--t-sm);
+}
+
+.sim-visits li + li {
+  border-top: var(--hairline);
+}
+
+.sim-visit-items {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim-chip {
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  background: var(--chip);
+  color: var(--blue-deep);
+}
+
+.sim-chip[data-status="paid"] {
+  background: var(--blue);
+  color: var(--on-blue);
+}
+
+.sim-chip[data-status="unmatched"] {
+  background: var(--coral-tint);
+  color: var(--coral-text);
+}
+
+.sim-owner-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  justify-self: start;
+  padding-inline: var(--s-1);
+  font-size: var(--t-ui);
+  font-weight: 600;
+  color: var(--blue);
+}
+
+/* The travelling dot: the read landing, carried shelf to phone to ledger. */
+.sim-dot {
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--on-blue);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.25), 0 0 24px 6px rgb(255 255 255 / 0.55);
+  pointer-events: none;
+  z-index: var(--z-raised);
+}
+
+/* Close */
+
+.sim-close {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--s-4);
+}
+
+.sim-close p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--on-blue-soft);
+  text-align: center;
+}
+
+.sim-quiet {
+  height: 36px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  border: var(--hairline-on-blue-strong);
+  background: transparent;
+  color: var(--on-blue);
+  font: 600 var(--t-sm) / 1 var(--font-body), sans-serif;
+  cursor: pointer;
+}
+
+.sim-quiet[data-tone="coral"] {
+  background: var(--coral);
+  border-color: transparent;
+  color: var(--coral-ink);
+}
+
+/* ---------- Narrow screens: one panel at a time ---------- */
+
+@media (max-width: 1099px) {
+  .sim-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sim-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--r-md);
+    background: var(--glass-on-blue);
+    border: var(--hairline-on-blue);
+  }
+
+  .sim-tabs button {
+    height: 36px;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--on-blue);
+    font: 600 var(--t-sm) / 1 var(--font-body), sans-serif;
+    cursor: pointer;
+  }
+
+  .sim-tabs button[aria-selected="true"] {
+    background: var(--paper);
+    color: var(--blue);
+  }
+
+  .sim-panel:not([data-tab-on]) {
+    display: none;
+  }
+
+  .sim-bar {
+    position: sticky;
+    bottom: var(--s-3);
+    z-index: var(--z-dock);
+    order: 10;
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--s-3);
+  }
+
+  .sim-go {
+    justify-content: center;
+  }
+
+  .sim-rail {
+    gap: var(--s-2) var(--s-4);
+  }
+
+  .sim-phone-screen {
+    min-height: 460px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sim-rail li:not([data-state="now"]) span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .sim-figs dd,
+  .sim-zone .num {
+    font-size: 1.05rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sim-spin,
+  .sim-scan {
+    animation: none;
+  }
+}

@@ -55,6 +55,20 @@ a day, and the owner can mark it settled another way. The owner sees unmatched v
 after photos, refunds, shelf levels and restocking, a product editor with reference photos, the store map with a
 QR per shelf and for the door, charts they can rearrange, and a question box ("what sold best this week?").
 
+## Cameras
+
+A shelf camera can be a phone, a USB webcam, or a CCTV / IP camera you already own.
+
+- **Phone or browser webcam:** open the shelf's camera link from the Store page. With several webcams on one
+  computer, pick one under the camera picture; each shelf remembers its choice.
+- **CCTV, IP cameras, or a recorded video:** run the camera bridge, `npx tsx bridge/index.ts shelf.json` (needs
+  ffmpeg). The Store page gives a ready `shelf.json` for each shelf; set `source` (an `rtsp://` stream, an MJPEG
+  address, a device, or a file) and draw `rect` around the shelf. One camera can watch several shelves.
+- The bridge runs the same change detector as the phone (`lib/frame-diff.ts`) and posts to the same route.
+- **Privacy:** only each shelf's rectangle is sent, never the full picture.
+- Details and limits: [bridge/README.md](bridge/README.md). Proven with a video file; no real CCTV stream has been
+  tried yet.
+
 ## Where PayPal is used
 
 - **Orders v2** (`@paypal/paypal-server-sdk`): every bill becomes an itemised order whose amount the server
@@ -88,13 +102,14 @@ sample pairs; composed pictures are easier than real photos).
 | [docs/architecture.md](docs/architecture.md) | System overview, request flows, data model, visit states, where things live |
 | [docs/security.md](docs/security.md) | Who can do what, every token, money rules, privacy, known limits |
 | [docs/accuracy.md](docs/accuracy.md) | How the shelf reader was measured and what the numbers do not show |
+| [bridge/README.md](bridge/README.md) | Using CCTV, IP cameras, webcams or recorded video as shelf cameras |
 | [DESIGN.md](DESIGN.md) | The design system: colour, type, materials, motion |
 
 ## Stack
 
 Next.js 16, React 19, TypeScript, Vercel AI SDK, PayPal Server SDK, PayPal JS SDK v6, PayPal Agent Toolkit,
 AG Studio (the owner's charts, on its trial licence, which prints a notice in the browser console), Astryx
-components, Motion, MediaPipe (on-device detection), Neon Postgres, Vitest.
+components, Motion, MediaPipe (on-device detection), ffmpeg (camera bridge), Neon Postgres, Vitest.
 
 ## Run it yourself
 

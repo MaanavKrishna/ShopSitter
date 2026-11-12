@@ -286,6 +286,7 @@ export default function StandPage() {
                 onVisitorLeft={onVisitorLeft}
                 onProblem={setCameraProblem}
                 problemShown
+                cameraFor={zone ?? "store"}
               />
             </motion.div>
 

@@ -205,6 +205,6 @@ describe("holdBasisText", () => {
     expect(holdBasisText(42, 30)).toBe("Covers 9 in 10 baskets from the last 30 days");
   });
   it("says the minimum is used otherwise", () => {
-    expect(holdBasisText(4, 30)).toBe("Not enough visits yet: using your minimum");
+    expect(holdBasisText(4, 30)).toBe("Not enough visits yet: using twice your minimum");
   });
 });

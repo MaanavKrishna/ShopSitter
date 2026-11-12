@@ -6,8 +6,10 @@ import { ChapterRail, type Chapter } from "@/components/landing/ChapterRail";
 import { DeviceScene } from "@/components/landing/DeviceScene";
 import { OwnerLedger, type LedgerSlice } from "@/components/landing/OwnerLedger";
 import { Reveal } from "@/components/landing/Reveal";
+import { PayModes } from "@/components/landing/PayModes";
+import { StoreTeaser, type StoreItem } from "@/components/landing/StoreTeaser";
 import { TrustTeaser } from "@/components/landing/TrustTeaser";
-import { VisitTeaser } from "@/components/landing/VisitTeaser";
+import { demoWeek } from "@/components/inner/seedFigures";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteNav } from "@/components/site/SiteNav";
 import { priceLines } from "@/lib/money";
@@ -17,9 +19,10 @@ import { DEMO_PRODUCTS, exampleVisits } from "@/lib/seed";
 import "./landing.css";
 
 const CHAPTERS: Chapter[] = [
-  { id: "top", label: "The stand" },
+  { id: "top", label: "The shelf" },
   { id: "bill", label: "The bill" },
-  { id: "how", label: "A visit" },
+  { id: "how", label: "The store" },
+  { id: "pay", label: "Paying" },
   { id: "trust", label: "Trust" },
   { id: "owners", label: "For owners" },
   { id: "go", label: "Try it" },
@@ -36,6 +39,15 @@ const SCENE_BILL = priceLines(
 );
 
 const lineFor = (sku: string, qty: number) => priceLines([{ sku, qty }], DEMO_PRODUCTS).lines[0];
+const item = (sku: string): StoreItem => {
+  const l = lineFor(sku, 1);
+  return { sku: l.sku, name: l.name, unitCents: l.unitCents };
+};
+const STORE_ITEMS = ["honey", "jam", "bread", "eggs", "apples"].map(item);
+const HOLD_BASKET = [
+  { ...item("honey"), qty: 1 },
+  { ...item("bread"), qty: 1 },
+];
 
 /** The demo stand's example week, added up the way the owner's dashboard adds it. */
 function exampleLedger(): { slices: LedgerSlice[]; totalCents: number } {
@@ -57,8 +69,9 @@ function exampleLedger(): { slices: LedgerSlice[]; totalCents: number } {
   return { slices: parts.map((p, i) => ({ ...p, share: shares[i] })), totalCents };
 }
 
-export default function Home() {
+export default async function Home() {
   const ledger = exampleLedger();
+  const week = await demoWeek();
 
   return (
     <>
@@ -85,21 +98,37 @@ export default function Home() {
         <section id="how" data-tone="light" className="lp-chapter lp-how" aria-labelledby="how-h">
           <div className="ds-container">
             <Reveal className="lp-how-head">
-              <h2 id="how-h" className="ds-h2">
-                A visit takes four beats
-              </h2>
+              <div>
+                <h2 id="how-h" className="ds-h1">
+                  A shop that runs itself
+                </h2>
+                <p className="ds-lead">
+                  Shelves grouped by aisle, each with its own camera and its own short list of products. Phones today;
+                  webcams and CCTV through a small bridge program that sends only the shelf&apos;s part of the picture.
+                </p>
+              </div>
               <NextLink className="lp-more ds-focus" href="/how-it-works">
-                How a visit goes, step by step
+                How a visit goes, shelf by shelf
               </NextLink>
             </Reveal>
             <Reveal delay={0.08}>
-              <VisitTeaser
-                line={lineFor("honey", 1)}
-                past={[
-                  { line: lineFor("apples", 2), kind: "paid", when: "Earlier today" },
-                  { line: lineFor("flowers", 1), kind: "unmatched", when: "Yesterday" },
-                ]}
-              />
+              <StoreTeaser items={STORE_ITEMS} />
+            </Reveal>
+          </div>
+        </section>
+
+        <section id="pay" data-tone="light" className="lp-chapter lp-paych" aria-labelledby="pay-h">
+          <div className="ds-container">
+            <Reveal className="lp-how-head">
+              <h2 id="pay-h" className="ds-h1">
+                Two ways to pay
+              </h2>
+              <NextLink className="lp-more ds-focus" href="/owners">
+                Choosing one for your shop
+              </NextLink>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <PayModes basket={HOLD_BASKET} />
             </Reveal>
           </div>
         </section>
@@ -112,11 +141,11 @@ export default function Home() {
               </h2>
               <div>
                 <p className="ds-lead">
-                  Rules the stand keeps, so an owner and a customer can both trust the bill. Each one below is a small
+                  Rules the shop keeps, so an owner and a shopper can both trust the bill. Each one below is a small
                   working model.
                 </p>
                 <NextLink className="lp-more ds-focus" href="/trust">
-                  Everything the stand promises
+                  Everything the shop promises
                 </NextLink>
               </div>
             </Reveal>
@@ -133,8 +162,8 @@ export default function Home() {
                 You weren&apos;t there. You still know.
               </h2>
               <p className="ds-lead">
-                What left the shelf, what PayPal captured, and which visits ended with nothing paid. One bar, to the
-                cent.
+                What left each shelf, what PayPal captured, and which visits ended with nothing paid. One bar, to the
+                cent, and every shelf on its own.
               </p>
               <div className="lp-owners-cta">
                 <NextLink className="btn btn-coral" href="/owner">
@@ -150,7 +179,19 @@ export default function Home() {
             </Reveal>
             <figure className="lp-owners-fig">
               <OwnerLedger slices={ledger.slices} totalCents={ledger.totalCents} />
-              <figcaption>An example week from the demo stand, not real sales.</figcaption>
+              <ul className="lp-owner-shelves" aria-label="Unmatched by shelf">
+                {week.shelves.map((sh) => (
+                  <li key={sh.name} data-look={sh.look || undefined}>
+                    <span>{sh.aisle}</span>
+                    <strong>{sh.name}</strong>
+                    <span className="num">Taken {sh.taken}</span>
+                    <span className="num lp-owner-un">Unmatched {sh.unmatched}</span>
+                  </li>
+                ))}
+              </ul>
+              <figcaption>
+                An example week from the demo shop, not real sales. The shelf split is an example layout of its products.
+              </figcaption>
             </figure>
           </div>
         </section>
@@ -164,11 +205,16 @@ export default function Home() {
               </h2>
             </Reveal>
             <Reveal delay={0.06} className="lp-go-actions">
-              <NextLink className="btn btn-coral" href="/demo">
-                Run your own stand
+              <NextLink className="btn btn-coral" href="/demo/store">
+                Watch a whole store run
               </NextLink>
-              <NextLink className="btn btn-ghost" href="/owner/login">
-                Open the demo dashboard
+              <NextLink className="btn btn-ghost" href="/demo">
+                Run your own
+              </NextLink>
+            </Reveal>
+            <Reveal delay={0.1}>
+              <NextLink className="lp-go-link ds-focus" href="/owner/login">
+                Or open the example dashboard (passcode demo)
               </NextLink>
             </Reveal>
           </div>

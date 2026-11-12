@@ -2,6 +2,7 @@
 // figures on the public pages are the ones a visitor finds after signing in.
 import { ownerOverview } from "@/lib/owner";
 import { ledgerParts, segmentShares } from "@/lib/owner-view";
+import { byZone, type Zone } from "@/lib/store";
 import type { Repo } from "@/lib/repo";
 import { exampleVisits, productsFor } from "@/lib/seed";
 import type { Visit } from "@/lib/visits";
@@ -41,8 +42,31 @@ export async function demoWeek() {
   const { parts, totalCents } = ledgerParts(totals, visits);
   const shares = segmentShares(parts, 3);
 
+  // An example layout for the public pages: the demo products on three shelves in two aisles,
+  // added up by the same byZone the owner's store map uses.
+  const zones: Zone[] = [
+    { id: "zpantry", name: "Honey and jam", aisle: "Aisle 1", order: 0 },
+    { id: "zbakery", name: "Bread and eggs", aisle: "Aisle 1", order: 1 },
+    { id: "zgarden", name: "Apples and flowers", aisle: "Aisle 2", order: 2 },
+  ];
+  const zoneOf: Record<string, string> = {
+    honey: "zpantry",
+    jam: "zpantry",
+    bread: "zbakery",
+    eggs: "zbakery",
+    apples: "zgarden",
+    flowers: "zgarden",
+  };
+  const placed = products.map((p) => ({ ...p, zoneId: zoneOf[p.sku] ?? null }));
+  const figures = byZone(seeded.filter((v) => v.openedAt >= now - DAYS * 86_400_000), placed, zones);
+  const shelves = zones.map((z) => {
+    const f = figures.find((r) => r.zoneId === z.id)!;
+    return { name: z.name, aisle: z.aisle, taken: usd(f.takenCents), unmatched: usd(f.unmatchedCents), look: f.unmatchedCents > 0 };
+  });
+
   return {
     days: DAYS,
+    shelves,
     visitCount: visits.length,
     totalCents,
     totals,

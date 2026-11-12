@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
 import { easeOut, spring, springSnappy } from "@/lib/motion";
-import { Cutout, type Item, StatusBadge, usd } from "./bits";
+import { Cutout, DrawnCode, type Item, StatusBadge, usd } from "./bits";
+import "./owners-trust.css";
 import { Glow } from "./Glow";
 import { Photo } from "./HowVisuals";
 import { Rolling, Stepper } from "./Stepper";
@@ -293,7 +294,133 @@ function PhotosDemo() {
   );
 }
 
-/** Six promises, each with a small working model of what it means. */
+
+/* A hold: the amount is set aside, only the basket is captured, the rest goes back. */
+const HOLD_CENTS = 2500;
+function HoldDemo({ items }: { items: Item[] }) {
+  const reduce = useReducedMotion();
+  const [taken, setTaken] = useState<string[]>([]);
+  const [done, setDone] = useState(false);
+  const total = taken.reduce((sum, sku) => sum + price(items, sku), 0);
+  const choices = ["honey", "bread", "eggs"].filter((sku) => price(items, sku) > 0);
+  const canTake = (sku: string) => !done && total + price(items, sku) <= HOLD_CENTS;
+  return (
+    <div className="ot-card" role="group" aria-label="A model of a PayPal hold">
+      <div className="ot-card-row">
+        <span>Held by PayPal</span>
+        <span className="num">{usd(HOLD_CENTS)}</span>
+      </div>
+      <div className="ot-meter" aria-hidden="true">
+        <span className="ot-meter-held" />
+        <motion.span
+          className="ot-meter-used"
+          initial={false}
+          animate={{ scaleX: total / HOLD_CENTS }}
+          transition={reduce ? { duration: 0 } : spring}
+        />
+      </div>
+      <div className="ot-card-row">
+        <span>Basket</span>
+        <Rolling className="num" value={total} text={usd(total)} />
+      </div>
+      <div className="ot-card-actions">
+        {done ? (
+          <button type="button" className="in-spec-btn ds-focus" onClick={() => { setTaken([]); setDone(false); }}>
+            Start again
+          </button>
+        ) : (
+          <>
+            {choices.map((sku) => (
+              <button key={sku} type="button" className="in-spec-btn ds-focus" disabled={!canTake(sku)} onClick={() => setTaken((t) => [...t, sku])}>
+                Take {nameOf(items, sku).toLowerCase()}
+              </button>
+            ))}
+            <button type="button" className="in-spec-btn ds-focus" data-primary="" onClick={() => setDone(true)}>
+              Done
+            </button>
+          </>
+        )}
+      </div>
+      <p className="ot-card-note" aria-live="polite">
+        {done
+          ? `Charged ${usd(total)}. The other ${usd(HOLD_CENTS - total)} is released.`
+          : "Nothing is charged yet. Take something, then tap Done."}
+      </p>
+    </div>
+  );
+}
+
+/* Several shoppers at once: a change shows on their phones and the first to claim it gets it. */
+function ClaimDemo({ items }: { items: Item[] }) {
+  const reduce = useReducedMotion();
+  const [answer, setAnswer] = useState<"ask" | "mine" | "not">("ask");
+  const name = nameOf(items, "honey");
+  return (
+    <div className="ot-card" role="group" aria-label="A model of a claim on a shopper's phone">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div
+          key={answer}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}
+          transition={springSnappy}
+        >
+          {answer === "ask" && <p className="ot-claim-q">Shelf 3 saw 1 × {name} leave. Yours?</p>}
+          {answer === "mine" && (
+            <div className="ot-card-row">
+              <span>1 × {name}</span>
+              <span className="num">{usd(price(items, "honey"))}</span>
+            </div>
+          )}
+          {answer === "not" && <p className="ot-claim-q">Left for whoever took it.</p>}
+        </motion.div>
+      </AnimatePresence>
+      <div className="ot-card-actions">
+        {answer === "ask" ? (
+          <>
+            <button type="button" className="in-spec-btn ds-focus" data-primary="" onClick={() => setAnswer("mine")}>
+              Mine
+            </button>
+            <button type="button" className="in-spec-btn ds-focus" onClick={() => setAnswer("not")}>
+              Not mine
+            </button>
+          </>
+        ) : (
+          <button type="button" className="in-spec-btn ds-focus" onClick={() => setAnswer("ask")}>
+            Start again
+          </button>
+        )}
+      </div>
+      <p className="ot-card-note" aria-live="polite">
+        {answer === "mine" ? "Added to this basket. Nobody else can claim it now." : "Nobody is named or tracked."}
+      </p>
+    </div>
+  );
+}
+
+/* The door QR: a new one stops the old one working. */
+function DoorDemo() {
+  const [round, setRound] = useState(1);
+  return (
+    <div className="ot-card" role="group" aria-label="A model of the door QR">
+      <div className="ot-door">
+        <span className="ot-door-code" data-old={round > 1 || undefined} aria-hidden="true">
+          <DrawnCode />
+        </span>
+        <p className="ot-claim-q" aria-live="polite">
+          {round > 1 ? `The old door QR no longer works. Door QR ${round} is the one to print.` : "Door QR 1 checks shoppers in."}
+        </p>
+      </div>
+      <div className="ot-card-actions">
+        <button type="button" className="in-spec-btn ds-focus" onClick={() => setRound((r) => r + 1)}>
+          Make a new door QR
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Nine promises, each with a small working model of what it means. */
 export function TrustBento({
   items,
   unmatched,
@@ -309,9 +436,9 @@ export function TrustBento({
     <ul className="in-bento">
       <Cell area="camera" title="It counts items, not people" demo={<CameraDemo />}>
         <p>
-          The vision model is told to ignore hands and people and to report only products and counts. The stand also
-          looks for a hand or a person, on the device itself, to know when someone has stopped by. Nothing about them
-          is stored or sent: only a daily count goes up by one.
+          The vision model is told to ignore hands and people and to report only products and counts. The shelf camera
+          also looks for a hand or a person, on the device itself, to know when someone has stopped by. Nothing about
+          them is stored or sent: only a daily count goes up by one.
         </p>
         <p className="in-cell-small">The boxes are our drawing. What comes back from the model is ids and counts.</p>
       </Cell>
@@ -326,32 +453,58 @@ export function TrustBento({
           no message to anyone. It can still be paid for {hours} hours, and the owner can mark it settled if someone
           left cash.
         </p>
+        <p>
+          The owner sees unmatched value per shelf. If every line is taken off a bill the camera saw, the visit stays
+          in the figures as unmatched and marked adjusted, so the records add up either way.
+        </p>
       </Cell>
 
       <Cell area="price" title="The server sets every price" demo={<PriceDemo items={items} />}>
         <p>
-          The model is never asked for a price. It names a product and a count; the price comes from the owner’s
-          catalogue and the total is added up in code, to the cent.
+          The model is never asked for a price. It names a product on that shelf and a count; the price comes from the
+          owner&apos;s catalogue and the total is added up in code, to the cent.
         </p>
       </Cell>
 
       <Cell area="fix" title="You can fix the bill" demo={<FixDemo items={items} />}>
         <p>
-          The camera can miscount, so the shopper has the last word before paying. A corrected bill is shown to the
-          owner as adjusted, with what the camera saw beside it.
+          The camera can miscount, so the shopper has the last word before paying, and an item put back comes off the
+          bill. A corrected bill is shown to the owner as adjusted, with what the camera saw beside it.
+        </p>
+      </Cell>
+
+      <Cell area="hold" title="A hold takes only what you took" demo={<HoldDemo items={items} />}>
+        <p>
+          If the shop asks for a hold, PayPal authorises it first. The server captures the basket total, never more
+          than was held, and releases the rest. A hold is also released if the owner settles the visit another way.
+        </p>
+      </Cell>
+
+      <Cell area="claim" title="Several shoppers, each their own basket" demo={<ClaimDemo items={items} />}>
+        <p>
+          Nobody is identified. With one shopper checked in, a shelf change goes to their basket. With several, it
+          shows on their phones and the first to claim it gets it.
+        </p>
+      </Cell>
+
+      <Cell area="door" title="A door QR the owner can cancel" demo={<DoorDemo />}>
+        <p>
+          The door QR checks a shopper in and gives their phone a basket link with a random id. It has no expiry, so
+          the owner can make a new one at any time, and the old one stops working.
         </p>
       </Cell>
 
       <Cell area="paypal" title="PayPal handles the money" demo={<OrderDemo items={items} />}>
         <p>
-          Each bill becomes an itemised PayPal order, and payment and refunds go through PayPal. The stand never sees
-          a card number: Shopsitter keeps PayPal’s order and payment ids and the amount, nothing else.
+          Each bill becomes an itemised PayPal order, and payments, holds and refunds go through PayPal. Shopsitter
+          never sees a card number. Every authorise, capture, release and refund is written to the visit&apos;s money
+          trail.
         </p>
       </Cell>
 
       <Cell area="photos" title="Two photos per change, for the owner’s eyes" demo={<PhotosDemo />}>
         <p>
-          When the shelf changes, the stand stores the photo from before and the one from after, so a bill can be
+          When a shelf changes, its camera stores the photo from before and the one from after, so a bill can be
           checked against the shelf. The close-up sent with them is not kept.
         </p>
       </Cell>

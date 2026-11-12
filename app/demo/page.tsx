@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DemoRunner } from "@/components/DemoRunner";
+import { StoreCard } from "@/components/demo/StoreCard";
 import { ExampleWeek, TrialStart } from "@/components/demo/TrialStart";
 import { Wordmark } from "@/components/Wordmark";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -53,6 +54,7 @@ export default async function DemoPage() {
       <div data-site-nav-after />
       <main className="dm">
         <div className="ds-container dm-stack">
+          <StoreCard />
           <TrialStart initial={trial} />
           <section className="dm-samples-part" aria-label="Sample shelves">
             <DemoRunner samples={samples} />

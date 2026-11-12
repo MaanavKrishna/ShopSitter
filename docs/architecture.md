@@ -12,7 +12,7 @@ work, the server owns every price and every PayPal call, and storage sits behind
  │ hand/person detector  │───────► │   vision model ─► sanitise ─► visit    │            │ capture      │
  │ bill + pay QR         │◄─────── │ /api/stand/angle, /check, /presence    │            │ authorize    │
  └──────────────────────┘  visit   │                                       │            │ void, refund │
- Extra camera (browser) ──stills─► │ /api/visits/[id]/* ─► lib/checkout.ts ─┼──────────► │              │
+ Extra camera, CCTV bridge ─stills► │ /api/visits/[id]/* ─► lib/checkout.ts ─┼──────────► │              │
  Shopper phone                     │ /api/session/*     ─► lib/sessions.ts ─┼──────────► │              │
    /pay/[visitId], /basket/[id] ──►│ /api/owner/*       ─► lib/owner.ts,    │            └──────────────┘
  Owner browser                     │                      catalogue, store, │            ┌──────────────┐
@@ -122,6 +122,7 @@ Every row and stored key belongs to one shop: `live` (the owner's stand: passcod
 | Ask your stand | `lib/ask.ts`, `lib/ask-model.ts`, `lib/paypal-read.ts` |
 | Access and limits | `lib/auth.ts`, `lib/stand-access.ts`, `lib/stand-key.ts`, `lib/owner-http.ts`, `lib/trials.ts` |
 | Storage | `lib/repo.ts`, `lib/repo-file.ts`, `lib/repo-postgres.ts` |
+| Camera bridge (CCTV, webcams, video files) | `bridge/` : one ffmpeg process per camera crops each shelf rectangle, the same detector as the browser decides when to read, and it posts to `/api/stand/change` |
 
 ## Operations
 

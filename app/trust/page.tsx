@@ -11,15 +11,15 @@ import "../inner.css";
 export const metadata: Metadata = {
   title: "Trust",
   description:
-    "What Shopsitter’s camera looks at, what it stores and who can see it. It counts items, not people, never accuses anyone, and leaves the money to PayPal.",
+    "What Shopsitter’s shelf cameras look at, what it stores and who can see it. It counts items, not people, never accuses anyone, holds only what it may capture, and leaves the money to PayPal.",
 };
 
 const STORED = [
   {
     what: "Two shelf photos per change",
-    detail: "The shelf before and after, each time it changes.",
+    detail: "That shelf before and after, each time it changes.",
     why: "So the owner can check a bill against the shelf.",
-    who: "The signed-in owner of that stand. They are also sent to the vision model’s provider to be read.",
+    who: "The signed-in owner of that store. They are also sent to the vision model’s provider to be read.",
   },
   {
     what: "The close-up of what changed",
@@ -29,15 +29,33 @@ const STORED = [
   },
   {
     what: "Stills from extra cameras",
-    detail: "Only if more phones are set up. The newest still and the one from the last read, each replaced by the next.",
+    detail: "Only if more phones watch a shelf. The newest still and the one from the last read, each replaced by the next.",
     why: "To see items the main camera cannot.",
     who: "Kept behind the owner’s sign-in and sent with the read. The dashboard does not show them.",
   },
   {
     what: "The visit",
-    detail: "Items and counts, status, times, and how sure the model was.",
+    detail: "Items and counts, which shelf, status, times, and how sure the model was. An adjusted bill keeps what the camera saw beside it.",
     why: "It is the bill, and the owner’s record of it.",
-    who: "The owner. Anyone holding that visit’s pay link sees that one bill.",
+    who: "The owner. Anyone holding that visit’s link sees that one bill: lines, total, payment state and receipt reference.",
+  },
+  {
+    what: "A session id",
+    detail: "100 random bits, in the link of a shopper’s basket after they check in at the door.",
+    why: "It is the only thing a shopper holds. It opens one basket.",
+    who: "Whoever has the link. It also shows changes in that shop nobody has claimed since they checked in, so they can claim their own.",
+  },
+  {
+    what: "The door code",
+    detail: "Signed into the door QR: which store, which door, and a number the owner moves on to cancel it.",
+    why: "To check shoppers in. It cannot be used as a camera key, or the other way round.",
+    who: "Anyone who scans the printed QR.",
+  },
+  {
+    what: "Holds and the money trail",
+    detail: "The amount PayPal authorised, the amount captured, and each authorise, capture, release and refund, in order.",
+    why: "To charge no more than was held, release the rest, and show where every cent went.",
+    who: "The owner.",
   },
   {
     what: "PayPal’s references",
@@ -52,15 +70,15 @@ const STORED = [
     who: "The owner.",
   },
   {
-    what: "The catalogue",
-    detail: "Names, prices, a short description and an optional photo of each product.",
+    what: "The store and its catalogue",
+    detail: "Shelves and aisles, pay settings, and each product’s name, price, shelf, short description and optional photo.",
     why: "Prices for the bill; descriptions and photos so the model knows what is what.",
     who: "The owner. Names and prices appear on the bill.",
   },
   {
     what: "Sign-in",
-    detail: "A signed cookie saying which stand’s dashboard this browser may open. The stand code, or a trial stand’s key, is remembered on the stand’s own phone.",
-    why: "To keep the dashboard and the stand to their owner.",
+    detail: "A signed cookie saying which store’s dashboard this browser may open. Each camera remembers its code, or a trial store’s key.",
+    why: "To keep the dashboard and the cameras to their owner.",
     who: "Only that browser. There are no personal accounts and no email addresses.",
   },
 ];
@@ -68,12 +86,27 @@ const STORED = [
 const LIMITS = [
   [
     "A shelf photo is still a photo",
-    "If someone is in front of the shelf at the moment it goes still, part of them can be in the picture. The model is told to ignore them, and only the signed-in owner can open it.",
+    "If someone is in front of the shelf when it goes still, part of them can be in the picture. The model is told to ignore them, and only the signed-in owner can open it.",
   ],
-  ["Photos leave the stand to be read", "The before and after photos go to the vision model’s provider for each read."],
-  ["Only trial stands are deleted on a schedule", "A trial and everything in it goes after 24 hours. Any other stand’s photos and visits stay until it is reset."],
-  ["One passcode per stand", "The dashboard opens with a shared passcode, not a personal account. A trial stand has none: it belongs to the browser that started it."],
-  ["It can miscount", "One shelf, about six products that look different from each other, and good light."],
+  ["Photos leave the shop to be read", "The before and after photos go to the vision model’s provider for each read."],
+  [
+    "Rate limits are per server instance",
+    "They are counted in memory on each instance, so on serverless hosting the real ceilings are higher than the configured numbers and reset on a cold start.",
+  ],
+  [
+    "The door QR does not expire",
+    "Making a new one is how it is cancelled. Someone holding a valid door code can check in from anywhere.",
+  ],
+  ["One passcode per store", "The dashboard opens with a shared passcode, not a personal account. There are no roles."],
+  [
+    "Little runs on a schedule",
+    "A trial store is deleted the next time it is touched after its day is up; the demo store resets at most hourly when opened. Any other store keeps its data until it is deleted by hand.",
+  ],
+  [
+    "It can miscount",
+    "Products on a shelf should look different from each other, the light should be reasonable, and several shoppers at once rely on people claiming their own items.",
+  ],
+  ["One shared sandbox account", "Every store here uses the same PayPal sandbox merchant, so the question box gives PayPal lookups carefully: trial stores get none."],
   ["PayPal sandbox only", "It is a prototype. Payments run in PayPal’s test environment and no real money moves."],
 ];
 
@@ -93,8 +126,8 @@ export default async function Trust() {
               not people
             </h1>
             <p className="ds-lead">
-              A camera at an unattended stand has to earn its place. These are the rules Shopsitter keeps, each one
-              shown working, then exactly what it stores and who can see it.
+              Cameras in an unattended shop have to earn their place. These are the rules Shopsitter keeps, each one
+              shown working as a small model, then exactly what it stores and who can see it.
             </p>
           </div>
         </header>
@@ -171,19 +204,19 @@ export default async function Trust() {
               Check it yourself
             </h2>
             <p className="ds-lead">
-              Run a visit on a trial stand of your own, then open its dashboard and see what was kept. A trial and
+              Run a visit in a trial store of your own, then open its dashboard and see what was kept. A trial and
               everything in it is deleted after 24 hours.
             </p>
             <div className="in-close-actions">
               <NextLink href="/demo" className="in-btn in-btn-coral ds-focus">
-                Run your own stand
+                Run your own
               </NextLink>
-              <NextLink href="/owner/login" className="in-btn in-btn-ghost ds-focus">
-                Open the demo dashboard
+              <NextLink href="/demo/store" className="in-btn in-btn-ghost ds-focus">
+                Watch a whole store run
               </NextLink>
             </div>
             <p className="in-close-note">
-              The demo dashboard’s passcode is <strong>demo</strong>.
+              Or open the <NextLink href="/owner/login">demo dashboard</NextLink> with the passcode <strong>demo</strong>.
             </p>
           </div>
         </section>

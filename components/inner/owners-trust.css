@@ -1,0 +1,355 @@
+/* Small models on /owners and /trust: the suggested hold, shelf tiles, cameras, and the newer trust cells. */
+
+.ot-model-tag {
+  margin: 0 0 var(--s-3);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* Suggested hold */
+.ot-hold {
+  padding: var(--s-5);
+  border: var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--e-1);
+}
+
+.ot-hold-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: var(--t-ui);
+  color: var(--ink-soft);
+}
+
+.ot-hold-fig {
+  display: inline-block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+}
+
+.ot-axis {
+  position: relative;
+  height: 40px;
+  margin: var(--s-4) 0 var(--s-2);
+  border-bottom: var(--hairline);
+}
+
+.ot-band {
+  position: absolute;
+  top: 6px;
+  bottom: 0;
+  border-radius: var(--r-xs) var(--r-xs) 0 0;
+  background: var(--tint);
+}
+
+.ot-dot {
+  position: absolute;
+  bottom: 8px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background-color var(--dur-fast) ease;
+}
+
+.ot-dot[data-in] {
+  background: var(--blue);
+}
+
+.ot-mark {
+  position: absolute;
+  top: 0;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--paypal);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+.ot-hold-note {
+  min-height: 2.6em;
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.ot-hold-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  margin: var(--s-3) 0 var(--s-4);
+  font-size: var(--t-ui);
+}
+
+.ot-hold-controls label {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: space-between;
+  min-width: 9.5em;
+}
+
+.ot-hold-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--blue);
+  border-radius: var(--r-pill);
+}
+
+/* Shelf tiles */
+.ot-shelves ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--s-3);
+}
+
+.ot-shelf {
+  display: grid;
+  gap: var(--s-1);
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    var(--e-1);
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  transition: transform var(--dur-press) ease-out;
+}
+
+.ot-shelf:active {
+  transform: scale(0.97);
+}
+
+.ot-shelf[data-look] {
+  box-shadow:
+    inset 3px 0 0 var(--coral),
+    inset 0 0 0 1px var(--line),
+    var(--e-1);
+}
+
+.ot-shelf-aisle {
+  font-size: var(--t-xs);
+  color: var(--ink-soft);
+}
+
+.ot-shelf-name {
+  font-size: var(--t-ui);
+  font-weight: 600;
+}
+
+.ot-shelf-fig,
+.ot-shelf-more {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px var(--s-2);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.ot-shelf[data-look] .ot-shelf-fig .num {
+  color: var(--coral-text);
+  font-weight: 600;
+}
+
+.ot-shelf-more {
+  overflow: hidden;
+}
+
+.ot-shelf-qr {
+  flex-basis: 100%;
+  color: var(--blue);
+}
+
+/* Cameras */
+.ot-cams {
+  list-style: none;
+  margin: var(--s-6) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-4);
+}
+
+@media (min-width: 760px) {
+  .ot-cams {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ot-cams > li {
+  padding: var(--s-5);
+  border: var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--e-1);
+}
+
+.ot-cams h3 {
+  margin-top: var(--s-3);
+  font-family: var(--font-display), sans-serif;
+  font-size: var(--t-h3);
+  font-weight: 700;
+  letter-spacing: var(--track-heading);
+}
+
+.ot-cams p {
+  margin-top: var(--s-2);
+  font-size: 0.9375rem;
+  line-height: var(--lead-body);
+  color: var(--ink-soft);
+}
+
+.ot-cam-state {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: var(--yellow-tint);
+  color: var(--yellow-text);
+  font-size: var(--t-xs);
+  font-weight: 600;
+}
+
+.ot-cam-state[data-now] {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* Trust: the newer cells in the bento */
+@media (min-width: 1080px) {
+  .in-cell[data-area="hold"],
+  .in-cell[data-area="claim"],
+  .in-cell[data-area="door"] {
+    grid-column: span 2;
+  }
+}
+
+.ot-card {
+  width: 100%;
+  max-width: 340px;
+  padding: var(--s-4);
+  border: var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--e-2);
+  font-size: var(--t-ui);
+}
+
+.ot-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-block: 4px;
+}
+
+.ot-card-row .num {
+  font-weight: 600;
+}
+
+.ot-meter {
+  position: relative;
+  height: 10px;
+  margin: var(--s-3) 0;
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+
+.ot-meter > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  border-radius: var(--r-pill);
+  transform-origin: left center;
+}
+
+.ot-meter-held {
+  background: var(--yellow-tint);
+}
+
+.ot-meter-used {
+  background: var(--blue);
+}
+
+.ot-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+.ot-card-actions .in-spec-btn {
+  min-height: 40px;
+  padding: 0 var(--s-3);
+}
+
+.ot-card-actions .in-spec-btn[data-primary] {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: var(--e-1);
+}
+
+.ot-card-note {
+  margin-top: var(--s-2);
+  min-height: 2.6em;
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
+}
+
+.ot-claim-q {
+  font-weight: 600;
+}
+
+.ot-door {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--s-4);
+  align-items: center;
+}
+
+.ot-door-code {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  color: var(--ink);
+}
+
+.ot-door-code svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ot-door-code[data-old] {
+  color: var(--line);
+}
+
+.ot-door-code[data-old]::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 50%;
+  height: 2px;
+  background: var(--coral);
+  transform: rotate(-35deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ot-shelf:active {
+    transform: none;
+  }
+}

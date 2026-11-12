@@ -36,6 +36,9 @@ export type CameraPhase = "starting" | "watching" | "moving";
 
 type Rect = { x: number; y: number; w: number; h: number };
 
+/** Where the webcam chosen for a shelf is remembered on this device. */
+const deviceKey = (shelf: string) => `shopsitter-camera-${shelf}`;
+
 /**
  * Watches the shelf through the camera. When something changes and the shelf goes still,
  * calls onChange with a photo from before and after, plus close-ups of the changed area.
@@ -51,6 +54,7 @@ export function StandCamera({
   onVisitorLeft,
   onProblem,
   problemShown = false,
+  cameraFor = "store",
 }: {
   onChange: (change: ShelfChange) => void;
   /** Tells the page whether the shelf is still or something is moving, so it can say so. */
@@ -69,6 +73,8 @@ export function StandCamera({
   onProblem?: (problem: string | null) => void;
   /** The page shows the reason itself, so this only marks the camera as off. */
   problemShown?: boolean;
+  /** The shelf this camera watches, so a computer with several webcams remembers which one each shelf uses. */
+  cameraFor?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onChangeRef = useRef(onChange);
@@ -82,6 +88,11 @@ export function StandCamera({
   const [problem, setProblem] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(true);
   const onProblemRef = useRef(onProblem);
+  // The webcams this device has, once the camera is allowed, and the one chosen for this shelf.
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [deviceId, setDeviceId] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : window.localStorage.getItem(deviceKey(cameraFor)),
+  );
 
   useEffect(() => {
     onProblemRef.current = onProblem;
@@ -149,9 +160,16 @@ export function StandCamera({
         setProblem("This browser can't use the camera here. Open the stand page over https.");
         return;
       }
+      const size = { width: { ideal: 1920 }, height: { ideal: 1080 } };
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        // The chosen webcam if it is still there, else the rear camera as before.
+        stream = deviceId
+          ? await navigator.mediaDevices
+              .getUserMedia({ video: { deviceId: { exact: deviceId }, ...size }, audio: false })
+              .catch(() => null)
+          : null;
+        stream ??= await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, ...size },
           audio: false,
         });
       } catch {
@@ -159,6 +177,10 @@ export function StandCamera({
         return;
       }
       if (stopped) return stream.getTracks().forEach((t) => t.stop());
+      void navigator.mediaDevices
+        .enumerateDevices()
+        .then((all) => !stopped && setDevices(all.filter((d) => d.kind === "videoinput" && d.deviceId)))
+        .catch(() => {});
       const video = videoRef.current!;
       video.srcObject = stream;
       await video.play();
@@ -281,7 +303,7 @@ export function StandCamera({
       people?.close();
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [deviceId]);
 
   if (problem && problemShown) return <p className="sd-cam-off">Camera off</p>;
 
@@ -302,6 +324,27 @@ export function StandCamera({
       <button type="button" onClick={() => setShowPreview((v) => !v)}>
         {showPreview ? "Hide camera view" : "Show camera view"}
       </button>
+      {devices.length > 1 && (
+        <label className="sd-cam-pick">
+          <span>Camera</span>
+          <select
+            value={deviceId && devices.some((d) => d.deviceId === deviceId) ? deviceId : ""}
+            onChange={(e) => {
+              const id = e.target.value || null;
+              if (id) window.localStorage.setItem(deviceKey(cameraFor), id);
+              else window.localStorage.removeItem(deviceKey(cameraFor));
+              setDeviceId(id);
+            }}
+          >
+            <option value="">Default</option>
+            {devices.map((d, i) => (
+              <option key={d.deviceId} value={d.deviceId}>
+                {d.label || `Camera ${i + 1}`}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
     </div>
   );
 }

@@ -60,6 +60,8 @@ orders, and only the real store may list the account's transactions (which inclu
 
 ## Privacy
 
+- With the camera bridge, only each shelf's rectangle of a CCTV picture is sent; the full frame never leaves the
+  building.
 - The camera is pointed at a shelf. What is stored: the before and after shelf photos of a change, visible only to
   the signed-in owner of that store.
 - The hand and person detector runs in the stand's browser. Nothing it sees is stored or sent; only a daily count
